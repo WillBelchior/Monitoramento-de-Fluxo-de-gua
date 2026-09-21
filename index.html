@@ -24,6 +24,8 @@
 .timeline-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.timeline-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.timeline-actions select{border:1px solid #dce2e8;border-radius:8px;padding:7px;background:white}.range-row{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center}.range-row input[type=range]{width:100%;accent-color:#f0a52b}
 .quick-worker{display:flex;flex-wrap:wrap;gap:8px}.quick-worker button{border:1px solid #dfe5eb;background:white;border-radius:10px;padding:10px 12px;cursor:pointer;font-weight:700}.quick-worker button small{display:block;color:#84909c;font-weight:500}
 .fab{position:fixed;right:18px;bottom:78px;width:54px;height:54px;border-radius:50%;border:0;background:#f0a52b;color:#172030;font-size:26px;font-weight:900;box-shadow:0 10px 24px #17203033;z-index:30;cursor:pointer}
+.share-banner{background:#eef6ff;border:1px solid #cfe0f6;border-radius:12px;padding:12px;display:flex;justify-content:space-between;gap:12px;align-items:center}
+.readonly{pointer-events:none;opacity:.85}.public-wrap{max-width:980px;margin:auto;padding:18px}.public-head{background:#172030;color:#fff;border-radius:16px;padding:18px;margin-bottom:14px}.public-head small{color:#c9d3df}
 @media(max-width:900px){.grid4{grid-template-columns:1fr 1fr}.two{grid-template-columns:1fr}.report{grid-template-columns:1fr 1fr}.quick{grid-template-columns:1fr 1fr}}
 @media(max-width:700px){.metrics-float{top:70px;grid-template-columns:1fr 1fr}.side{transform:translateX(-105%);transition:.2s;width:250px}.side.open{transform:translateX(0)}.main{margin-left:0;padding-bottom:65px}.top{height:64px;padding:0 12px}.menu{display:inline-block;border:0;background:transparent;font-size:20px}.content{padding:12px}.grid4{grid-template-columns:1fr 1fr;gap:9px}.card{padding:12px}.kanban{grid-template-columns:repeat(4,250px)}.form{grid-template-columns:1fr}.field.full{grid-column:1}.bottom{position:fixed;bottom:0;left:0;right:0;height:60px;background:white;border-top:1px solid #e2e6eb;display:flex;justify-content:space-around;z-index:15}.bottom button{border:0;background:transparent;font-size:10px;color:#788594}.bottom button.active{color:#172030;font-weight:700}.toolbar input{min-width:0;width:100%}.report{grid-template-columns:1fr 1fr}}
 @media(max-width:420px){.grid4,.report{grid-template-columns:1fr}.top h1{font-size:16px}.top small{display:none}.top select{max-width:130px}}
@@ -54,6 +56,30 @@ const obra=()=>data.obras.find(x=>x.id===obraId)||data.obras[0];
 const esc=s=>String(s??'').replace(/[&<>'"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[m]));
 function status(s){const c=s==='Concluída'||s==='Recebido'?'done':s==='Em andamento'?'run':s==='Atrasada'?'late':'';return `<span class="status ${c}">${esc(s)}</span>`}
 function uniq(a){return [...new Set(a.filter(Boolean).map(v=>String(v).trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR'))}
+function placeholderFor(key,label){
+  const map={
+    nome:'Ex.: Reforma da Padaria Central',
+    cliente:'Ex.: João / Empresa XYZ',
+    endereco:'Ex.: Maranguape - CE',
+    codigo:'Ex.: MAT-001',
+    categoria:'Ex.: Elétrica, Alvenaria, Hidráulica',
+    descricao:'Ex.: Cimento CP II 50 kg',
+    unidade:'Ex.: un, m, m², saco',
+    fornecedor:'Ex.: Depósito São José',
+    funcao:'Ex.: Pedreiro, Eletricista, Servente',
+    atividade:'Ex.: Levantar parede do setor A',
+    etapa:'Ex.: Fundação, Estrutura, Acabamento',
+    responsavel:'Ex.: João da Silva',
+    atividades_realizadas:'Descreva resumidamente o que foi executado',
+    equipe_presente:'Ex.: João, Carlos e Pedro',
+    observacoes:'Observações importantes da atividade',
+    orcamento_geral:'Ex.: 25000',
+    valor_base:'Ex.: 180',
+    valor_refeicao:'Ex.: 25',
+    transporte_outros:'Ex.: 20'
+  };
+  return map[key]||('Digite '+String(label||'').toLowerCase());
+}
 function smart(kind){
   const map={
     cliente:()=>uniq(data.obras.map(x=>x.cliente)),
@@ -71,6 +97,25 @@ function smart(kind){
 function setBusy(v){loading=v;document.body.style.cursor=v?'progress':''}
 function toast(msg,err=false){let n=document.querySelector('#toast');if(!n){n=document.createElement('div');n.id='toast';Object.assign(n.style,{position:'fixed',right:'16px',bottom:'78px',zIndex:100,padding:'12px 14px',borderRadius:'10px',maxWidth:'360px',boxShadow:'0 8px 30px #0002',font:'600 13px system-ui'});document.body.appendChild(n)}n.textContent=msg;n.style.background=err?'#ffe8e8':'#eaf7f1';n.style.color=err?'#a02c2c':'#21694a';n.style.display='block';clearTimeout(n._t);n._t=setTimeout(()=>n.style.display='none',3500)}
 
+async function renderPublicShare(token){
+  document.querySelector('.shell').style.display='none';
+  const {data:shared,error}=await supabase.rpc('get_cronograma_compartilhado',{p_token:token});
+  let el=document.querySelector('#publicShare');
+  if(!el){el=document.createElement('div');el.id='publicShare';document.body.appendChild(el)}
+  if(error||!shared){el.innerHTML='<div class="public-wrap"><section class="panel"><div class="empty">Link inválido ou compartilhamento desativado.</div></section></div>';return}
+  const o=shared.obra||{},t=shared.atividades||[];
+  const prog=t.length?Math.round(t.reduce((s,x)=>s+(+x.percentual_concluido||0),0)/t.length):0;
+  const late=t.filter(x=>x.fim_previsto&&x.fim_previsto<today&&x.status!=='Concluída').length;
+  const etapas=[...new Set(t.map(x=>x.etapa||'Sem etapa'))];
+  el.innerHTML=`<div class="public-wrap">
+    <div class="public-head"><small>ACOMPANHAMENTO DA OBRA</small><h2 style="margin:4px 0">${esc(o.nome||'Obra')}</h2><div>${esc(o.cliente||'')} • ${date(o.data_inicio_prevista)} → ${date(o.data_fim_prevista)}</div></div>
+    <div class="grid4">${card('Evolução',prog+'%')}${card('Atividades',String(t.length))}${card('Atrasadas',String(late))}${card('Status',esc(o.status||'—'))}</div>
+    <section class="panel"><div class="panel-head"><h2>Etapas</h2><span class="status">Somente leitura</span></div>
+    ${etapas.length?etapas.map(e=>{const a=t.filter(x=>(x.etapa||'Sem etapa')===e),p=Math.round(a.reduce((s,x)=>s+(+x.percentual_concluido||0),0)/a.length);return `<div class="row"><div style="flex:1"><b>${esc(e)}</b><div class="progress"><i style="width:${p}%"></i></div></div><b>${p}%</b></div>`}).join(''):empty('Nenhuma etapa cadastrada.')}</section>
+    <section class="panel"><div class="panel-head"><h2>Cronograma</h2></div>
+    ${t.length?t.map(x=>`<div class="timeline-card"><div class="timeline-top"><div><small>${esc(x.etapa||'')}</small><b>${esc(x.atividade)}</b><small>${esc(x.responsavel||'')} • ${date(x.inicio_previsto)} → ${date(x.fim_previsto)}</small></div>${status(x.fim_previsto&&x.fim_previsto<today&&x.status!=='Concluída'?'Atrasada':x.status)}</div><div class="range-row"><div class="progress"><i style="width:${x.percentual_concluido}%"></i></div><b>${x.percentual_concluido}%</b></div></div>`).join(''):empty('Nenhuma atividade cadastrada.')}</section>
+  </div>`;
+}
 function authScreen(message=''){
   document.querySelector('.shell').style.display='none';
   let el=document.querySelector('#auth');
@@ -228,7 +273,7 @@ function cronograma(){
           <h2 style="font-size:18px;margin-top:3px">${esc(current?.nome||'')}</h2>
           <small>${esc(current?.cliente||'')} • ${date(current?.data_inicio_prevista)} → ${date(current?.data_fim_prevista)}</small>
         </div>
-        <button class="btn primary" id="add">+ Atividade</button>
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn secondary" id="shareSchedule">🔗 Compartilhar</button><button class="btn primary" id="add">+ Atividade</button></div>
       </div>
     </section>
 
@@ -283,6 +328,15 @@ function cronograma(){
 
   document.querySelector('#add').onclick=add;
   document.querySelector('#fabAdd').onclick=add;
+  document.querySelector('#shareSchedule').onclick=async()=>{
+    const {data:token,error}=await supabase.rpc('criar_compartilhamento_cronograma',{p_obra_id:obraId});
+    if(error)return toast(error.message,true);
+    const url=location.origin+location.pathname+'?share='+encodeURIComponent(token);
+    try{
+      if(navigator.share){await navigator.share({title:'Cronograma - '+(current?.nome||'Obra'),text:'Acompanhe o cronograma desta obra:',url});}
+      else{await navigator.clipboard.writeText(url);toast('Link copiado!');}
+    }catch(e){if(e?.name!=='AbortError'){await navigator.clipboard.writeText(url);toast('Link copiado!');}}
+  };
 
   const saveProgress=async(id,val)=>{
     val=Math.max(0,Math.min(100,+val||0));
@@ -313,22 +367,27 @@ function openForm(title,fields,onSave){
   const f=document.querySelector('#modalForm');
   f.innerHTML=fields.map(([k,l,t,o],i)=>{
     if(t==='select')return `<label class="field"><span>${l}</span><select name="${k}">${o.map(x=>typeof x==='string'? `<option>${esc(x)}</option>`:`<option value="${esc(x.value)}">${esc(x.label)}</option>`).join('')}</select></label>`;
-    if(t==='textarea')return `<label class="field full"><span>${l}</span><textarea name="${k}" rows="3"></textarea></label>`;
+    if(t==='textarea')return `<label class="field full"><span>${l}</span><textarea name="${k}" rows="3" placeholder="${esc(placeholderFor(k,l))}"></textarea></label>`;
     if(t==='smart'){
       const opts=smart(o),id='dl_'+k+'_'+i;
-      return `<label class="field"><span>${l}</span><input name="${k}" list="${id}" autocomplete="off"><datalist id="${id}">${opts.map(v=>`<option value="${esc(v)}"></option>`).join('')}</datalist>${opts.length?`<small>${opts.length} opção(ões) já cadastrada(s)</small>`:''}</label>`;
+      return `<label class="field"><span>${l}</span><input name="${k}" list="${id}" autocomplete="off" placeholder="${esc(placeholderFor(k,l))}"><datalist id="${id}">${opts.map(v=>`<option value="${esc(v)}"></option>`).join('')}</datalist>${opts.length?`<small>${opts.length} opção(ões) já cadastrada(s)</small>`:''}</label>`;
     }
-    return `<label class="field"><span>${l}</span><input name="${k}" type="${t}" step="${t==='number'?'0.01':'any'}" ${t==='date'&&k==='data'?`value="${today}"`:''}></label>`;
+    return `<label class="field"><span>${l}</span><input name="${k}" type="${t}" step="${t==='number'?'0.01':'any'}" placeholder="${esc(placeholderFor(k,l))}" ${t==='date'&&k==='data'?`value="${today}"`:''}></label>`;
   }).join('')+`<button class="btn primary" style="grid-column:1/-1">Salvar</button>`;
   f.onsubmit=async e=>{e.preventDefault();try{setBusy(true);await onSave(Object.fromEntries(new FormData(f).entries()));closeModal();await loadData();toast('Salvo!')}catch(err){toast(err.message||String(err),true)}finally{setBusy(false)}};
   document.querySelector('#modal').classList.add('open')
 }
 window.closeModal=()=>document.querySelector('#modal').classList.remove('open');
 
-initNav();
-const {data:{session:initialSession}}=await supabase.auth.getSession();session=initialSession;
-if(session){showApp();await loadData();subscribeRealtime()}else authScreen();
-supabase.auth.onAuthStateChange(async(_event,s)=>{session=s;if(session){showApp();await loadData();subscribeRealtime()}else{if(channel){supabase.removeChannel(channel);channel=null}authScreen()}});
+const shareToken=new URLSearchParams(location.search).get('share');
+if(shareToken){
+  await renderPublicShare(shareToken);
+}else{
+  initNav();
+  const {data:{session:initialSession}}=await supabase.auth.getSession();session=initialSession;
+  if(session){showApp();await loadData();subscribeRealtime()}else authScreen();
+}
+if(!shareToken){supabase.auth.onAuthStateChange(async(_event,s)=>{session=s;if(session){showApp();await loadData();subscribeRealtime()}else{if(channel){supabase.removeChannel(channel);channel=null}authScreen()}});}
 
 </script>
 
