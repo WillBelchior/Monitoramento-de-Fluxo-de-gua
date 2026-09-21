@@ -61,9 +61,9 @@ function smart(kind){
     categoria:()=>uniq(data.materiais.map(x=>x.categoria)),
     unidade:()=>uniq(data.materiais.map(x=>x.unidade)),
     fornecedor:()=>uniq(data.materiais.map(x=>x.fornecedor)),
-    etapa:()=>uniq(data.tarefas.map(x=>x.etapa).concat(data.diario.map(x=>x.etapa))),
-    responsavel:()=>uniq(data.trabalhadores.map(x=>x.nome).concat(data.tarefas.map(x=>x.responsavel))),
-    atividade:()=>uniq(data.tarefas.map(x=>x.atividade).concat(data.mao.map(x=>x.atividade))),
+    etapa:()=>uniq(byObra('tarefas').map(x=>x.etapa).concat(byObra('diario').map(x=>x.etapa))),
+    responsavel:()=>uniq(byObra('trabalhadores').map(x=>x.nome).concat(byObra('tarefas').map(x=>x.responsavel))),
+    atividade:()=>uniq(byObra('tarefas').map(x=>x.atividade).concat(byObra('mao').map(x=>x.atividade))),
     funcao:()=>uniq(data.trabalhadores.map(x=>x.funcao))
   };
   return map[kind]?map[kind]():[];
@@ -98,6 +98,8 @@ async function loadData(){if(!session)return;setBusy(true);const qs=await Promis
 function subscribeRealtime(){if(channel)supabase.removeChannel(channel);channel=supabase.channel('obra-facil-live');['obras','materiais','trabalhadores','mao_obra_registros','atividades','diario_obra'].forEach(table=>{channel.on('postgres_changes',{event:'*',schema:'public',table},()=>loadData())});channel.subscribe()}
 
 function initNav(){const n=document.querySelector('#nav'),b=document.querySelector('#bottom');n.innerHTML=pages.map(([k,l,i])=>`<button data-p="${k}">${i} ${l}</button>`).join('')+`<button id="logout">🚪 Sair</button>`;b.innerHTML=pages.slice(0,5).map(([k,l,i])=>`<button data-p="${k}">${i}<br>${l}</button>`).join('');document.querySelectorAll('[data-p]').forEach(x=>x.onclick=()=>{page=x.dataset.p;document.querySelector('#side').classList.remove('open');render()});document.querySelector('#menu').onclick=()=>document.querySelector('#side').classList.toggle('open');document.querySelector('#logout').onclick=()=>supabase.auth.signOut()}
+function openObraPage(id,target='dashboard'){obraId=id;page=target;render()}
+window.openObraPage=openObraPage;
 function render(){showApp();document.querySelectorAll('[data-p]').forEach(x=>x.classList.toggle('active',x.dataset.p===page));document.querySelector('#title').textContent=pages.find(x=>x[0]===page)?.[1]||'';document.querySelector('#subtitle').textContent=obra()?.nome||'Cadastre uma obra';const s=document.querySelector('#obraSelect');s.innerHTML=data.obras.length?data.obras.map(o=>`<option value="${o.id}" ${o.id===obraId?'selected':''}>${esc(o.nome)}</option>`).join(''):'<option>Sem obras</option>';s.disabled=!data.obras.length;s.onchange=e=>{obraId=e.target.value;render()};({dashboard,obras,materiais,mao,cronograma,diario,kanban,relatorios}[page]||dashboard)()}
 function card(t,v,sub=''){return `<div class="card"><span>${t}</span><b>${v}</b>${sub?`<small>${sub}</small>`:''}</div>`}
 function empty(msg){return `<div class="empty">${msg}</div>`}
@@ -153,7 +155,39 @@ function dashboard(){
     </div>`;
   document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{page=b.dataset.go;render()});
 }
-async function obras(){document.querySelector('#app').innerHTML=`<section class="panel"><div class="panel-head"><h2>Suas obras</h2><button class="btn primary" id="add">+ Nova obra</button></div>${data.obras.length?data.obras.map(o=>`<div class="row"><div><b>${esc(o.nome)}</b><small>${esc(o.cliente||'Sem cliente')} • ${esc(o.endereco||'Sem local')} • ${date(o.data_inicio_prevista)} → ${date(o.data_fim_prevista)}</small></div><div>${status(o.status)} <b>${money(o.orcamento_geral)}</b></div></div>`).join(''):empty('Nenhuma obra cadastrada.')}</section>`;document.querySelector('#add').onclick=()=>openForm('Nova obra',[['nome','Nome da obra','text'],['cliente','Cliente','smart','cliente'],['endereco','Local / endereço','smart','endereco'],['data_inicio_prevista','Início','date'],['data_fim_prevista','Conclusão','date'],['orcamento_geral','Orçamento geral','number'],['status','Status','select',['Planejamento','Em execução','Pausada','Concluída']]],async v=>{v.orcamento_geral=+v.orcamento_geral||0;const {data:d,error}=await supabase.from('obras').insert(v).select().single();if(error)throw error;obraId=d.id})}
+async function obras(){
+  document.querySelector('#app').innerHTML=`
+    <section class="panel">
+      <div class="panel-head"><h2>Suas obras</h2><button class="btn primary" id="add">+ Nova obra</button></div>
+      ${data.obras.length?data.obras.map(o=>{
+        const tarefas=data.tarefas.filter(x=>x.obra_id===o.id);
+        const p=tarefas.length?Math.round(tarefas.reduce((s,x)=>s+(+x.percentual_concluido||0),0)/tarefas.length):0;
+        const atrasadas=tarefas.filter(x=>x.fim_previsto&&x.fim_previsto<today&&x.status!=='Concluída').length;
+        return `<div class="timeline-card">
+          <div class="timeline-top">
+            <div>
+              <b>${esc(o.nome)}</b>
+              <small>${esc(o.cliente||'Sem cliente')} • ${esc(o.endereco||'Sem local')}</small>
+            </div>
+            ${status(o.status)}
+          </div>
+          <div class="range-row">
+            <div class="progress"><i style="width:${p}%"></i></div><b>${p}%</b>
+          </div>
+          <div class="timeline-actions">
+            <button class="btn primary" onclick="openObraPage('${o.id}','cronograma')">📅 Cronograma</button>
+            <button class="btn secondary" onclick="openObraPage('${o.id}','dashboard')">📊 Painel</button>
+            <button class="btn secondary" onclick="openObraPage('${o.id}','materiais')">📦 Materiais</button>
+            <span class="status ${atrasadas?'late':''}">${atrasadas} atraso(s)</span>
+          </div>
+        </div>`
+      }).join(''):empty('Nenhuma obra cadastrada.')}
+    </section>`;
+  document.querySelector('#add').onclick=()=>openForm('Nova obra',
+    [['nome','Nome da obra','text'],['cliente','Cliente','smart','cliente'],['endereco','Local / endereço','smart','endereco'],['data_inicio_prevista','Início','date'],['data_fim_prevista','Conclusão','date'],['orcamento_geral','Orçamento geral','number'],['status','Status','select',['Planejamento','Em execução','Pausada','Concluída']]],
+    async v=>{v.orcamento_geral=+v.orcamento_geral||0;const {data:d,error}=await supabase.from('obras').insert(v).select().single();if(error)throw error;obraId=d.id}
+  )
+}
 function materiais(){if(needObra())return;const rows=byObra('materiais');document.querySelector('#app').innerHTML=`<section class="panel"><div class="panel-head"><h2>Lista de materiais</h2><button class="btn primary" id="add">+ Material</button></div><div class="table"><table><thead><tr><th>Material</th><th>Categoria</th><th>Previsto</th><th>Comprado</th><th>Orçado</th><th>Real</th><th>Status</th></tr></thead><tbody>${rows.map(x=>{const p=(+x.qtd_prevista||0)*(+x.preco_orcado_unit||0),r=(+x.qtd_comprada||0)*(+x.preco_pago_unit||0)+(+x.frete_outros||0);return `<tr><td><b>${esc(x.descricao)}</b><br><small>${esc(x.codigo||'')}</small></td><td>${esc(x.categoria||'')}</td><td>${x.qtd_prevista} ${esc(x.unidade||'')}</td><td>${x.qtd_comprada} ${esc(x.unidade||'')}</td><td>${money(p)}</td><td class="${r>p?'over':''}">${money(r)}</td><td>${status(x.status)}</td></tr>`}).join('')}</tbody></table>${rows.length?'':empty('Nenhum material cadastrado.')}</div></section>`;document.querySelector('#add').onclick=()=>openForm('Adicionar material',[['codigo','Código','text'],['categoria','Categoria','smart','categoria'],['descricao','Descrição','text'],['unidade','Unidade','smart','unidade'],['qtd_prevista','Qtd. prevista','number'],['qtd_comprada','Qtd. comprada','number'],['preco_orcado_unit','Preço orçado unit.','number'],['preco_pago_unit','Preço pago unit.','number'],['frete_outros','Frete/outros','number'],['fornecedor','Fornecedor','smart','fornecedor'],['status','Status','select',['A cotar','Cotado','Comprar','Comprado','Recebido','Cancelado']]],async v=>{for(const k of ['qtd_prevista','qtd_comprada','preco_orcado_unit','preco_pago_unit','frete_outros'])v[k]=+v[k]||0;v.obra_id=obraId;const {error}=await supabase.from('materiais').insert(v);if(error)throw error})}
 function mao(){
   if(needObra())return;
@@ -178,48 +212,98 @@ function mao(){
 }
 function cronograma(){
   if(needObra())return;
+  const current=obra();
   const t=byObra('tarefas');
   const prog=t.length?Math.round(t.reduce((s,x)=>s+(+x.percentual_concluido||0),0)/t.length):0;
   const late=t.filter(x=>x.fim_previsto&&x.fim_previsto<today&&x.status!=='Concluída').length;
   const doing=t.filter(x=>x.status==='Em andamento').length;
   const done=t.filter(x=>x.status==='Concluída').length;
+  const etapas=[...new Set(t.map(x=>x.etapa||'Sem etapa'))];
+
   document.querySelector('#app').innerHTML=`
+    <section class="panel">
+      <div class="panel-head">
+        <div>
+          <small>CRONOGRAMA DA OBRA</small>
+          <h2 style="font-size:18px;margin-top:3px">${esc(current?.nome||'')}</h2>
+          <small>${esc(current?.cliente||'')} • ${date(current?.data_inicio_prevista)} → ${date(current?.data_fim_prevista)}</small>
+        </div>
+        <button class="btn primary" id="add">+ Atividade</button>
+      </div>
+    </section>
+
     <div class="metrics-float">
-      <div class="metric-pill"><span>Evolução</span><b>${prog}%</b></div>
+      <div class="metric-pill"><span>Evolução desta obra</span><b>${prog}%</b></div>
       <div class="metric-pill"><span>Em andamento</span><b>${doing}</b></div>
       <div class="metric-pill"><span>Atrasadas</span><b>${late}</b></div>
       <div class="metric-pill"><span>Concluídas</span><b>${done}</b></div>
     </div>
+
     <section class="panel">
-      <div class="panel-head"><h2>Cronograma</h2><button class="btn primary" id="add">+ Atividade</button></div>
-      ${t.length?t.map(x=>{const lateFlag=x.fim_previsto&&x.fim_previsto<today&&x.status!=='Concluída';return `
-        <div class="timeline-card">
-          <div class="timeline-top">
-            <div><small>${esc(x.etapa||'')}</small><b>${esc(x.atividade)}</b><small>${esc(x.responsavel||'')} • ${date(x.fim_previsto)}</small></div>
-            ${status(lateFlag?'Atrasada':x.status)}
-          </div>
-          <div class="range-row">
-            <input type="range" min="0" max="100" step="5" value="${x.percentual_concluido}" data-progress="${x.id}">
-            <b data-progress-label="${x.id}">${x.percentual_concluido}%</b>
-          </div>
-          <div class="timeline-actions">
-            <select data-status-id="${x.id}">
-              ${['Não iniciada','Em andamento','Pausada','Concluída'].map(s=>`<option ${s===x.status?'selected':''}>${s}</option>`).join('')}
-            </select>
-            <button class="btn secondary" data-set="${x.id}" data-value="25">25%</button>
-            <button class="btn secondary" data-set="${x.id}" data-value="50">50%</button>
-            <button class="btn secondary" data-set="${x.id}" data-value="75">75%</button>
-            <button class="btn secondary" data-set="${x.id}" data-value="100">✓</button>
-          </div>
-        </div>`}).join(''):empty('Nenhuma atividade cadastrada.')}
+      <div class="panel-head"><h2>Etapas desta obra</h2><span class="status">${t.length} atividade(s)</span></div>
+      ${etapas.length?etapas.map(e=>{
+        const atividades=t.filter(x=>(x.etapa||'Sem etapa')===e);
+        const ep=atividades.length?Math.round(atividades.reduce((s,x)=>s+(+x.percentual_concluido||0),0)/atividades.length):0;
+        return `<div class="row"><div style="flex:1"><b>${esc(e)}</b><div class="progress"><i style="width:${ep}%"></i></div></div><b>${ep}%</b></div>`
+      }).join(''):empty('Nenhuma etapa cadastrada.')}
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><h2>Atividades</h2></div>
+      ${t.length?t.map(x=>{
+        const lateFlag=x.fim_previsto&&x.fim_previsto<today&&x.status!=='Concluída';
+        return `
+          <div class="timeline-card">
+            <div class="timeline-top">
+              <div><small>${esc(x.etapa||'')}</small><b>${esc(x.atividade)}</b><small>${esc(x.responsavel||'')} • ${date(x.inicio_previsto)} → ${date(x.fim_previsto)}</small></div>
+              ${status(lateFlag?'Atrasada':x.status)}
+            </div>
+            <div class="range-row">
+              <input type="range" min="0" max="100" step="5" value="${x.percentual_concluido}" data-progress="${x.id}">
+              <b data-progress-label="${x.id}">${x.percentual_concluido}%</b>
+            </div>
+            <div class="timeline-actions">
+              <select data-status-id="${x.id}">
+                ${['Não iniciada','Em andamento','Pausada','Concluída'].map(s=>`<option ${s===x.status?'selected':''}>${s}</option>`).join('')}
+              </select>
+              <button class="btn secondary" data-set="${x.id}" data-value="25">25%</button>
+              <button class="btn secondary" data-set="${x.id}" data-value="50">50%</button>
+              <button class="btn secondary" data-set="${x.id}" data-value="75">75%</button>
+              <button class="btn secondary" data-set="${x.id}" data-value="100">✓</button>
+            </div>
+          </div>`
+      }).join(''):empty('Nenhuma atividade nesta obra.')}
     </section>
     <button class="fab" id="fabAdd">+</button>`;
-  const add=()=>openForm('Nova atividade',[['etapa','Etapa','smart','etapa'],['atividade','Atividade','smart','atividade'],['responsavel','Responsável','smart','responsavel'],['inicio_previsto','Início','date'],['fim_previsto','Conclusão','date'],['percentual_concluido','Progresso (%)','number'],['prioridade','Prioridade','select',['Baixa','Média','Alta']],['status','Status','select',['Não iniciada','Em andamento','Pausada','Concluída']]],async v=>{v.obra_id=obraId;v.percentual_concluido=Math.max(0,Math.min(100,+v.percentual_concluido||0));const {error}=await supabase.from('atividades').insert(v);if(error)throw error});
-  document.querySelector('#add').onclick=add;document.querySelector('#fabAdd').onclick=add;
-  const saveProgress=async(id,val)=>{val=Math.max(0,Math.min(100,+val||0));const patch={percentual_concluido:val};if(val===100)patch.status='Concluída';else if(val>0)patch.status='Em andamento';const {error}=await supabase.from('atividades').update(patch).eq('id',id);if(error)toast(error.message,true);else toast('Evolução atualizada')};
-  document.querySelectorAll('[data-progress]').forEach(r=>{r.oninput=e=>{document.querySelector('[data-progress-label="'+e.target.dataset.progress+'"]').textContent=e.target.value+'%'};r.onchange=e=>saveProgress(e.target.dataset.progress,e.target.value)});
+
+  const add=()=>openForm('Nova atividade — '+(current?.nome||'Obra'),
+    [['etapa','Etapa','smart','etapa'],['atividade','Atividade','smart','atividade'],['responsavel','Responsável','smart','responsavel'],['inicio_previsto','Início','date'],['fim_previsto','Conclusão','date'],['percentual_concluido','Progresso (%)','number'],['prioridade','Prioridade','select',['Baixa','Média','Alta']],['status','Status','select',['Não iniciada','Em andamento','Pausada','Concluída']]],
+    async v=>{v.obra_id=obraId;v.percentual_concluido=Math.max(0,Math.min(100,+v.percentual_concluido||0));const {error}=await supabase.from('atividades').insert(v);if(error)throw error}
+  );
+
+  document.querySelector('#add').onclick=add;
+  document.querySelector('#fabAdd').onclick=add;
+
+  const saveProgress=async(id,val)=>{
+    val=Math.max(0,Math.min(100,+val||0));
+    const patch={percentual_concluido:val};
+    if(val===100)patch.status='Concluída';
+    else if(val>0)patch.status='Em andamento';
+    const {error}=await supabase.from('atividades').update(patch).eq('id',id).eq('obra_id',obraId);
+    if(error)toast(error.message,true);else toast('Evolução desta obra atualizada');
+  };
+
+  document.querySelectorAll('[data-progress]').forEach(r=>{
+    r.oninput=e=>{document.querySelector('[data-progress-label="'+e.target.dataset.progress+'"]').textContent=e.target.value+'%'};
+    r.onchange=e=>saveProgress(e.target.dataset.progress,e.target.value)
+  });
   document.querySelectorAll('[data-set]').forEach(b=>b.onclick=()=>saveProgress(b.dataset.set,b.dataset.value));
-  document.querySelectorAll('[data-status-id]').forEach(s=>s.onchange=async e=>{const st=e.target.value,patch={status:st};if(st==='Concluída')patch.percentual_concluido=100;const {error}=await supabase.from('atividades').update(patch).eq('id',e.target.dataset.statusId);if(error)toast(error.message,true);else toast('Status atualizado')});
+  document.querySelectorAll('[data-status-id]').forEach(s=>s.onchange=async e=>{
+    const st=e.target.value,patch={status:st};
+    if(st==='Concluída')patch.percentual_concluido=100;
+    const {error}=await supabase.from('atividades').update(patch).eq('id',e.target.dataset.statusId).eq('obra_id',obraId);
+    if(error)toast(error.message,true);else toast('Status desta obra atualizado')
+  });
 }
 function diario(){if(needObra())return;const d=byObra('diario');document.querySelector('#app').innerHTML=`<section class="panel"><div class="panel-head"><h2>Diário da obra</h2><button class="btn primary" id="add">+ Registro</button></div>${d.length?d.map(x=>`<div class="row"><div><small>${date(x.data)} • ${esc(x.etapa||'')}</small><b>${esc(x.atividades_realizadas||'')}</b><small>${esc(x.equipe_presente||'')} • Responsável: ${esc(x.responsavel||'—')}</small></div><b>+${x.avanco_dia||0}%</b></div>`).join(''):empty('Nenhum registro diário.')}</section>`;document.querySelector('#add').onclick=()=>openForm('Novo registro',[['data','Data','date'],['etapa','Etapa','smart','etapa'],['atividades_realizadas','Atividades realizadas','textarea'],['equipe_presente','Equipe presente','smart','responsavel'],['avanco_dia','Avanço do dia (%)','number'],['responsavel','Responsável','smart','responsavel'],['observacoes','Observações','textarea']],async v=>{v.obra_id=obraId;v.avanco_dia=Math.max(0,Math.min(100,+v.avanco_dia||0));const {error}=await supabase.from('diario_obra').insert(v);if(error)throw error})}
 function kanban(){if(needObra())return;const t=byObra('tarefas'),cols=['Não iniciada','Em andamento','Pausada','Concluída'];document.querySelector('#app').innerHTML=`<div class="kanban">${cols.map(c=>`<div class="col"><h3>${c} (${t.filter(x=>x.status===c).length})</h3>${t.filter(x=>x.status===c).map(x=>`<div class="task"><small>${esc(x.etapa||'')}</small><b>${esc(x.atividade)}</b><small>${esc(x.responsavel||'')}</small><div class="progress"><i style="width:${x.percentual_concluido}%"></i></div><select data-task="${x.id}">${cols.map(k=>`<option ${k===x.status?'selected':''}>${k}</option>`).join('')}</select></div>`).join('')}</div>`).join('')}</div>`;document.querySelectorAll('[data-task]').forEach(s=>s.onchange=async e=>{const st=e.target.value,patch={status:st};if(st==='Concluída')patch.percentual_concluido=100;const {error}=await supabase.from('atividades').update(patch).eq('id',e.target.dataset.task);if(error)toast(error.message,true)})}
