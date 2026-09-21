@@ -70,9 +70,9 @@ const supabase=createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true
 const today=new Date().toISOString().slice(0,10);
 const money=v=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(+v||0);
 const date=v=>v?new Date(v+'T12:00:00').toLocaleDateString('pt-BR'):'—';
-let data={obras:[],materiais:[],trabalhadores:[],mao:[],tarefas:[],diario:[]};
+let data={obras:[],materiais:[],pessoas:[],trabalhadores:[],mao:[],tarefas:[],diario:[]};
 let obraId='',page='dashboard',session=null,channel=null,loading=false;
-const pages=[['dashboard','Início','🏠'],['obras','Obras','🏢'],['materiais','Materiais','📦'],['mao','Equipe','👷'],['cronograma','Agenda','📅'],['diario','Diário','📝'],['kanban','Status','📋'],['relatorios','Resumo','📊']];
+const pages=[['dashboard','Início','🏠'],['obras','Obras','🏢'],['pessoas','Pessoas','👥'],['materiais','Materiais','📦'],['mao','Equipe','👷'],['cronograma','Agenda','📅'],['diario','Diário','📝'],['kanban','Status','📋'],['relatorios','Resumo','📊']];
 const byObra=k=>data[k].filter(x=>x.obra_id===obraId);
 const obra=()=>data.obras.find(x=>x.id===obraId)||data.obras[0];
 const esc=s=>String(s??'').replace(/[&<>'"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[m]));
@@ -98,7 +98,8 @@ function placeholderFor(key,label){
     orcamento_geral:'Ex.: 25000',
     valor_base:'Ex.: 180',
     valor_refeicao:'Ex.: 25',
-    transporte_outros:'Ex.: 20'
+    transporte_outros:'Ex.: 20',
+    telefone:'Ex.: (85) 99999-9999'
   };
   return map[key]||('Digite '+String(label||'').toLowerCase());
 }
@@ -110,9 +111,9 @@ function smart(kind){
     unidade:()=>uniq(data.materiais.map(x=>x.unidade)),
     fornecedor:()=>uniq(data.materiais.map(x=>x.fornecedor)),
     etapa:()=>uniq(byObra('tarefas').map(x=>x.etapa).concat(byObra('diario').map(x=>x.etapa))),
-    responsavel:()=>uniq(byObra('trabalhadores').map(x=>x.nome).concat(byObra('tarefas').map(x=>x.responsavel))),
+    responsavel:()=>uniq(data.pessoas.map(x=>x.nome).concat(byObra('tarefas').map(x=>x.responsavel))),
     atividade:()=>uniq(byObra('tarefas').map(x=>x.atividade).concat(byObra('mao').map(x=>x.atividade))),
-    funcao:()=>uniq(data.trabalhadores.map(x=>x.funcao))
+    funcao:()=>uniq(data.pessoas.map(x=>x.funcao).concat(data.trabalhadores.map(x=>x.funcao)))
   };
   return map[kind]?map[kind]():[];
 }
@@ -151,23 +152,24 @@ function showApp(){document.querySelector('#auth')?.remove();document.querySelec
 async function loadData(){if(!session)return;setBusy(true);const qs=await Promise.all([
   supabase.from('obras').select('*').order('created_at',{ascending:true}),
   supabase.from('materiais').select('*').order('created_at',{ascending:true}),
+  supabase.from('pessoas').select('*').order('nome',{ascending:true}),
   supabase.from('trabalhadores').select('*').order('created_at',{ascending:true}),
   supabase.from('mao_obra_registros').select('*').order('data',{ascending:false}),
   supabase.from('atividades').select('*').order('created_at',{ascending:true}),
   supabase.from('diario_obra').select('*').order('data',{ascending:false})
 ]);setBusy(false);
   const err=qs.find(x=>x.error)?.error;if(err){toast('Erro ao carregar dados: '+err.message,true);return}
-  const [obras,materiais,trabalhadores,mao,tarefas,diario]=qs.map(x=>x.data||[]);
-  data={obras,materiais,trabalhadores,mao,tarefas,diario};
+  const [obras,materiais,pessoas,trabalhadores,mao,tarefas,diario]=qs.map(x=>x.data||[]);
+  data={obras,materiais,pessoas,trabalhadores,mao,tarefas,diario};
   if(!data.obras.some(o=>o.id===obraId))obraId=data.obras[0]?.id||'';
   render();
 }
-function subscribeRealtime(){if(channel)supabase.removeChannel(channel);channel=supabase.channel('obra-facil-live');['obras','materiais','trabalhadores','mao_obra_registros','atividades','diario_obra'].forEach(table=>{channel.on('postgres_changes',{event:'*',schema:'public',table},()=>loadData())});channel.subscribe()}
+function subscribeRealtime(){if(channel)supabase.removeChannel(channel);channel=supabase.channel('obra-facil-live');['obras','materiais','pessoas','trabalhadores','mao_obra_registros','atividades','diario_obra'].forEach(table=>{channel.on('postgres_changes',{event:'*',schema:'public',table},()=>loadData())});channel.subscribe()}
 
 function initNav(){const n=document.querySelector('#nav'),b=document.querySelector('#bottom');n.innerHTML=pages.map(([k,l,i])=>`<button data-p="${k}">${i} ${l}</button>`).join('')+`<button id="logout">🚪 Sair</button>`;b.innerHTML=pages.slice(0,5).map(([k,l,i])=>`<button data-p="${k}">${i}<br>${l}</button>`).join('');document.querySelectorAll('[data-p]').forEach(x=>x.onclick=()=>{page=x.dataset.p;document.querySelector('#side').classList.remove('open');render()});document.querySelector('#menu').onclick=()=>document.querySelector('#side').classList.toggle('open');document.querySelector('#logout').onclick=()=>supabase.auth.signOut()}
 function openObraPage(id,target='dashboard'){obraId=id;page=target;render()}
 window.openObraPage=openObraPage;
-function render(){showApp();document.querySelectorAll('[data-p]').forEach(x=>x.classList.toggle('active',x.dataset.p===page));document.querySelector('#title').textContent=pages.find(x=>x[0]===page)?.[1]||'';document.querySelector('#subtitle').textContent=obra()?.nome||'Cadastre uma obra';const s=document.querySelector('#obraSelect');s.innerHTML=data.obras.length?data.obras.map(o=>`<option value="${o.id}" ${o.id===obraId?'selected':''}>${esc(o.nome)}</option>`).join(''):'<option>Sem obras</option>';s.disabled=!data.obras.length;s.onchange=e=>{obraId=e.target.value;render()};({dashboard,obras,materiais,mao,cronograma,diario,kanban,relatorios}[page]||dashboard)()}
+function render(){showApp();document.querySelectorAll('[data-p]').forEach(x=>x.classList.toggle('active',x.dataset.p===page));document.querySelector('#title').textContent=pages.find(x=>x[0]===page)?.[1]||'';document.querySelector('#subtitle').textContent=obra()?.nome||'Cadastre uma obra';const s=document.querySelector('#obraSelect');s.innerHTML=data.obras.length?data.obras.map(o=>`<option value="${o.id}" ${o.id===obraId?'selected':''}>${esc(o.nome)}</option>`).join(''):'<option>Sem obras</option>';s.disabled=!data.obras.length;s.onchange=e=>{obraId=e.target.value;render()};({dashboard,obras,pessoas,materiais,mao,cronograma,diario,kanban,relatorios}[page]||dashboard)()}
 function card(t,v,sub=''){return `<div class="card"><span>${t}</span><b>${v}</b>${sub?`<small>${sub}</small>`:''}</div>`}
 function empty(msg){return `<div class="empty">${msg}</div>`}
 function needObra(){if(obraId)return false;document.querySelector('#app').innerHTML=`<div class="notice online">☁️ Conectado ao Supabase em tempo real.</div><section class="panel">${empty('Cadastre sua primeira obra para começar.')}</section>`;return true}
@@ -255,16 +257,46 @@ async function obras(){
     async v=>{v.orcamento_geral=+v.orcamento_geral||0;const {data:d,error}=await supabase.from('obras').insert(v).select().single();if(error)throw error;obraId=d.id}
   )
 }
+function pessoas(){
+  const ps=data.pessoas||[];
+  document.querySelector('#app').innerHTML=`
+    <section class="panel">
+      <div class="panel-head">
+        <div><h2>Lista de pessoas</h2><small>Cadastre uma vez e reutilize em qualquer obra.</small></div>
+        <button class="btn primary" id="addPerson">+ Pessoa</button>
+      </div>
+      ${ps.length?ps.map(p=>`
+        <div class="timeline-card">
+          <div class="timeline-top">
+            <div><b>👤 ${esc(p.nome)}</b><small>${esc(p.funcao||'Sem função')} • ${esc(p.tipo_pagamento||'')} • ${money(p.valor_base)}</small>${p.telefone?`<small>📱 ${esc(p.telefone)}</small>`:''}</div>
+            <span class="status ${p.ativo?'done':''}">${p.ativo?'Ativo':'Inativo'}</span>
+          </div>
+        </div>`).join(''):empty('Nenhuma pessoa cadastrada.')}
+    </section>`;
+  document.querySelector('#addPerson').onclick=()=>openForm('Nova pessoa',
+    [['nome','Nome','text'],['funcao','Função','smart','funcao'],['tipo_pagamento','Pagamento','select',[{value:'diária',label:'Diária'},{value:'hora',label:'Hora'},{value:'valor fechado',label:'Fechado'}]],['valor_base','Valor base','number'],['telefone','Telefone','text'],['observacoes','Observações','textarea']],
+    async v=>{v.valor_base=+v.valor_base||0;const {error}=await supabase.from('pessoas').insert(v);if(error)throw error}
+  )
+}
 function materiais(){if(needObra())return;const rows=byObra('materiais');document.querySelector('#app').innerHTML=`<section class="panel"><div class="panel-head"><h2>Lista de materiais</h2><button class="btn primary" id="add">+ Material</button></div><div class="table"><table><thead><tr><th>Material</th><th>Categoria</th><th>Previsto</th><th>Comprado</th><th>Orçado</th><th>Real</th><th>Status</th></tr></thead><tbody>${rows.map(x=>{const p=(+x.qtd_prevista||0)*(+x.preco_orcado_unit||0),r=(+x.qtd_comprada||0)*(+x.preco_pago_unit||0)+(+x.frete_outros||0);return `<tr><td><b>${esc(x.descricao)}</b><br><small>${esc(x.codigo||'')}</small></td><td>${esc(x.categoria||'')}</td><td>${x.qtd_prevista} ${esc(x.unidade||'')}</td><td>${x.qtd_comprada} ${esc(x.unidade||'')}</td><td>${money(p)}</td><td class="${r>p?'over':''}">${money(r)}</td><td>${status(x.status)}</td></tr>`}).join('')}</tbody></table><div class="mobile-list">${rows.map(x=>{const p=(+x.qtd_prevista||0)*(+x.preco_orcado_unit||0),r=(+x.qtd_comprada||0)*(+x.preco_pago_unit||0)+(+x.frete_outros||0);return `<div class="mobile-item"><div class="mi-top"><div><b>${esc(x.descricao)}</b><small>${esc(x.codigo||'')} • ${esc(x.categoria||'')}</small></div>${status(x.status)}</div><div class="mi-grid"><div><span>Previsto</span><b>${x.qtd_prevista} ${esc(x.unidade||'')}</b></div><div><span>Comprado</span><b>${x.qtd_comprada} ${esc(x.unidade||'')}</b></div><div><span>Orçado</span><b>${money(p)}</b></div><div><span>Real</span><b class="${r>p?'over':''}">${money(r)}</b></div></div></div>`}).join('')}</div>${rows.length?'':empty('Nenhum material cadastrado.')}</div></section>`;document.querySelector('#add').onclick=()=>openForm('Adicionar material',[['codigo','Código','text'],['categoria','Categoria','smart','categoria'],['descricao','Descrição','text'],['unidade','Unidade','smart','unidade'],['qtd_prevista','Qtd. prevista','number'],['qtd_comprada','Qtd. comprada','number'],['preco_orcado_unit','Preço orçado unit.','number'],['preco_pago_unit','Preço pago unit.','number'],['frete_outros','Frete/outros','number'],['fornecedor','Fornecedor','smart','fornecedor'],['status','Status','select',['A cotar','Cotado','Comprar','Comprado','Recebido','Cancelado']]],async v=>{for(const k of ['qtd_prevista','qtd_comprada','preco_orcado_unit','preco_pago_unit','frete_outros'])v[k]=+v[k]||0;v.obra_id=obraId;const {error}=await supabase.from('materiais').insert(v);if(error)throw error})}
 function mao(){
   if(needObra())return;
-  const w=byObra('trabalhadores'),l=byObra('mao');
+  const w=byObra('trabalhadores'),l=byObra('mao'),ps=(data.pessoas||[]).filter(p=>p.ativo!==false);
+  const assignedIds=new Set(w.map(x=>x.pessoa_id).filter(Boolean));
+  const available=ps.filter(p=>!assignedIds.has(p.id));
   const mo=l.reduce((s,x)=>s+(+x.valor_mao_obra||0),0),al=l.reduce((s,x)=>s+(+x.qtd_refeicoes||0)*(+x.valor_refeicao||0),0),out=l.reduce((s,x)=>s+(+x.transporte_outros||0),0);
+
   document.querySelector('#app').innerHTML=`
     <div class="grid4">${card('Mão de obra',money(mo))}${card('Alimentação',money(al))}${card('Outros',money(out))}${card('Total',money(mo+al+out))}</div>
     <section class="panel">
-      <div class="panel-head"><h2>Lançamento rápido</h2><button class="btn secondary" id="addw">+ Pessoa</button></div>
-      <div class="quick-worker">${w.map(x=>`<button data-worker="${x.id}">👷 ${esc(x.nome)}<small>${esc(x.funcao||'')} • ${money(x.valor_base)}</small></button>`).join('')||empty('Cadastre uma pessoa.')}</div>
+      <div class="panel-head">
+        <div><h2>Equipe desta obra</h2><small>${w.length} pessoa(s)</small></div>
+        <div style="display:flex;gap:7px;flex-wrap:wrap">
+          <button class="btn secondary" id="peopleList">👥 Pessoas</button>
+          <button class="btn primary" id="addFromList">+ Da lista</button>
+        </div>
+      </div>
+      <div class="quick-worker">${w.map(x=>`<button data-worker="${x.id}">👷 ${esc(x.nome)}<small>${esc(x.funcao||'')} • ${money(x.valor_base)}</small></button>`).join('')||empty('Nenhuma pessoa nesta equipe.')}</div>
     </section>
     <section class="panel">
       <div class="panel-head"><h2>Últimos lançamentos</h2><button class="btn primary" id="addl">+ Completo</button></div>
@@ -272,8 +304,22 @@ function mao(){
       ${l.slice(0,12).map(x=>{const ww=w.find(a=>a.id===x.trabalhador_id),a=(+x.qtd_refeicoes||0)*(+x.valor_refeicao||0),tt=(+x.valor_mao_obra||0)+a+(+x.transporte_outros||0);return `<tr><td>${date(x.data)}</td><td>${esc(ww?.nome||'—')}</td><td>${esc(x.atividade||'')}</td><td><b>${money(tt)}</b></td></tr>`}).join('')}
       </tbody></table><div class="mobile-list">${l.slice(0,12).map(x=>{const ww=w.find(a=>a.id===x.trabalhador_id),a=(+x.qtd_refeicoes||0)*(+x.valor_refeicao||0),tt=(+x.valor_mao_obra||0)+a+(+x.transporte_outros||0);return `<div class="mobile-item"><div class="mi-top"><div><b>${esc(ww?.nome||'—')}</b><small>${date(x.data)}</small></div><b>${money(tt)}</b></div><small>${esc(x.atividade||'Sem atividade')}</small></div>`}).join('')}</div>${l.length?'':empty('Sem lançamentos.')}</div>
     </section>`;
-  const full=()=>{if(!w.length)return toast('Cadastre uma pessoa primeiro.',true);openForm('Novo lançamento',[['trabalhador_id','Pessoa','select',w.map(x=>({value:x.id,label:x.nome}))],['data','Data','date'],['atividade','Atividade','smart','atividade'],['quantidade','Horas/diárias','number'],['valor_mao_obra','Mão de obra','number'],['qtd_refeicoes','Refeições','number'],['valor_refeicao','Valor refeição','number'],['transporte_outros','Outros','number'],['pago','Pago?','select',[{value:'false',label:'Não'},{value:'true',label:'Sim'}]]],async v=>{v.obra_id=obraId;for(const k of ['quantidade','valor_mao_obra','qtd_refeicoes','valor_refeicao','transporte_outros'])v[k]=+v[k]||0;v.pago=v.pago==='true';const {error}=await supabase.from('mao_obra_registros').insert(v);if(error)throw error})};
-  document.querySelector('#addw').onclick=()=>openForm('Nova pessoa',[['nome','Nome','text'],['funcao','Função','smart','funcao'],['tipo_pagamento','Pagamento','select',[{value:'diária',label:'Diária'},{value:'hora',label:'Hora'},{value:'valor fechado',label:'Fechado'}]],['valor_base','Valor base','number']],async v=>{v.obra_id=obraId;v.valor_base=+v.valor_base||0;const {error}=await supabase.from('trabalhadores').insert(v);if(error)throw error});
+
+  document.querySelector('#peopleList').onclick=()=>{page='pessoas';render()};
+  document.querySelector('#addFromList').onclick=()=>{
+    if(!ps.length){page='pessoas';render();return toast('Cadastre uma pessoa na lista primeiro.')}
+    if(!available.length)return toast('Todas as pessoas ativas já estão nesta equipe.');
+    openForm('Adicionar à equipe',
+      [['pessoa_id','Pessoa','select',available.map(p=>({value:p.id,label:p.nome+' — '+(p.funcao||'Sem função')}))]],
+      async v=>{
+        const p=ps.find(x=>x.id===v.pessoa_id);
+        const payload={obra_id:obraId,pessoa_id:p.id,nome:p.nome,funcao:p.funcao||null,tipo_pagamento:p.tipo_pagamento||'diária',valor_base:+p.valor_base||0,ativo:true};
+        const {error}=await supabase.from('trabalhadores').insert(payload);if(error)throw error
+      }
+    )
+  };
+
+  const full=()=>{if(!w.length)return toast('Adicione uma pessoa à equipe primeiro.',true);openForm('Novo lançamento',[['trabalhador_id','Pessoa','select',w.map(x=>({value:x.id,label:x.nome}))],['data','Data','date'],['atividade','Atividade','smart','atividade'],['quantidade','Horas/diárias','number'],['valor_mao_obra','Mão de obra','number'],['qtd_refeicoes','Refeições','number'],['valor_refeicao','Valor refeição','number'],['transporte_outros','Outros','number'],['pago','Pago?','select',[{value:'false',label:'Não'},{value:'true',label:'Sim'}]]],async v=>{v.obra_id=obraId;for(const k of ['quantidade','valor_mao_obra','qtd_refeicoes','valor_refeicao','transporte_outros'])v[k]=+v[k]||0;v.pago=v.pago==='true';const {error}=await supabase.from('mao_obra_registros').insert(v);if(error)throw error})};
   document.querySelector('#addl').onclick=full;
   document.querySelectorAll('[data-worker]').forEach(b=>b.onclick=()=>{const x=w.find(v=>v.id===b.dataset.worker);openForm('Lançar '+x.nome,[['data','Data','date'],['atividade','Atividade','smart','atividade'],['quantidade','Diárias/Horas','select',[{value:'1',label:'1'},{value:'0.5',label:'½'},{value:'2',label:'2'}]],['qtd_refeicoes','Refeições','select',[{value:'1',label:'1'},{value:'0',label:'0'},{value:'2',label:'2'}]],['valor_refeicao','Valor refeição','number'],['transporte_outros','Outros','number']],async v=>{v.obra_id=obraId;v.trabalhador_id=x.id;v.quantidade=+v.quantidade||1;v.valor_mao_obra=(+x.valor_base||0)*v.quantidade;v.qtd_refeicoes=+v.qtd_refeicoes||0;v.valor_refeicao=+v.valor_refeicao||0;v.transporte_outros=+v.transporte_outros||0;const {error}=await supabase.from('mao_obra_registros').insert(v);if(error)throw error})});
 }
