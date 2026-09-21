@@ -99,7 +99,8 @@ function placeholderFor(key,label){
     valor_base:'Ex.: 180',
     valor_refeicao:'Ex.: 25',
     transporte_outros:'Ex.: 20',
-    telefone:'Ex.: (85) 99999-9999'
+    telefone:'Ex.: (85) 99999-9999',
+    valor_refeicao:'Ex.: 25,00'
   };
   return map[key]||('Digite '+String(label||'').toLowerCase());
 }
@@ -117,6 +118,17 @@ function smart(kind){
   };
   return map[kind]?map[kind]():[];
 }
+function mealForWorker(w,day){
+    if(!w||!day||w.alimentacao_tipo==='nenhuma')return 0;
+    const value=+w.valor_refeicao_padrao||0;
+    if(w.alimentacao_tipo==='fixa')return value;
+    if(w.alimentacao_tipo==='temporária'){
+      const start=w.alimentacao_inicio||'0000-01-01';
+      const end=w.alimentacao_fim||'9999-12-31';
+      return day>=start&&day<=end?value:0;
+    }
+    return 0;
+  }
 function setBusy(v){loading=v;document.body.style.cursor=v?'progress':''}
 function toast(msg,err=false){let n=document.querySelector('#toast');if(!n){n=document.createElement('div');n.id='toast';Object.assign(n.style,{position:'fixed',right:'16px',bottom:'78px',zIndex:100,padding:'12px 14px',borderRadius:'10px',maxWidth:'360px',boxShadow:'0 8px 30px #0002',font:'600 13px system-ui'});document.body.appendChild(n)}n.textContent=msg;n.style.background=err?'#ffe8e8':'#eaf7f1';n.style.color=err?'#a02c2c':'#21694a';n.style.display='block';clearTimeout(n._t);n._t=setTimeout(()=>n.style.display='none',3500)}
 
@@ -177,7 +189,7 @@ function initNav(){
   }
 function openObraPage(id,target='dashboard'){obraId=id;page=target;render()}
 window.openObraPage=openObraPage;
-function render(){showApp();document.querySelectorAll('[data-p]').forEach(x=>x.classList.toggle('active',x.dataset.p===page));document.querySelector('#title').textContent=pages.find(x=>x[0]===page)?.[1]||'';document.querySelector('#subtitle').textContent=page==='dashboard'?'Panorama de todas as obras':(obra()?.nome||'Cadastre uma obra');const s=document.querySelector('#obraSelect');s.innerHTML=data.obras.length?data.obras.map(o=>`<option value="${o.id}" ${o.id===obraId?'selected':''}>${esc(o.nome)}</option>`).join(''):'<option>Sem obras</option>';s.disabled=!data.obras.length;s.style.display=page==='dashboard'?'none':'';s.onchange=e=>{obraId=e.target.value;render()};({dashboard,obras,pessoas,materiais,mao,cronograma,diario,kanban,relatorios}[page]||dashboard)()}
+function render(){showApp();document.querySelectorAll('[data-p]').forEach(x=>x.classList.toggle('active',x.dataset.p===page));document.querySelector('#title').textContent=pages.find(x=>x[0]===page)?.[1]||'';document.querySelector('#subtitle').textContent=page==='dashboard'?'Panorama de todas as obras':page==='kanban'?'Todas as obras':(obra()?.nome||'Cadastre uma obra');const s=document.querySelector('#obraSelect');s.innerHTML=data.obras.length?data.obras.map(o=>`<option value="${o.id}" ${o.id===obraId?'selected':''}>${esc(o.nome)}</option>`).join(''):'<option>Sem obras</option>';s.disabled=!data.obras.length;s.style.display=(page==='dashboard'||page==='kanban')?'none':'';s.onchange=e=>{obraId=e.target.value;render()};({dashboard,obras,pessoas,materiais,mao,cronograma,diario,kanban,relatorios}[page]||dashboard)()}
 function card(t,v,sub=''){return `<div class="card"><span>${t}</span><b>${v}</b>${sub?`<small>${sub}</small>`:''}</div>`}
 function empty(msg){return `<div class="empty">${msg}</div>`}
 function needObra(){if(obraId)return false;document.querySelector('#app').innerHTML=`<div class="notice online">☁️ Conectado ao Supabase em tempo real.</div><section class="panel">${empty('Cadastre sua primeira obra para começar.')}</section>`;return true}
@@ -308,14 +320,14 @@ function pessoas(){
       ${ps.length?ps.map(p=>`
         <div class="timeline-card">
           <div class="timeline-top">
-            <div><b>👤 ${esc(p.nome)}</b><small>${esc(p.funcao||'Sem função')} • ${esc(p.tipo_pagamento||'')} • ${money(p.valor_base)}</small>${p.telefone?`<small>📱 ${esc(p.telefone)}</small>`:''}</div>
+            <div><b>👤 ${esc(p.nome)}</b><small>${esc(p.funcao||'Sem função')} • ${esc(p.tipo_pagamento||'')} • ${money(p.valor_base)}</small>${p.telefone?`<small>📱 ${esc(p.telefone)}</small>`:''}${p.alimentacao_tipo&&p.alimentacao_tipo!=='nenhuma'?`<small>🍽️ ${p.alimentacao_tipo==='fixa'?'Fixa':'Temporária'} • ${money(p.valor_refeicao)}${p.alimentacao_tipo==='temporária'?` • ${date(p.alimentacao_inicio)} → ${date(p.alimentacao_fim)}`:''}</small>`:''}</div>
             <span class="status ${p.ativo?'done':''}">${p.ativo?'Ativo':'Inativo'}</span>
           </div>
         </div>`).join(''):empty('Nenhuma pessoa cadastrada.')}
     </section>`;
   document.querySelector('#addPerson').onclick=()=>openForm('Nova pessoa',
-    [['nome','Nome','text'],['funcao','Função','smart','funcao'],['tipo_pagamento','Pagamento','select',[{value:'diária',label:'Diária'},{value:'hora',label:'Hora'},{value:'valor fechado',label:'Fechado'}]],['valor_base','Valor base','number'],['telefone','Telefone','text'],['observacoes','Observações','textarea']],
-    async v=>{v.valor_base=+v.valor_base||0;const {error}=await supabase.from('pessoas').insert(v);if(error)throw error}
+    [['nome','Nome','text'],['funcao','Função','smart','funcao'],['tipo_pagamento','Pagamento','select',[{value:'diária',label:'Diária'},{value:'hora',label:'Hora'},{value:'valor fechado',label:'Fechado'}]],['valor_base','Valor base','number'],['telefone','Telefone','text'],['alimentacao_tipo','Alimentação','select',[{value:'nenhuma',label:'Sem alimentação'},{value:'fixa',label:'Fixa'},{value:'temporária',label:'Temporária'}]],['valor_refeicao','Valor por refeição','number'],['alimentacao_inicio','Início da alimentação','date'],['alimentacao_fim','Fim da alimentação','date'],['observacoes','Observações','textarea']],
+    async v=>{v.valor_base=+v.valor_base||0;v.valor_refeicao=+v.valor_refeicao||0;if(v.alimentacao_tipo==='nenhuma'){v.valor_refeicao=0;v.alimentacao_inicio=null;v.alimentacao_fim=null}else if(v.alimentacao_tipo==='fixa'){v.alimentacao_inicio=null;v.alimentacao_fim=null}const {error}=await supabase.from('pessoas').insert(v);if(error)throw error}
   )
 }
 function materiais(){if(needObra())return;const rows=byObra('materiais');document.querySelector('#app').innerHTML=`<section class="panel"><div class="panel-head"><h2>Lista de materiais</h2><button class="btn primary" id="add">+ Material</button></div><div class="table"><table><thead><tr><th>Material</th><th>Categoria</th><th>Previsto</th><th>Comprado</th><th>Orçado</th><th>Real</th><th>Status</th></tr></thead><tbody>${rows.map(x=>{const p=(+x.qtd_prevista||0)*(+x.preco_orcado_unit||0),r=(+x.qtd_comprada||0)*(+x.preco_pago_unit||0)+(+x.frete_outros||0);return `<tr><td><b>${esc(x.descricao)}</b><br><small>${esc(x.codigo||'')}</small></td><td>${esc(x.categoria||'')}</td><td>${x.qtd_prevista} ${esc(x.unidade||'')}</td><td>${x.qtd_comprada} ${esc(x.unidade||'')}</td><td>${money(p)}</td><td class="${r>p?'over':''}">${money(r)}</td><td>${status(x.status)}</td></tr>`}).join('')}</tbody></table><div class="mobile-list">${rows.map(x=>{const p=(+x.qtd_prevista||0)*(+x.preco_orcado_unit||0),r=(+x.qtd_comprada||0)*(+x.preco_pago_unit||0)+(+x.frete_outros||0);return `<div class="mobile-item"><div class="mi-top"><div><b>${esc(x.descricao)}</b><small>${esc(x.codigo||'')} • ${esc(x.categoria||'')}</small></div>${status(x.status)}</div><div class="mi-grid"><div><span>Previsto</span><b>${x.qtd_prevista} ${esc(x.unidade||'')}</b></div><div><span>Comprado</span><b>${x.qtd_comprada} ${esc(x.unidade||'')}</b></div><div><span>Orçado</span><b>${money(p)}</b></div><div><span>Real</span><b class="${r>p?'over':''}">${money(r)}</b></div></div></div>`}).join('')}</div>${rows.length?'':empty('Nenhum material cadastrado.')}</div></section>`;document.querySelector('#add').onclick=()=>openForm('Adicionar material',[['codigo','Código','text'],['categoria','Categoria','smart','categoria'],['descricao','Descrição','text'],['unidade','Unidade','smart','unidade'],['qtd_prevista','Qtd. prevista','number'],['qtd_comprada','Qtd. comprada','number'],['preco_orcado_unit','Preço orçado unit.','number'],['preco_pago_unit','Preço pago unit.','number'],['frete_outros','Frete/outros','number'],['fornecedor','Fornecedor','smart','fornecedor'],['status','Status','select',['A cotar','Cotado','Comprar','Comprado','Recebido','Cancelado']]],async v=>{for(const k of ['qtd_prevista','qtd_comprada','preco_orcado_unit','preco_pago_unit','frete_outros'])v[k]=+v[k]||0;v.obra_id=obraId;const {error}=await supabase.from('materiais').insert(v);if(error)throw error})}
@@ -333,7 +345,7 @@ function mao(){
         <div><h2>Equipe desta obra</h2><small>${w.length} pessoa(s)</small></div>
         <button class="btn primary" id="addFromList">+ Da lista</button>
       </div>
-      <div class="quick-worker">${w.map(x=>`<button data-worker="${x.id}">👷 ${esc(x.nome)}<small>${esc(x.funcao||'')} • ${money(x.valor_base)}</small></button>`).join('')||empty('Nenhuma pessoa nesta equipe.')}</div>
+      <div class="quick-worker">${w.map(x=>`<button data-worker="${x.id}">👷 ${esc(x.nome)}<small>${esc(x.funcao||'')} • ${money(x.valor_base)}${x.alimentacao_tipo&&x.alimentacao_tipo!=='nenhuma'?' • 🍽️ '+money(x.valor_refeicao_padrao):''}</small></button>`).join('')||empty('Nenhuma pessoa nesta equipe.')}</div>
     </section>
     <section class="panel">
       <div class="panel-head"><h2>Últimos lançamentos</h2><button class="btn primary" id="addl">+ Completo</button></div>
@@ -349,15 +361,15 @@ function mao(){
       [['pessoa_id','Pessoa','select',available.map(p=>({value:p.id,label:p.nome+' — '+(p.funcao||'Sem função')}))]],
       async v=>{
         const p=ps.find(x=>x.id===v.pessoa_id);
-        const payload={obra_id:obraId,pessoa_id:p.id,nome:p.nome,funcao:p.funcao||null,tipo_pagamento:p.tipo_pagamento||'diária',valor_base:+p.valor_base||0,ativo:true};
+        const payload={obra_id:obraId,pessoa_id:p.id,nome:p.nome,funcao:p.funcao||null,tipo_pagamento:p.tipo_pagamento||'diária',valor_base:+p.valor_base||0,alimentacao_tipo:p.alimentacao_tipo||'nenhuma',valor_refeicao_padrao:+p.valor_refeicao||0,alimentacao_inicio:p.alimentacao_inicio||null,alimentacao_fim:p.alimentacao_fim||null,ativo:true};
         const {error}=await supabase.from('trabalhadores').insert(payload);if(error)throw error
       }
     )
   };
 
-  const full=()=>{if(!w.length)return toast('Adicione uma pessoa à equipe primeiro.',true);openForm('Novo lançamento',[['trabalhador_id','Pessoa','select',w.map(x=>({value:x.id,label:x.nome}))],['data','Data','date'],['atividade','Atividade','smart','atividade'],['quantidade','Horas/diárias','number'],['valor_mao_obra','Mão de obra','number'],['qtd_refeicoes','Refeições','number'],['valor_refeicao','Valor refeição','number'],['transporte_outros','Outros','number'],['pago','Pago?','select',[{value:'false',label:'Não'},{value:'true',label:'Sim'}]]],async v=>{v.obra_id=obraId;for(const k of ['quantidade','valor_mao_obra','qtd_refeicoes','valor_refeicao','transporte_outros'])v[k]=+v[k]||0;v.pago=v.pago==='true';const {error}=await supabase.from('mao_obra_registros').insert(v);if(error)throw error})};
+  const full=()=>{if(!w.length)return toast('Adicione uma pessoa à equipe primeiro.',true);openForm('Novo lançamento',[['trabalhador_id','Pessoa','select',w.map(x=>({value:x.id,label:x.nome}))],['data','Data','date'],['atividade','Atividade','smart','atividade'],['quantidade','Horas/diárias','number'],['valor_mao_obra','Mão de obra','number'],['transporte_outros','Outros','number'],['pago','Pago?','select',[{value:'false',label:'Não'},{value:'true',label:'Sim'}]]],async v=>{v.obra_id=obraId;v.quantidade=+v.quantidade||0;v.valor_mao_obra=+v.valor_mao_obra||0;v.transporte_outros=+v.transporte_outros||0;const ww=w.find(x=>x.id===v.trabalhador_id);const meal=mealForWorker(ww,v.data);v.qtd_refeicoes=meal>0?1:0;v.valor_refeicao=meal;v.pago=v.pago==='true';const {error}=await supabase.from('mao_obra_registros').insert(v);if(error)throw error})};
   document.querySelector('#addl').onclick=full;
-  document.querySelectorAll('[data-worker]').forEach(b=>b.onclick=()=>{const x=w.find(v=>v.id===b.dataset.worker);openForm('Lançar '+x.nome,[['data','Data','date'],['atividade','Atividade','smart','atividade'],['quantidade','Diárias/Horas','select',[{value:'1',label:'1'},{value:'0.5',label:'½'},{value:'2',label:'2'}]],['qtd_refeicoes','Refeições','select',[{value:'1',label:'1'},{value:'0',label:'0'},{value:'2',label:'2'}]],['valor_refeicao','Valor refeição','number'],['transporte_outros','Outros','number']],async v=>{v.obra_id=obraId;v.trabalhador_id=x.id;v.quantidade=+v.quantidade||1;v.valor_mao_obra=(+x.valor_base||0)*v.quantidade;v.qtd_refeicoes=+v.qtd_refeicoes||0;v.valor_refeicao=+v.valor_refeicao||0;v.transporte_outros=+v.transporte_outros||0;const {error}=await supabase.from('mao_obra_registros').insert(v);if(error)throw error})});
+  document.querySelectorAll('[data-worker]').forEach(b=>b.onclick=()=>{const x=w.find(v=>v.id===b.dataset.worker);openForm('Lançar '+x.nome,[['data','Data','date'],['atividade','Atividade','smart','atividade'],['quantidade','Diárias/Horas','select',[{value:'1',label:'1'},{value:'0.5',label:'½'},{value:'2',label:'2'}]],['transporte_outros','Outros','number']],async v=>{v.obra_id=obraId;v.trabalhador_id=x.id;v.quantidade=+v.quantidade||1;v.valor_mao_obra=(+x.valor_base||0)*v.quantidade;const meal=mealForWorker(x,v.data);v.qtd_refeicoes=meal>0?1:0;v.valor_refeicao=meal;v.transporte_outros=+v.transporte_outros||0;const {error}=await supabase.from('mao_obra_registros').insert(v);if(error)throw error})});
 }
 function cronograma(){
   if(needObra())return;
@@ -464,7 +476,50 @@ function cronograma(){
   });
 }
 function diario(){if(needObra())return;const d=byObra('diario');document.querySelector('#app').innerHTML=`<section class="panel"><div class="panel-head"><h2>Diário da obra</h2><button class="btn primary" id="add">+ Registro</button></div>${d.length?d.map(x=>`<div class="row"><div><small>${date(x.data)} • ${esc(x.etapa||'')}</small><b>${esc(x.atividades_realizadas||'')}</b><small>${esc(x.equipe_presente||'')} • Responsável: ${esc(x.responsavel||'—')}</small></div><b>+${x.avanco_dia||0}%</b></div>`).join(''):empty('Nenhum registro diário.')}</section>`;document.querySelector('#add').onclick=()=>openForm('Novo registro',[['data','Data','date'],['etapa','Etapa','smart','etapa'],['atividades_realizadas','Atividades realizadas','textarea'],['equipe_presente','Equipe presente','smart','responsavel'],['avanco_dia','Avanço do dia (%)','number'],['responsavel','Responsável','smart','responsavel'],['observacoes','Observações','textarea']],async v=>{v.obra_id=obraId;v.avanco_dia=Math.max(0,Math.min(100,+v.avanco_dia||0));const {error}=await supabase.from('diario_obra').insert(v);if(error)throw error})}
-function kanban(){if(needObra())return;const t=byObra('tarefas'),cols=['Não iniciada','Em andamento','Pausada','Concluída'];document.querySelector('#app').innerHTML=`<div class="kanban">${cols.map(c=>`<div class="col"><h3>${c} (${t.filter(x=>x.status===c).length})</h3>${t.filter(x=>x.status===c).map(x=>`<div class="task"><small>${esc(x.etapa||'')}</small><b>${esc(x.atividade)}</b><small>${esc(x.responsavel||'')}</small><div class="progress"><i style="width:${x.percentual_concluido}%"></i></div><select data-task="${x.id}">${cols.map(k=>`<option ${k===x.status?'selected':''}>${k}</option>`).join('')}</select></div>`).join('')}</div>`).join('')}</div>`;document.querySelectorAll('[data-task]').forEach(s=>s.onchange=async e=>{const st=e.target.value,patch={status:st};if(st==='Concluída')patch.percentual_concluido=100;const {error}=await supabase.from('atividades').update(patch).eq('id',e.target.dataset.task);if(error)toast(error.message,true)})}
+function kanban(){
+  const cols=['Não iniciada','Em andamento','Pausada','Concluída'];
+  document.querySelector('#app').innerHTML=`
+    <section class="panel">
+      <div class="panel-head"><div><h2>Status geral</h2><small>Todas as obras</small></div><span class="status">${data.tarefas.length} atividade(s)</span></div>
+      <div class="toolbar"><input id="statusSearch" placeholder="🔎 Buscar obra, cliente, etapa, atividade ou responsável"></div>
+    </section>
+    <div id="statusBoard"></div>`;
+
+  const draw=(query='')=>{
+    const q=query.trim().toLocaleLowerCase('pt-BR');
+    const filtered=data.tarefas.filter(x=>{
+      const o=data.obras.find(o=>o.id===x.obra_id);
+      const hay=[o?.nome,o?.cliente,o?.endereco,x.etapa,x.atividade,x.responsavel,x.status].filter(Boolean).join(' ').toLocaleLowerCase('pt-BR');
+      return !q||hay.includes(q);
+    });
+    document.querySelector('#statusBoard').innerHTML=`
+      <div class="kanban">${cols.map(c=>`
+        <div class="col">
+          <h3>${c} (${filtered.filter(x=>x.status===c).length})</h3>
+          ${filtered.filter(x=>x.status===c).map(x=>{
+            const o=data.obras.find(o=>o.id===x.obra_id);
+            return `<div class="task">
+              <small>🏢 ${esc(o?.nome||'Obra')}</small>
+              <b>${esc(x.atividade)}</b>
+              <small>${esc(x.etapa||'')} • ${esc(x.responsavel||'')}</small>
+              <div class="progress"><i style="width:${x.percentual_concluido}%"></i></div>
+              <small>${x.percentual_concluido}% concluído</small>
+              <select data-task="${x.id}">
+                ${cols.map(k=>`<option ${k===x.status?'selected':''}>${k}</option>`).join('')}
+              </select>
+            </div>`
+          }).join('')||'<div class="empty">Sem atividades</div>'}
+        </div>`).join('')}</div>`;
+    document.querySelectorAll('[data-task]').forEach(s=>s.onchange=async e=>{
+      const st=e.target.value,patch={status:st};
+      if(st==='Concluída')patch.percentual_concluido=100;
+      const {error}=await supabase.from('atividades').update(patch).eq('id',e.target.dataset.task);
+      if(error)toast(error.message,true);else toast('Status atualizado')
+    });
+  };
+  draw();
+  document.querySelector('#statusSearch').oninput=e=>draw(e.target.value);
+}
 function relatorios(){if(needObra())return;const m=byObra('materiais'),l=byObra('mao'),t=byObra('tarefas');const mp=m.reduce((s,x)=>s+(+x.qtd_prevista||0)*(+x.preco_orcado_unit||0),0),mr=m.reduce((s,x)=>s+(+x.qtd_comprada||0)*(+x.preco_pago_unit||0)+(+x.frete_outros||0),0),mo=l.reduce((s,x)=>s+(+x.valor_mao_obra||0),0),al=l.reduce((s,x)=>s+(+x.qtd_refeicoes||0)*(+x.valor_refeicao||0),0),ot=l.reduce((s,x)=>s+(+x.transporte_outros||0),0),tot=mr+mo+al+ot,prog=t.length?Math.round(t.reduce((s,x)=>s+(+x.percentual_concluido||0),0)/t.length):0;document.querySelector('#app').innerHTML=`<section class="panel"><div class="panel-head"><h2>Resumo financeiro</h2><button class="btn secondary" id="csv">Exportar CSV</button></div><div class="report"><div><span>Orçamento geral</span><b>${money(obra()?.orcamento_geral)}</b></div><div><span>Gasto registrado</span><b>${money(tot)}</b></div><div><span>Saldo estimado</span><b>${money((obra()?.orcamento_geral||0)-tot)}</b></div><div><span>Progresso físico</span><b>${prog}%</b></div></div></section><div class="two"><section class="panel"><h2>Previsto x realizado</h2><div class="row"><span>Materiais previstos</span><b>${money(mp)}</b></div><div class="row"><span>Materiais realizados</span><b>${money(mr)}</b></div><div class="row"><span>Diferença</span><b>${money(mr-mp)}</b></div></section><section class="panel"><h2>Custos realizados</h2><div class="row"><span>Mão de obra</span><b>${money(mo)}</b></div><div class="row"><span>Alimentação</span><b>${money(al)}</b></div><div class="row"><span>Transporte/outros</span><b>${money(ot)}</b></div></section></div>`;document.querySelector('#csv').onclick=()=>{const csv='Categoria,Valor\nMateriais,'+mr+'\nMão de obra,'+mo+'\nAlimentação,'+al+'\nTransporte/outros,'+ot+'\nTotal,'+tot;const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download='obra-facil-relatorio.csv';a.click()}}
 function openForm(title,fields,onSave){
   document.querySelector('#modalTitle').textContent=title;
