@@ -183,7 +183,7 @@ async function loadData(){if(!session)return;setBusy(true);const qs=await Promis
   const err=qs.find(x=>x.error)?.error;if(err){toast('Erro ao carregar dados: '+err.message,true);return}
   const [obras,compartilhadas,materiais,pessoas,trabalhadores,mao,tarefas,diario]=qs.map(x=>x.data||[]);
   data={obras,compartilhadas,materiais,pessoas,trabalhadores,mao,tarefas,diario};
-  if(!data.obras.some(o=>o.id===obraId))obraId=data.obras[0]?.id||'';
+  if(!data.obras.some(o=>o.id===obraId)&&!data.compartilhadas.some(o=>o.id===obraId))obraId=data.obras[0]?.id||data.compartilhadas[0]?.id||'';
   render();
 }
 function subscribeRealtime(){if(channel)supabase.removeChannel(channel);channel=supabase.channel('obra-facil-live');['obras','materiais','pessoas','trabalhadores','mao_obra_registros','atividades','diario_obra'].forEach(table=>{channel.on('postgres_changes',{event:'*',schema:'public',table},()=>loadData())});channel.subscribe()}
