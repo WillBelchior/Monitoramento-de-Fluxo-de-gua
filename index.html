@@ -38,6 +38,16 @@
 .project-actions .btn.primary{grid-column:auto}
 .collab-note{background:#eef6ff;border:1px solid #cedff3;border-radius:12px;padding:11px;font-size:12px;color:#345b84}
 .comment-box{display:grid;gap:8px}.comment-box textarea{width:100%;border:1px solid #dce2e8;border-radius:10px;padding:10px;resize:vertical}.comment-item{border-left:3px solid #f0a52b;padding:8px 10px;background:#f8fafb;border-radius:0 9px 9px 0;margin-bottom:7px}.comment-item small{color:#7d8996}
+.task-card{border:1px solid #e3e8ee;border-radius:15px;background:#fff;overflow:hidden;margin-bottom:12px;box-shadow:0 2px 8px #17203008}
+.task-card-head{padding:13px 14px 11px;display:grid;grid-template-columns:1fr auto;gap:10px;border-bottom:1px solid #edf0f3}
+.task-card-title{min-width:0}.task-card-title small{display:block;color:#7e8a97;font-size:10px;text-transform:uppercase;margin-bottom:3px}.task-card-title b{display:block;font-size:14px;line-height:1.3}.task-card-title .meta{display:block;color:#7f8a98;font-size:11px;margin-top:5px;line-height:1.4}
+.task-card-body{padding:12px 14px;display:grid;gap:12px}
+.task-card-progress{display:grid;grid-template-columns:1fr 48px;gap:10px;align-items:end}.task-card-progress>b{font-size:18px;text-align:right}
+.task-card-info{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid #e9edf1;border-radius:10px;overflow:hidden;background:#fafbfc}
+.task-card-info>div{padding:8px 10px}.task-card-info>div:nth-child(odd){border-right:1px solid #e9edf1}.task-card-info>div:nth-child(n+3){border-top:1px solid #e9edf1}
+.task-card-info span{display:block;font-size:9px;color:#7d8996;text-transform:uppercase}.task-card-info b{display:block;font-size:11px;margin-top:2px}
+.task-card-actions{display:grid;grid-template-columns:1fr auto auto auto auto;gap:6px;align-items:center}.task-card-actions select{min-width:0;border:1px solid #dce2e8;border-radius:8px;padding:8px;background:#fff}
+.task-card-actions .btn{padding:8px 9px;min-height:38px}
 .timeline-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.timeline-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.timeline-actions select{border:1px solid #dce2e8;border-radius:8px;padding:7px;background:white}.range-row{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center}.range-row input[type=range]{width:100%;accent-color:#f0a52b}
 .quick-worker{display:flex;flex-wrap:wrap;gap:8px}.quick-worker button{border:1px solid #dfe5eb;background:white;border-radius:10px;padding:10px 12px;cursor:pointer;font-weight:700}.quick-worker button small{display:block;color:#84909c;font-weight:500}
 .fab{position:fixed;right:18px;bottom:78px;width:54px;height:54px;border-radius:50%;border:0;background:#f0a52b;color:#172030;font-size:26px;font-weight:900;box-shadow:0 10px 24px #17203033;z-index:30;cursor:pointer}
@@ -53,7 +63,7 @@
 .panel{padding:12px;border-radius:12px}.project-card-head{padding:13px}.project-card-body{padding:12px 13px 13px;gap:12px}.project-summary{grid-template-columns:1fr 1fr}.project-actions{grid-template-columns:1fr 1fr}.project-actions .btn:last-child{grid-column:1/-1}.panel-head{gap:8px;align-items:flex-start}.panel-head h2{font-size:13px}
 .btn{min-height:42px;padding:10px 12px;border-radius:10px}
 .quick{grid-template-columns:1fr 1fr;gap:8px}.quick button{padding:12px 8px;min-height:78px}.quick button span{font-size:24px}
-.timeline-card{padding:10px;border-radius:11px}.timeline-top{gap:8px}.timeline-actions{gap:6px}.timeline-actions .btn{padding:8px 10px;min-height:38px}
+.timeline-card{padding:10px;border-radius:11px}.task-card-head{padding:11px 12px}.task-card-body{padding:11px 12px}.task-card-info{grid-template-columns:1fr 1fr}.task-card-actions{grid-template-columns:1fr 1fr 1fr}.task-card-actions select{grid-column:1/-1}.task-card-actions .btn:last-child{grid-column:auto}.timeline-top{gap:8px}.timeline-actions{gap:6px}.timeline-actions .btn{padding:8px 10px;min-height:38px}
 .timeline-actions select{min-height:38px;flex:1}
 .range-row{grid-template-columns:1fr 44px}
 .share-banner{align-items:flex-start;flex-direction:column}
@@ -165,7 +175,7 @@ async function renderPublicShare(token){
     <section class="panel"><div class="panel-head"><h2>Etapas</h2><span class="status">Somente leitura</span></div>
     ${etapas.length?etapas.map(e=>{const a=t.filter(x=>(x.etapa||'Sem etapa')===e),p=Math.round(a.reduce((s,x)=>s+(+x.percentual_concluido||0),0)/a.length);return `<div class="row"><div style="flex:1"><b>${esc(e)}</b><div class="progress"><i style="width:${p}%"></i></div></div><b>${p}%</b></div>`}).join(''):empty('Nenhuma etapa cadastrada.')}</section>
     <section class="panel"><div class="panel-head"><h2>Cronograma</h2></div>
-    ${t.length?t.map(x=>`<div class="timeline-card"><div class="timeline-top"><div><small>${esc(x.etapa||'')}</small><b>${esc(x.atividade)}</b><small>${esc(x.responsavel||'')} • ${date(x.inicio_previsto)} → ${date(x.fim_previsto)}</small></div>${status(x.fim_previsto&&x.fim_previsto<today&&x.status!=='Concluída'?'Atrasada':x.status)}</div><div class="range-row"><div class="progress"><i style="width:${x.percentual_concluido}%"></i></div><b>${x.percentual_concluido}%</b></div></div>`).join(''):empty('Nenhuma atividade cadastrada.')}</section>
+    ${t.length?t.map(x=>`<article class="task-card"><div class="task-card-head"><div class="task-card-title"><small>${esc(x.etapa||'Sem etapa')}</small><b>${esc(x.atividade)}</b><span class="meta">${esc(x.responsavel||'Sem responsável')}</span></div>${status(x.fim_previsto&&x.fim_previsto<today&&x.status!=='Concluída'?'Atrasada':x.status)}</div><div class="task-card-body"><div class="task-card-progress"><div><div class="project-progress-label"><span>Progresso</span></div><div class="progress"><i style="width:${x.percentual_concluido}%"></i></div></div><b>${x.percentual_concluido}%</b></div><div class="task-card-info"><div><span>Início</span><b>${date(x.inicio_previsto)}</b></div><div><span>Conclusão</span><b>${date(x.fim_previsto)}</b></div><div><span>Prioridade</span><b>${esc(x.prioridade||'—')}</b></div><div><span>Responsável</span><b>${esc(x.responsavel||'—')}</b></div></div></div></article>`).join(''):empty('Nenhuma atividade cadastrada.')}</section>
   </div>`;
 }
 function authScreen(message=''){
@@ -472,26 +482,38 @@ async function colaboracao(){
     <section class="panel">
       <div class="panel-head"><h2>Atividades da obra</h2></div>
       ${t.length?t.map(x=>`
-        <div class="timeline-card">
-          <div class="timeline-top">
-            <div><small>${esc(x.etapa||'')}</small><b>${esc(x.atividade)}</b><small>${esc(x.responsavel||'')} • ${date(x.inicio_previsto)} → ${date(x.fim_previsto)}</small></div>
+        <article class="task-card">
+          <div class="task-card-head">
+            <div class="task-card-title">
+              <small>${esc(x.etapa||'Sem etapa')}</small>
+              <b>${esc(x.atividade)}</b>
+              <span class="meta">${esc(x.responsavel||'Sem responsável')}</span>
+            </div>
             ${status(x.fim_previsto&&x.fim_previsto<today&&x.status!=='Concluída'?'Atrasada':x.status)}
           </div>
-          <div class="range-row">
-            <input type="range" min="0" max="100" step="5" value="${x.percentual_concluido}" data-collab-progress="${x.id}">
-            <b data-collab-label="${x.id}">${x.percentual_concluido}%</b>
+          <div class="task-card-body">
+            <div class="task-card-progress">
+              <div><div class="project-progress-label"><span>Progresso</span></div><input type="range" min="0" max="100" step="5" value="${x.percentual_concluido}" data-collab-progress="${x.id}" style="width:100%"></div>
+              <b data-collab-label="${x.id}">${x.percentual_concluido}%</b>
+            </div>
+            <div class="task-card-info">
+              <div><span>Início</span><b>${date(x.inicio_previsto)}</b></div>
+              <div><span>Conclusão</span><b>${date(x.fim_previsto)}</b></div>
+              <div><span>Prioridade</span><b>${esc(x.prioridade||'—')}</b></div>
+              <div><span>Responsável</span><b>${esc(x.responsavel||'—')}</b></div>
+            </div>
+            <div class="task-card-actions" style="grid-template-columns:1fr">
+              <select data-collab-status="${x.id}">
+                ${['Não iniciada','Em andamento','Pausada','Concluída'].map(s=>`<option ${s===x.status?'selected':''}>${s}</option>`).join('')}
+              </select>
+            </div>
+            <div class="comment-box">
+              <textarea rows="2" data-comment-text="${x.id}" placeholder="Adicionar comentário sobre esta atividade..."></textarea>
+              <button class="btn secondary" data-comment-send="${x.id}">💬 Comentar</button>
+              <div>${commentsFor(x.id).map(c=>`<div class="comment-item"><small>${c.user_id===session?.user?.id?'Você':'Colaborador'} • ${new Date(c.created_at).toLocaleString('pt-BR')}</small><div>${esc(c.texto)}</div></div>`).join('')}</div>
+            </div>
           </div>
-          <div class="timeline-actions">
-            <select data-collab-status="${x.id}">
-              ${['Não iniciada','Em andamento','Pausada','Concluída'].map(s=>`<option ${s===x.status?'selected':''}>${s}</option>`).join('')}
-            </select>
-          </div>
-          <div class="comment-box">
-            <textarea rows="2" data-comment-text="${x.id}" placeholder="Adicionar comentário sobre esta atividade..."></textarea>
-            <button class="btn secondary" data-comment-send="${x.id}">💬 Comentar</button>
-            <div>${commentsFor(x.id).map(c=>`<div class="comment-item"><small>${c.user_id===session?.user?.id?'Você':'Colaborador'} • ${new Date(c.created_at).toLocaleString('pt-BR')}</small><div>${esc(c.texto)}</div></div>`).join('')}</div>
-          </div>
-        </div>`).join(''):empty('Nenhuma atividade cadastrada.')}
+        </article>`).join(''):empty('Nenhuma atividade cadastrada.')}
     </section>`;
 
   const update=async(id,val,st=null)=>{
@@ -561,25 +583,40 @@ function cronograma(){
       ${t.length?t.map(x=>{
         const lateFlag=x.fim_previsto&&x.fim_previsto<today&&x.status!=='Concluída';
         return `
-          <div class="timeline-card">
-            <div class="timeline-top">
-              <div><small>${esc(x.etapa||'')}</small><b>${esc(x.atividade)}</b><small>${esc(x.responsavel||'')} • ${date(x.inicio_previsto)} → ${date(x.fim_previsto)}</small></div>
+          <article class="task-card">
+            <div class="task-card-head">
+              <div class="task-card-title">
+                <small>${esc(x.etapa||'Sem etapa')}</small>
+                <b>${esc(x.atividade)}</b>
+                <span class="meta">${esc(x.responsavel||'Sem responsável')}</span>
+              </div>
               ${status(lateFlag?'Atrasada':x.status)}
             </div>
-            <div class="range-row">
-              <input type="range" min="0" max="100" step="5" value="${x.percentual_concluido}" data-progress="${x.id}">
-              <b data-progress-label="${x.id}">${x.percentual_concluido}%</b>
+            <div class="task-card-body">
+              <div class="task-card-progress">
+                <div>
+                  <div class="project-progress-label"><span>Progresso</span></div>
+                  <input type="range" min="0" max="100" step="5" value="${x.percentual_concluido}" data-progress="${x.id}" style="width:100%">
+                </div>
+                <b data-progress-label="${x.id}">${x.percentual_concluido}%</b>
+              </div>
+              <div class="task-card-info">
+                <div><span>Início</span><b>${date(x.inicio_previsto)}</b></div>
+                <div><span>Conclusão</span><b>${date(x.fim_previsto)}</b></div>
+                <div><span>Prioridade</span><b>${esc(x.prioridade||'—')}</b></div>
+                <div><span>Responsável</span><b>${esc(x.responsavel||'—')}</b></div>
+              </div>
+              <div class="task-card-actions">
+                <select data-status-id="${x.id}">
+                  ${['Não iniciada','Em andamento','Pausada','Concluída'].map(s=>`<option ${s===x.status?'selected':''}>${s}</option>`).join('')}
+                </select>
+                <button class="btn secondary" data-set="${x.id}" data-value="25">25%</button>
+                <button class="btn secondary" data-set="${x.id}" data-value="50">50%</button>
+                <button class="btn secondary" data-set="${x.id}" data-value="75">75%</button>
+                <button class="btn secondary" data-set="${x.id}" data-value="100">✓</button>
+              </div>
             </div>
-            <div class="timeline-actions">
-              <select data-status-id="${x.id}">
-                ${['Não iniciada','Em andamento','Pausada','Concluída'].map(s=>`<option ${s===x.status?'selected':''}>${s}</option>`).join('')}
-              </select>
-              <button class="btn secondary" data-set="${x.id}" data-value="25">25%</button>
-              <button class="btn secondary" data-set="${x.id}" data-value="50">50%</button>
-              <button class="btn secondary" data-set="${x.id}" data-value="75">75%</button>
-              <button class="btn secondary" data-set="${x.id}" data-value="100">✓</button>
-            </div>
-          </div>`
+          </article>`
       }).join(''):empty('Nenhuma atividade nesta obra.')}
     </section>
     <button class="fab" id="fabAdd">+</button>`;
