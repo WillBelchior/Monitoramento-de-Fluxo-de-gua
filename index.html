@@ -21,13 +21,21 @@
 .metric-pill b{display:block;font-size:16px;margin-top:2px}
 .chartbox{display:grid;gap:10px}.bars{display:flex;align-items:flex-end;gap:14px;height:170px;padding:8px 6px 0}.bar-wrap{flex:1;display:grid;gap:6px;align-items:end;text-align:center;min-width:55px}.bar{width:100%;max-width:62px;margin:auto;border-radius:10px 10px 4px 4px;background:#f0a52b;min-height:4px}.bar-wrap small{font-size:10px;color:#7c8795}.bar-wrap b{font-size:11px}.donut-wrap{display:flex;gap:18px;align-items:center;justify-content:center;padding:10px}.donut{--p:0;width:132px;height:132px;border-radius:50%;background:conic-gradient(#f0a52b calc(var(--p)*1%),#e8edf2 0);display:grid;place-items:center}.donut:after{content:"";width:88px;height:88px;background:white;border-radius:50%;grid-area:1/1}.donut strong{grid-area:1/1;z-index:1;font-size:22px}.legend{display:grid;gap:8px;font-size:11px}.legend div{display:flex;align-items:center;gap:7px}.dot{width:9px;height:9px;border-radius:50%;background:#f0a52b}.dot.alt{background:#d9e0e8}
 .timeline-card{border:1px solid #e5e9ee;border-radius:12px;padding:12px;background:white;display:grid;gap:9px;margin-bottom:10px}
-.project-card{border:1px solid #e3e8ee;border-radius:16px;background:#fff;overflow:hidden;box-shadow:0 3px 12px #1720300a;margin-bottom:12px}
-.project-card-head{padding:14px 15px 10px;display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
-.project-card-head h3{margin:0 0 3px;font-size:15px}.project-card-head small{color:#7e8a97}
-.project-card-body{padding:0 15px 14px;display:grid;gap:12px}
-.project-progress{display:grid;grid-template-columns:1fr auto;align-items:center;gap:10px}.project-progress b{font-size:18px}
-.project-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.project-metric{background:#f6f8fa;border-radius:10px;padding:9px}.project-metric span{display:block;font-size:9px;color:#7d8996;text-transform:uppercase}.project-metric b{display:block;font-size:12px;margin-top:3px}
-.project-actions{display:flex;gap:7px;flex-wrap:wrap;padding-top:2px}.project-actions .btn{flex:1;min-width:110px}
+.project-card{border:1px solid #e2e7ec;border-radius:16px;background:#fff;overflow:hidden;box-shadow:0 3px 12px #17203008;margin-bottom:14px}
+.project-card-head{padding:16px 16px 13px;display:grid;grid-template-columns:1fr auto;gap:12px;align-items:start;border-bottom:1px solid #edf0f3}
+.project-title{min-width:0}.project-title h3{margin:0 0 5px;font-size:16px;line-height:1.25}.project-title small{display:block;color:#7e8a97;line-height:1.45;white-space:normal}
+.project-card-body{padding:14px 16px 15px;display:grid;gap:14px}
+.project-progress{display:grid;grid-template-columns:1fr 48px;align-items:end;gap:12px}
+.project-progress-label{display:flex;justify-content:space-between;gap:8px;margin-bottom:6px;font-size:10px;color:#7d8996;text-transform:uppercase}
+.project-progress>b{font-size:20px;line-height:1;text-align:right;color:#172030}
+.project-summary{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid #e9edf1;border-radius:12px;overflow:hidden;background:#fafbfc}
+.project-summary-item{padding:10px 12px;min-width:0}
+.project-summary-item:nth-child(odd){border-right:1px solid #e9edf1}
+.project-summary-item:nth-child(n+3){border-top:1px solid #e9edf1}
+.project-summary-item span{display:block;font-size:9px;color:#7d8996;text-transform:uppercase;margin-bottom:3px}
+.project-summary-item b{display:block;font-size:13px;color:#263241;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.project-actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}.project-actions .btn{width:100%;min-width:0}
+.project-actions .btn.primary{grid-column:auto}
 .collab-note{background:#eef6ff;border:1px solid #cedff3;border-radius:12px;padding:11px;font-size:12px;color:#345b84}
 .comment-box{display:grid;gap:8px}.comment-box textarea{width:100%;border:1px solid #dce2e8;border-radius:10px;padding:10px;resize:vertical}.comment-item{border-left:3px solid #f0a52b;padding:8px 10px;background:#f8fafb;border-radius:0 9px 9px 0;margin-bottom:7px}.comment-item small{color:#7d8996}
 .timeline-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.timeline-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.timeline-actions select{border:1px solid #dce2e8;border-radius:8px;padding:7px;background:white}.range-row{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center}.range-row input[type=range]{width:100%;accent-color:#f0a52b}
@@ -42,7 +50,7 @@
 .metrics-float{top:66px;grid-template-columns:1fr 1fr;gap:6px}
 .metric-pill{padding:8px 10px;border-radius:10px}.metric-pill b{font-size:14px}.metric-pill span{font-size:9px}
 .side{transform:translateX(-105%);transition:.2s;width:250px}.side.open{transform:translateX(0)}.main{margin-left:0;padding-bottom:78px}.top{height:60px;padding:0 10px;gap:8px}.menu{display:inline-block;border:0;background:transparent;font-size:20px}.content{padding:10px;gap:12px}.grid4{grid-template-columns:1fr 1fr;gap:8px}.card{padding:10px;border-radius:11px}.card b{font-size:16px}.card span{font-size:10px}.kanban{grid-template-columns:repeat(4,82vw);gap:10px;scroll-snap-type:x mandatory}.col{scroll-snap-align:start}.form{grid-template-columns:1fr}.field.full{grid-column:1}.bottom{position:fixed;bottom:0;left:0;right:0;height:68px;padding-bottom:env(safe-area-inset-bottom);background:white;border-top:1px solid #e2e6eb;display:flex;justify-content:space-around;z-index:40;box-shadow:0 -4px 18px #17203010}.bottom button{border:0;background:transparent;font-size:10px;color:#788594;min-width:58px;padding:7px 4px}.bottom button.active{color:#172030;font-weight:700}.toolbar{display:grid;grid-template-columns:1fr;gap:8px}.toolbar input{min-width:0;width:100%}.report{grid-template-columns:1fr 1fr}
-.panel{padding:12px;border-radius:12px}.project-metrics{grid-template-columns:1fr 1fr 1fr}.project-actions .btn{min-width:0}.panel-head{gap:8px;align-items:flex-start}.panel-head h2{font-size:13px}
+.panel{padding:12px;border-radius:12px}.project-card-head{padding:13px}.project-card-body{padding:12px 13px 13px;gap:12px}.project-summary{grid-template-columns:1fr 1fr}.project-actions{grid-template-columns:1fr 1fr}.project-actions .btn:last-child{grid-column:1/-1}.panel-head{gap:8px;align-items:flex-start}.panel-head h2{font-size:13px}
 .btn{min-height:42px;padding:10px 12px;border-radius:10px}
 .quick{grid-template-columns:1fr 1fr;gap:8px}.quick button{padding:12px 8px;min-height:78px}.quick button span{font-size:24px}
 .timeline-card{padding:10px;border-radius:11px}.timeline-top{gap:8px}.timeline-actions{gap:6px}.timeline-actions .btn{padding:8px 10px;min-height:38px}
@@ -266,22 +274,28 @@ function dashboard(){
     <section class="panel">
       <div class="panel-head"><h2>Obras</h2><button class="btn primary" data-go="obras">Ver todas</button></div>
       ${obraStats.length?obraStats.map(({o,spent,p,lates})=>`
-        <div class="timeline-card">
-          <div class="timeline-top">
-            <div><b>${esc(o.nome)}</b><small>${esc(o.cliente||'Sem cliente')}</small></div>
+        <article class="project-card">
+          <div class="project-card-head">
+            <div class="project-title"><h3>${esc(o.nome)}</h3><small>${esc(o.cliente||'Sem cliente')}</small></div>
             ${status(o.status)}
           </div>
-          <div class="range-row"><div class="progress"><i style="width:${p}%"></i></div><b>${p}%</b></div>
-          <div class="mi-grid" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;font-size:11px">
-            <div><span>Orçamento</span><b>${money(o.orcamento_geral)}</b></div>
-            <div><span>Gasto</span><b>${money(spent)}</b></div>
-            <div><span>Atrasos</span><b>${lates}</b></div>
+          <div class="project-card-body">
+            <div class="project-progress">
+              <div><div class="project-progress-label"><span>Evolução</span></div><div class="progress"><i style="width:${p}%"></i></div></div>
+              <b>${p}%</b>
+            </div>
+            <div class="project-summary">
+              <div class="project-summary-item"><span>Orçamento</span><b>${money(o.orcamento_geral)}</b></div>
+              <div class="project-summary-item"><span>Gasto</span><b>${money(spent)}</b></div>
+              <div class="project-summary-item"><span>Saldo</span><b>${money((+o.orcamento_geral||0)-spent)}</b></div>
+              <div class="project-summary-item"><span>Atrasos</span><b>${lates}</b></div>
+            </div>
+            <div class="project-actions" style="grid-template-columns:1fr 1fr">
+              <button class="btn secondary" onclick="openObraPage('${o.id}','dashboard')">📊 Painel</button>
+              <button class="btn secondary" onclick="openObraPage('${o.id}','cronograma')">📅 Agenda</button>
+            </div>
           </div>
-          <div class="timeline-actions">
-            <button class="btn secondary" onclick="openObraPage('${o.id}','dashboard')">Painel</button>
-            <button class="btn secondary" onclick="openObraPage('${o.id}','cronograma')">Agenda</button>
-          </div>
-        </div>`).join(''):empty('Nenhuma obra cadastrada.')}
+        </article>`).join(''):empty('Nenhuma obra cadastrada.')}
     </section>`;
 
   document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{page=b.dataset.go;render()});
@@ -297,15 +311,26 @@ async function obras(){
     const gasto=materiais.reduce((s,x)=>s+(+x.qtd_comprada||0)*(+x.preco_pago_unit||0)+(+x.frete_outros||0),0)+mao.reduce((s,x)=>s+(+x.valor_mao_obra||0)+(+x.qtd_refeicoes||0)*(+x.valor_refeicao||0)+(+x.transporte_outros||0),0);
     return `<article class="project-card">
       <div class="project-card-head">
-        <div><h3>${esc(o.nome)}</h3><small>${esc(o.cliente||'Sem cliente')}${o.endereco?' • '+esc(o.endereco):''}</small></div>
+        <div class="project-title">
+          <h3>${esc(o.nome)}</h3>
+          <small>${esc(o.cliente||'Sem cliente')}</small>
+          ${o.endereco?`<small>📍 ${esc(o.endereco)}</small>`:''}
+        </div>
         ${status(o.status)}
       </div>
       <div class="project-card-body">
-        <div class="project-progress"><div><small>EVOLUÇÃO</small><div class="progress"><i style="width:${p}%"></i></div></div><b>${p}%</b></div>
-        <div class="project-metrics">
-          <div class="project-metric"><span>Orçamento</span><b>${money(o.orcamento_geral)}</b></div>
-          <div class="project-metric"><span>Gasto</span><b>${money(gasto)}</b></div>
-          <div class="project-metric"><span>Atrasos</span><b>${atrasadas}</b></div>
+        <div class="project-progress">
+          <div>
+            <div class="project-progress-label"><span>Evolução da obra</span></div>
+            <div class="progress"><i style="width:${p}%"></i></div>
+          </div>
+          <b>${p}%</b>
+        </div>
+        <div class="project-summary">
+          <div class="project-summary-item"><span>Orçamento</span><b>${money(o.orcamento_geral)}</b></div>
+          <div class="project-summary-item"><span>Gasto</span><b>${money(gasto)}</b></div>
+          <div class="project-summary-item"><span>Saldo</span><b>${money((+o.orcamento_geral||0)-gasto)}</b></div>
+          <div class="project-summary-item"><span>Atrasos</span><b>${atrasadas}</b></div>
         </div>
         <div class="project-actions">
           <button class="btn secondary" onclick="openObraPage('${o.id}','dashboard')">📊 Painel</button>
@@ -318,12 +343,16 @@ async function obras(){
 
   const sharedCards=shared.map(o=>`<article class="project-card">
     <div class="project-card-head">
-      <div><h3>${esc(o.nome)}</h3><small>${esc(o.cliente||'')} • Obra compartilhada</small></div>
+      <div class="project-title">
+        <h3>${esc(o.nome)}</h3>
+        <small>${esc(o.cliente||'Sem cliente')}</small>
+        ${o.endereco?`<small>📍 ${esc(o.endereco)}</small>`:''}
+      </div>
       <span class="status run">Colaborador</span>
     </div>
     <div class="project-card-body">
-      <div class="collab-note">Acesso para acompanhar, comentar e atualizar a evolução. Informações financeiras e cadastros administrativos não são exibidos.</div>
-      <div class="project-actions"><button class="btn primary" data-open-shared="${o.id}">Abrir acompanhamento</button></div>
+      <div class="collab-note">Você pode acompanhar, comentar e atualizar a evolução desta obra.</div>
+      <div class="project-actions" style="grid-template-columns:1fr"><button class="btn primary" data-open-shared="${o.id}">Abrir acompanhamento</button></div>
     </div>
   </article>`).join('');
 
