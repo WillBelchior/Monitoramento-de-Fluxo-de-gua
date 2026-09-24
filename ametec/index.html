@@ -62,16 +62,122 @@ body:before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.28;ba
 @media(max-width:700px){
 .side{transform:translateX(-105%);transition:.2s;width:255px}.side.open{transform:translateX(0)}.main{margin-left:0;max-width:100vw;width:100%;padding-bottom:74px;overflow-x:hidden}.menu{display:inline-block}.top{height:64px;padding:0 9px;gap:8px}.top-logo{display:block;width:88px;flex:0 0 auto}.top h1{font-size:14px}.top .badge{display:none}.top small{font-size:9px}.content{padding:10px;gap:12px}.hero{padding:14px;border-radius:15px}.hero-grid{align-items:flex-start}.hero h2{font-size:17px}.hero p{font-size:10px}.hero-actions{justify-content:flex-end}.metrics{grid-template-columns:1fr 1fr;gap:7px}.metric{padding:10px}.metric b{font-size:15px}.panel{padding:12px;border-radius:13px}.quick{gap:7px}.quick button{padding:10px;min-height:72px}.entity-grid{grid-template-columns:1fr 1fr}.entity-grid>div:nth-child(2){border-right:0}.entity-grid>div:nth-child(n+3){border-top:1px solid #edf0f3}.kanban{grid-template-columns:repeat(4,82vw);scroll-snap-type:x mandatory}.pending-board{grid-template-columns:1fr;overflow:visible}.pending-col{width:100%}.col{scroll-snap-align:start}.form{grid-template-columns:1fr}.field.full{grid-column:1}.modal-bg{padding:8px;align-items:end}.modal{width:100%;max-height:88vh;border-radius:20px 20px 0 0}.bottom{display:flex;position:fixed;bottom:0;left:0;right:0;height:66px;padding-bottom:env(safe-area-inset-bottom);background:#fffffff2;backdrop-filter:blur(15px);border-top:1px solid var(--line);z-index:40;justify-content:space-around;box-shadow:0 -5px 25px #062c5910}.bottom button{border:0;background:transparent;color:#758496;font-size:9px;min-width:54px;padding:7px 3px}.bottom button.active{color:var(--blue);font-weight:900}
 }
+
+/* ===== AMETEC PREMIUM THEME ===== */
+:root{
+  --navy:#06131d;
+  --blue:#00aef0;
+  --cyan:#19d4ff;
+  --orange:#ffb000;
+  --ink:#f4fbff;
+  --muted:#9bb4c6;
+  --line:#17384b;
+  --bg:#06131d;
+  --card:#0c1d29;
+}
+html,body{background:#06131d;color:var(--ink)}
+body{background:
+  radial-gradient(circle at 82% 4%,rgba(0,174,240,.13),transparent 28%),
+  radial-gradient(circle at 15% 18%,rgba(255,176,0,.07),transparent 20%),
+  linear-gradient(180deg,#05111a 0%,#081923 55%,#06131d 100%)}
+body:before{opacity:.18;background-image:linear-gradient(rgba(24,212,255,.055) 1px,transparent 1px),linear-gradient(90deg,rgba(24,212,255,.055) 1px,transparent 1px);background-size:34px 34px}
+.side{background:linear-gradient(180deg,#02070b 0%,#071826 55%,#08273a 100%);border-right:1px solid #12354b;box-shadow:14px 0 40px #0008}
+.brand{border-bottom:1px solid #17384b;padding:8px 8px 20px}
+.brand img{width:100%;max-width:250px!important;display:block;margin:auto;border-radius:14px;box-shadow:0 0 28px rgba(0,174,240,.18)}
+.nav button{color:#a9c0d0;font-weight:750;letter-spacing:.1px}
+.nav button:hover,.nav button.active{color:#fff;background:linear-gradient(90deg,rgba(0,174,240,.18),rgba(255,176,0,.06));box-shadow:inset 4px 0 0 var(--orange),0 0 20px rgba(0,174,240,.06)}
+.top{background:rgba(5,17,26,.92);backdrop-filter:blur(18px);border-bottom:1px solid #17384b;box-shadow:0 8px 28px #0004}
+.top h1{color:#fff}.top small{color:#91aec0}.top .badge{background:#092a3d;color:#5fddff;border:1px solid #165675;box-shadow:0 0 16px rgba(0,174,240,.08)}
+.top-logo{border-radius:10px;box-shadow:0 0 18px rgba(0,174,240,.16)}
+.content{color:var(--ink)}
+.hero{background:
+  linear-gradient(135deg,rgba(5,23,36,.98),rgba(9,60,91,.96) 58%,rgba(0,117,185,.92)),
+  radial-gradient(circle at 80% 20%,rgba(255,176,0,.14),transparent 28%);
+  border:1px solid #1b5875;box-shadow:0 18px 50px #0005, inset 0 1px 0 rgba(255,255,255,.04)}
+.hero h2{color:#fff}.hero p{color:#b7cede}.hero .eyebrow{color:#53d9ff}
+.panel,.metric,.entity,.quick button,.pending-card{background:linear-gradient(180deg,#0d202d,#0a1923);border-color:#17384b;color:#f4fbff;box-shadow:0 8px 24px #0002}
+.panel{box-shadow:0 10px 28px #0003}
+.panel h3,.entity-head b,.entity-grid b,.pending-head b,.pending-line b,.metric b,.quick button b{color:#f7fcff}
+.panel-head small,.entity-head small,.entity-grid span,.pending-head small,.pending-line span,.metric span,.metric small,.quick button small{color:#91aabc}
+.entity-head{border-bottom-color:#17384b;background:rgba(255,255,255,.012)}
+.entity-grid,.pending-fin{background:#071722;border-color:#17384b}
+.entity-grid>div,.pending-fin>div{border-color:#17384b}
+.pending-col,.col{background:#081925;border:1px solid #14374a}
+.pending-col h4,.col h4{color:#b8d3e4}
+.pending-card select,.task select,.toolbar input,.toolbar select,.field input,.field select,.field textarea{background:#071722;color:#eefaff;border-color:#1b4055}
+.pending-card select:focus,.task select:focus,.toolbar input:focus,.toolbar select:focus,.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:#00aef0;box-shadow:0 0 0 3px rgba(0,174,240,.12)}
+.progress{background:#122a39}.progress i{background:linear-gradient(90deg,#008fd1,#19d4ff,#ffb000)}
+.btn.primary{background:linear-gradient(135deg,#ffb000,#ffd45a);color:#06131d;box-shadow:0 8px 22px rgba(255,176,0,.18)}
+.btn.secondary{background:#102c3d;color:#d8f2ff;border:1px solid #1d4960}
+.btn.ghost{background:rgba(0,174,240,.12);color:#e8faff;border-color:#2d6e8d}
+.status{background:#122b3b;color:#a9cadc}
+.status.run{background:#0c3851;color:#67d8ff}.status.done{background:#123c2f;color:#76e3b0}.status.late{background:#432127;color:#ff9f9f}.status.high{background:#4a3512;color:#ffd36b}
+.bar{background:linear-gradient(180deg,#19d4ff,#008ed4)}
+.donut:after{background:#0d202d}
+.task{background:#0c1d29;border-color:#17384b}
+.modal-bg{background:#01070bd9}.modal,.auth-card{background:linear-gradient(180deg,#0c1d29,#081722);border-color:#17384b;color:#f5fbff;box-shadow:0 24px 80px #0008}
+.auth{background:
+ radial-gradient(circle at 50% 10%,rgba(0,174,240,.13),transparent 30%),
+ linear-gradient(180deg,#03090e,#071722)}
+.auth-brand img{border-radius:16px;box-shadow:0 0 34px rgba(0,174,240,.16)}
+.bottom{background:rgba(4,14,21,.96);border-top-color:#17384b}.bottom button{color:#8eabbc}.bottom button.active{color:#55dcff}
+
+/* Desktop scale: deliberately larger and easier to scan */
+@media(min-width:901px){
+  body{font-size:17px}
+  .side{width:320px;padding:24px 18px}
+  .main{margin-left:320px;max-width:calc(100vw - 320px)}
+  .brand img{max-width:278px!important}
+  .nav{gap:8px}.nav button{font-size:16px;padding:16px 16px;border-radius:13px}
+  .top{height:96px;padding:0 34px;gap:18px}
+  .top h1{font-size:27px}.top small{font-size:15px}.top .badge{font-size:12px;padding:10px 14px}
+  .content{padding:32px 34px;gap:24px;max-width:1780px}
+  .hero{padding:30px 32px;border-radius:24px}
+  .hero h2{font-size:34px;line-height:1.12}.hero p{font-size:17px;max-width:850px}.hero .eyebrow{font-size:12px}
+  .btn{font-size:16px;padding:13px 18px;min-height:48px}
+  .metrics{gap:16px}.metric{padding:20px;border-radius:18px}.metric span{font-size:12px}.metric b{font-size:29px}.metric small{font-size:12px}
+  .panel{padding:22px;border-radius:20px}.panel h3{font-size:18px}.panel-head small{font-size:13px}
+  .quick{gap:16px}.quick button{min-height:116px;padding:20px}.quick button strong{font-size:30px}.quick button b{font-size:16px}.quick button small{font-size:12px}
+  .entity{border-radius:17px}.entity-head{padding:18px}.entity-head b{font-size:17px}.entity-head small{font-size:13px}.entity-body{padding:16px 18px;gap:15px}
+  .entity-grid>div{padding:13px 14px}.entity-grid span{font-size:10px}.entity-grid b{font-size:15px}
+  .pending-board{grid-template-columns:repeat(3,minmax(320px,1fr));gap:18px}
+  .pending-col{padding:14px;border-radius:18px}.pending-col h4{font-size:15px;margin-bottom:12px}
+  .pending-head{padding:16px}.pending-head b{font-size:16px}.pending-head small{font-size:12px}.pending-body{padding:15px;gap:13px}
+  .pending-line{font-size:13px}.pending-line b{font-size:13px}.pending-fin span{font-size:10px}.pending-fin b{font-size:13px}
+  .pending-card select{font-size:14px;padding:10px}.pending-actions .btn{font-size:13px;padding:10px}
+  .toolbar input,.toolbar select{font-size:16px;padding:13px 15px}
+  .form{gap:15px}.field span{font-size:13px}.field input,.field select,.field textarea{font-size:16px;padding:13px}
+  .bars{height:240px}.bar-wrap b{font-size:13px}.bar-wrap small{font-size:12px}
+  .donut{width:180px;height:180px}.donut:after{width:118px;height:118px}.donut b{font-size:30px}
+  .status{font-size:12px;padding:7px 10px}
+}
+@media(min-width:1500px){
+  .pending-board{grid-template-columns:repeat(4,minmax(300px,1fr))}
+  .content{max-width:1900px}
+}
+@media(max-width:900px){
+  body{font-size:14px}
+  .top{background:#06131df7}
+  .top-logo{display:block;width:102px;border-radius:9px}
+  .top h1{font-size:15px}.top small{font-size:10px}
+  .hero{border-radius:16px}
+  .panel,.metric,.entity,.quick button,.pending-card{box-shadow:none}
+}
+@media(max-width:520px){
+  .top-logo{width:84px}.top h1{font-size:13px}.top small{display:none}
+  .hero h2{font-size:18px}.hero p{font-size:11px}
+}
+
 </style>
 </head>
 <body>
 <div class="shell">
   <aside class="side" id="side">
-    <div class="brand"><img src="/Monitoramento-de-Fluxo-de-gua/ametec/assets/ametec-logo.jpg" alt="AMETEC Soluções Industriais" style="display:block;width:100%;max-width:205px;height:auto;margin:2px auto 4px"></div>
+    <div class="brand"><img src="/Monitoramento-de-Fluxo-de-gua/ametec/assets/ametec-logo-official.png" alt="AMETEC Soluções Industriais" style="display:block;width:100%;max-width:205px;height:auto;margin:2px auto 4px"></div>
     <div class="nav" id="nav"></div>
   </aside>
   <main class="main">
-    <header class="top"><button class="menu" id="menu">☰</button><img class="top-logo" src="/Monitoramento-de-Fluxo-de-gua/ametec/assets/ametec-logo.jpg" alt="AMETEC"><div><h1 id="title">Centro de Operações</h1><small id="subtitle">Gestão industrial inteligente</small></div><span class="badge">● SISTEMA ONLINE</span></header>
+    <header class="top"><button class="menu" id="menu">☰</button><img class="top-logo" src="/Monitoramento-de-Fluxo-de-gua/ametec/assets/ametec-logo-official.png" alt="AMETEC"><div><h1 id="title">Centro de Operações</h1><small id="subtitle">Gestão industrial inteligente</small></div><span class="badge">● SISTEMA ONLINE</span></header>
     <div class="content" id="app"></div>
   </main>
   <nav class="bottom" id="bottom"></nav>
@@ -92,7 +198,7 @@ function toast(msg,err=false){let n=document.querySelector('#toast');if(!n){n=do
 function authScreen(){
   document.querySelector('.shell').style.display='none';
   let a=document.querySelector('#auth');if(!a){a=document.createElement('div');a.id='auth';document.body.appendChild(a)}
-  a.innerHTML='<div class="auth"><div class="auth-card"><div class="auth-brand" style="display:grid;gap:8px"><img src="/Monitoramento-de-Fluxo-de-gua/ametec/assets/ametec-logo.jpg" alt="AMETEC Soluções Industriais" style="display:block;width:100%;max-width:300px;height:auto"><small>Centro de Gestão Industrial</small></div><form id="login" style="display:grid;gap:10px"><label class="field"><span>E-mail</span><input name="email" type="email" required></label><label class="field"><span>Senha</span><input name="password" type="password" minlength="6" required></label><button class="btn primary">Entrar no sistema</button><button type="button" class="btn secondary" id="signup">Criar acesso</button></form></div></div>';
+  a.innerHTML='<div class="auth"><div class="auth-card"><div class="auth-brand" style="display:grid;gap:8px"><img src="/Monitoramento-de-Fluxo-de-gua/ametec/assets/ametec-logo-official.png" alt="AMETEC Soluções Industriais" style="display:block;width:100%;max-width:300px;height:auto"><small>Centro de Gestão Industrial</small></div><form id="login" style="display:grid;gap:10px"><label class="field"><span>E-mail</span><input name="email" type="email" required></label><label class="field"><span>Senha</span><input name="password" type="password" minlength="6" required></label><button class="btn primary">Entrar no sistema</button><button type="button" class="btn secondary" id="signup">Criar acesso</button></form></div></div>';
   document.querySelector('#login').onsubmit=async e=>{e.preventDefault();const v=Object.fromEntries(new FormData(e.target));const {error}=await supabase.auth.signInWithPassword(v);if(error)toast(error.message,true)};
   document.querySelector('#signup').onclick=async()=>{const f=document.querySelector('#login'),v=Object.fromEntries(new FormData(f));if(!v.email||!v.password)return toast('Informe e-mail e senha.',true);const {error}=await supabase.auth.signUp(v);if(error)toast(error.message,true);else toast('Conta criada. Verifique seu e-mail se solicitado.')}
 }
