@@ -25,12 +25,21 @@ body:before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.28;ba
 .bars{height:175px;display:flex;align-items:flex-end;gap:12px;padding:8px 6px 0}.bar-wrap{flex:1;text-align:center;display:grid;gap:5px;align-items:end}.bar{max-width:60px;width:100%;margin:auto;background:linear-gradient(180deg,var(--cyan),var(--blue));border-radius:10px 10px 3px 3px;min-height:4px}.bar-wrap b{font-size:10px}.bar-wrap small{font-size:9px;color:var(--muted)}
 .donut{--p:0;width:132px;height:132px;border-radius:50%;background:conic-gradient(var(--orange) calc(var(--p)*1%),#e8eef3 0);display:grid;place-items:center;margin:auto}.donut:after{content:"";width:88px;height:88px;background:#fff;border-radius:50%;grid-area:1/1}.donut b{grid-area:1/1;z-index:1;font-size:21px}
 .toolbar{display:flex;gap:8px;margin-bottom:12px}.toolbar input,.toolbar select{border:1px solid var(--line);border-radius:10px;padding:9px 11px;background:#fff}.toolbar input{flex:1}
-.kanban{display:grid;grid-template-columns:repeat(4,minmax(230px,1fr));gap:10px;overflow:auto}.col{background:#eaf0f5;border-radius:12px;padding:9px;min-height:300px}.col h4{font-size:11px;margin:2px 2px 10px}.task{background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:8px}.task small,.task b{display:block}.task small{font-size:9px;color:var(--muted)}.task b{font-size:11px;margin:3px 0}.task select{width:100%;margin-top:7px;border:1px solid var(--line);border-radius:7px;padding:7px}
+.kanban{display:grid;grid-template-columns:repeat(4,minmax(230px,1fr));gap:10px;overflow:auto}
+.pending-board{display:grid;grid-template-columns:repeat(8,minmax(270px,1fr));gap:10px;overflow:auto;padding-bottom:5px;scroll-snap-type:x proximity}
+.pending-col{background:#eaf0f5;border-radius:14px;padding:10px;min-height:350px;scroll-snap-align:start}.pending-col h4{font-size:11px;margin:2px 2px 10px;display:flex;justify-content:space-between;gap:8px}
+.pending-card{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-bottom:9px;box-shadow:0 2px 9px #062c5908}
+.pending-head{padding:11px 12px;border-bottom:1px solid #edf1f4}.pending-head b{display:block;font-size:12px}.pending-head small{display:block;color:var(--muted);font-size:9px;margin-top:3px}
+.pending-body{padding:10px 12px;display:grid;gap:9px}.pending-line{display:flex;justify-content:space-between;gap:10px;align-items:center;font-size:10px}.pending-line span{color:var(--muted)}.pending-line b{font-size:10px;text-align:right}
+.pending-fin{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid #edf1f4;border-radius:9px;overflow:hidden;background:#fafcfd}.pending-fin>div{padding:7px 8px}.pending-fin>div:nth-child(odd){border-right:1px solid #edf1f4}.pending-fin>div:nth-child(n+3){border-top:1px solid #edf1f4}.pending-fin span{display:block;font-size:8px;text-transform:uppercase;color:#7b8998}.pending-fin b{font-size:10px}
+.pending-actions{display:grid;grid-template-columns:1fr 1fr;gap:6px}.pending-actions .btn{padding:8px 7px;font-size:10px}
+.pending-card select{width:100%;border:1px solid var(--line);border-radius:8px;padding:7px;background:#fff;font-size:10px}
+.col{background:#eaf0f5;border-radius:12px;padding:9px;min-height:300px}.col h4{font-size:11px;margin:2px 2px 10px}.task{background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:8px}.task small,.task b{display:block}.task small{font-size:9px;color:var(--muted)}.task b{font-size:11px;margin:3px 0}.task select{width:100%;margin-top:7px;border:1px solid var(--line);border-radius:7px;padding:7px}
 .modal-bg{position:fixed;inset:0;background:#03182db5;display:none;place-items:center;padding:18px;z-index:80}.modal-bg.open{display:grid}.modal{width:min(650px,100%);max-height:90vh;overflow:auto;background:#fff;border-radius:18px;padding:16px}.modal-head{display:flex;justify-content:space-between;align-items:center}.modal-head h3{margin:0}.modal-head button{border:0;background:transparent;font-size:22px}.form{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}.field{display:grid;gap:5px}.field.full{grid-column:1/-1}.field span{font-size:10px;color:#617184}.field input,.field select,.field textarea{border:1px solid var(--line);border-radius:9px;padding:10px;font-size:14px}.empty{text-align:center;color:#8491a0;padding:24px;font-size:12px}.bottom{display:none}
 .auth{min-height:100vh;display:grid;place-items:center;padding:20px}.auth-card{width:min(430px,100%);background:#ffffffef;border:1px solid var(--line);border-radius:22px;padding:22px;box-shadow:0 20px 60px #062c5920}.auth-brand{display:flex;gap:11px;align-items:center;margin-bottom:18px}.auth-brand b{font-size:20px}.auth-brand small{display:block;color:var(--muted)}
 @media(max-width:900px){.metrics{grid-template-columns:1fr 1fr}.two{grid-template-columns:1fr}.quick{grid-template-columns:1fr 1fr}}
 @media(max-width:700px){
-.side{transform:translateX(-105%);transition:.2s;width:255px}.side.open{transform:translateX(0)}.main{margin-left:0;padding-bottom:74px}.menu{display:inline-block}.top{height:60px;padding:0 10px}.top h1{font-size:15px}.content{padding:10px;gap:12px}.hero{padding:14px;border-radius:15px}.hero-grid{align-items:flex-start}.hero h2{font-size:17px}.hero p{font-size:10px}.hero-actions{justify-content:flex-end}.metrics{grid-template-columns:1fr 1fr;gap:7px}.metric{padding:10px}.metric b{font-size:15px}.panel{padding:12px;border-radius:13px}.quick{gap:7px}.quick button{padding:10px;min-height:72px}.entity-grid{grid-template-columns:1fr 1fr}.entity-grid>div:nth-child(2){border-right:0}.entity-grid>div:nth-child(n+3){border-top:1px solid #edf0f3}.kanban{grid-template-columns:repeat(4,82vw);scroll-snap-type:x mandatory}.col{scroll-snap-align:start}.form{grid-template-columns:1fr}.field.full{grid-column:1}.modal-bg{padding:8px;align-items:end}.modal{width:100%;max-height:88vh;border-radius:20px 20px 0 0}.bottom{display:flex;position:fixed;bottom:0;left:0;right:0;height:66px;padding-bottom:env(safe-area-inset-bottom);background:#fffffff2;backdrop-filter:blur(15px);border-top:1px solid var(--line);z-index:40;justify-content:space-around;box-shadow:0 -5px 25px #062c5910}.bottom button{border:0;background:transparent;color:#758496;font-size:9px;min-width:54px;padding:7px 3px}.bottom button.active{color:var(--blue);font-weight:900}
+.side{transform:translateX(-105%);transition:.2s;width:255px}.side.open{transform:translateX(0)}.main{margin-left:0;padding-bottom:74px}.menu{display:inline-block}.top{height:60px;padding:0 10px}.top h1{font-size:15px}.content{padding:10px;gap:12px}.hero{padding:14px;border-radius:15px}.hero-grid{align-items:flex-start}.hero h2{font-size:17px}.hero p{font-size:10px}.hero-actions{justify-content:flex-end}.metrics{grid-template-columns:1fr 1fr;gap:7px}.metric{padding:10px}.metric b{font-size:15px}.panel{padding:12px;border-radius:13px}.quick{gap:7px}.quick button{padding:10px;min-height:72px}.entity-grid{grid-template-columns:1fr 1fr}.entity-grid>div:nth-child(2){border-right:0}.entity-grid>div:nth-child(n+3){border-top:1px solid #edf0f3}.kanban{grid-template-columns:repeat(4,82vw);scroll-snap-type:x mandatory}.pending-board{grid-template-columns:repeat(8,86vw);scroll-snap-type:x mandatory}.col{scroll-snap-align:start}.form{grid-template-columns:1fr}.field.full{grid-column:1}.modal-bg{padding:8px;align-items:end}.modal{width:100%;max-height:88vh;border-radius:20px 20px 0 0}.bottom{display:flex;position:fixed;bottom:0;left:0;right:0;height:66px;padding-bottom:env(safe-area-inset-bottom);background:#fffffff2;backdrop-filter:blur(15px);border-top:1px solid var(--line);z-index:40;justify-content:space-around;box-shadow:0 -5px 25px #062c5910}.bottom button{border:0;background:transparent;color:#758496;font-size:9px;min-width:54px;padding:7px 3px}.bottom button.active{color:var(--blue);font-weight:900}
 }
 </style>
 </head>
@@ -54,8 +63,8 @@ const today=new Date().toISOString().slice(0,10);
 const money=v=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(+v||0);
 const date=v=>v?new Date(v+'T12:00:00').toLocaleDateString('pt-BR'):'—';
 const esc=s=>String(s??'').replace(/[&<>'"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[m]));
-let data={clientes:[],servicos:[],equipamentos:[],materiais:[],colaboradores:[],registros:[]},page='dashboard',session=null,channel=null;
-const pages=[['dashboard','Centro','⚡'],['clientes','Clientes','🏭'],['servicos','Serviços','🔧'],['agenda','Agenda','📅'],['equipamentos','Equipamentos','⚙️'],['materiais','Materiais','📦'],['colaboradores','Colaboradores','👷'],['financeiro','Financeiro','💰'],['relatorios','Relatórios','📊']];
+let data={clientes:[],servicos:[],equipamentos:[],materiais:[],colaboradores:[],registros:[],pagamentos:[]},page='dashboard',session=null,channel=null;
+const pages=[['dashboard','Centro','⚡'],['pendencias','Pendências','📋'],['clientes','Clientes','🏭'],['servicos','Serviços','🔧'],['agenda','Agenda','📅'],['equipamentos','Equipamentos','⚙️'],['materiais','Materiais','📦'],['colaboradores','Colaboradores','👷'],['financeiro','Financeiro','💰'],['relatorios','Relatórios','📊']];
 const status=s=>{const c=['Concluído','Operacional','Ativo'].includes(s)?'done':['Em execução','Em manutenção','Planejado'].includes(s)?'run':['Emergencial','Alta'].includes(s)?'high':'';return '<span class="status '+c+'">'+esc(s||'—')+'</span>'};
 const card=(l,v,s='')=>'<div class="metric"><span>'+l+'</span><b>'+v+'</b><small>'+s+'</small></div>';
 function toast(msg,err=false){let n=document.querySelector('#toast');if(!n){n=document.createElement('div');n.id='toast';Object.assign(n.style,{position:'fixed',right:'14px',bottom:'78px',zIndex:120,padding:'11px 13px',borderRadius:'10px',font:'700 12px system-ui',boxShadow:'0 10px 30px #0002'});document.body.appendChild(n)}n.textContent=msg;n.style.background=err?'#ffe9e9':'#e9f8ef';n.style.color=err?'#a33333':'#216c49';n.style.display='block';clearTimeout(n._t);n._t=setTimeout(()=>n.style.display='none',3000)}
@@ -74,22 +83,23 @@ async function load(){
     supabase.from('ametec_equipamentos').select('*').order('created_at',{ascending:false}),
     supabase.from('ametec_materiais').select('*').order('created_at',{ascending:false}),
     supabase.from('ametec_colaboradores').select('*').order('created_at',{ascending:false}),
-    supabase.from('ametec_registros').select('*').order('created_at',{ascending:false})
+    supabase.from('ametec_registros').select('*').order('created_at',{ascending:false}),
+    supabase.from('ametec_pagamentos').select('*').order('data_pagamento',{ascending:false})
   ]);
   if(qs.some(x=>x.error))return toast('Não foi possível carregar todos os dados.',true);
-  [data.clientes,data.servicos,data.equipamentos,data.materiais,data.colaboradores,data.registros]=qs.map(x=>x.data||[]);
+  [data.clientes,data.servicos,data.equipamentos,data.materiais,data.colaboradores,data.registros,data.pagamentos]=qs.map(x=>x.data||[]);
   render()
 }
 function subscribe(){
   if(channel)supabase.removeChannel(channel);
   channel=supabase.channel('ametec-live');
-  ['ametec_clientes','ametec_servicos','ametec_equipamentos','ametec_materiais','ametec_colaboradores','ametec_registros'].forEach(t=>channel.on('postgres_changes',{event:'*',schema:'public',table:t},()=>load()));
+  ['ametec_clientes','ametec_servicos','ametec_equipamentos','ametec_materiais','ametec_colaboradores','ametec_registros','ametec_pagamentos'].forEach(t=>channel.on('postgres_changes',{event:'*',schema:'public',table:t},()=>load()));
   channel.subscribe()
 }
 function initNav(){
   const n=document.querySelector('#nav'),b=document.querySelector('#bottom');
   n.innerHTML=pages.map(([k,l,i])=>'<button data-p="'+k+'">'+i+' '+l+'</button>').join('')+'<button id="logout">🚪 Sair</button>';
-  const mobile=['dashboard','clientes','servicos','agenda','colaboradores'].map(k=>pages.find(x=>x[0]===k));
+  const mobile=['dashboard','pendencias','servicos','agenda','clientes'].map(k=>pages.find(x=>x[0]===k));
   b.innerHTML=mobile.map(([k,l,i])=>'<button data-p="'+k+'">'+i+'<br>'+l+'</button>').join('');
   document.querySelectorAll('[data-p]').forEach(x=>x.onclick=()=>{page=x.dataset.p;document.querySelector('#side').classList.remove('open');render()});
   document.querySelector('#menu').onclick=()=>document.querySelector('#side').classList.toggle('open');
@@ -99,7 +109,54 @@ function render(){
   document.querySelectorAll('[data-p]').forEach(x=>x.classList.toggle('active',x.dataset.p===page));
   const p=pages.find(x=>x[0]===page);document.querySelector('#title').textContent=p?.[1]||'AMETEC';
   document.querySelector('#subtitle').textContent=page==='dashboard'?'Centro de Operações • visão geral':'Gestão AMETEC';
-  ({dashboard,clientes,servicos,agenda,equipamentos,materiais,colaboradores,financeiro,relatorios}[page]||dashboard)()
+  ({dashboard,pendencias,clientes,servicos,agenda,equipamentos,materiais,colaboradores,financeiro,relatorios}[page]||dashboard)()
+}
+function paySummary(s){
+  const total=(+s.valor_servico||0)+(+s.valor_material||0);
+  const pays=data.pagamentos.filter(p=>p.servico_id===s.id);
+  const received=pays.reduce((a,p)=>a+(+p.valor||0),0);
+  const balance=Math.max(total-received,0);
+  const last=[...pays].sort((a,b)=>(b.data_pagamento||'').localeCompare(a.data_pagamento||''))[0];
+  let state='Não pago';
+  if(total>0&&received>=total)state='Pago';
+  else if(received>0)state='Parcial';
+  if(balance>0&&s.vencimento_pagamento&&s.vencimento_pagamento<today)state='Vencido';
+  return {total,received,balance,last,state};
+}
+function pendingCard(x){
+  const c=data.clientes.find(a=>a.id===x.cliente_id),p=paySummary(x);
+  const payClass=p.state==='Pago'?'done':p.state==='Vencido'?'late':p.state==='Parcial'?'run':'';
+  return `<article class="pending-card">
+    <div class="pending-head">
+      <b>${esc(x.titulo)}</b>
+      <small>🏭 ${esc(c?.nome_fantasia||'Sem cliente')} • ${esc(x.tipo||'Serviço')}</small>
+    </div>
+    <div class="pending-body">
+      <div><span style="display:block;font-size:8px;color:#7b8998;text-transform:uppercase;margin-bottom:4px">Atendimento</span>
+        <select data-atendimento="${x.id}">
+          ${['Novo','Aguardando avaliação','Aguardando valor','Aguardando cliente','Aguardando disponibilidade','Agendado','Em execução','Concluído'].map(v=>`<option ${v===(x.atendimento_status||'Novo')?'selected':''}>${v}</option>`).join('')}
+        </select>
+      </div>
+      <div><span style="display:block;font-size:8px;color:#7b8998;text-transform:uppercase;margin-bottom:4px">Orçamento</span>
+        <select data-orcamento="${x.id}">
+          ${['Não iniciado','Em elaboração','Enviado','Aguardando resposta','Aprovado','Recusado','Expirado'].map(v=>`<option ${v===(x.orcamento_status||'Não iniciado')?'selected':''}>${v}</option>`).join('')}
+        </select>
+      </div>
+      <div class="pending-fin">
+        <div><span>Total</span><b>${money(p.total)}</b></div>
+        <div><span>Recebido</span><b>${money(p.received)}</b></div>
+        <div><span>Saldo</span><b>${money(p.balance)}</b></div>
+        <div><span>Financeiro</span><b><span class="status ${payClass}">${p.state}</span></b></div>
+      </div>
+      <div class="pending-line"><span>Último pagamento</span><b>${p.last?date(p.last.data_pagamento)+' • '+money(p.last.valor):'—'}</b></div>
+      <div class="pending-line"><span>Próxima ação</span><b>${esc(x.proxima_acao||'Definir próxima ação')}</b></div>
+      <div class="pending-line"><span>Prazo</span><b>${date(x.proxima_acao_data)}</b></div>
+      <div class="pending-actions">
+        <button class="btn secondary" data-action="${x.id}">✏️ Próxima ação</button>
+        <button class="btn primary" data-pay="${x.id}">💰 Pagamento</button>
+      </div>
+    </div>
+  </article>`;
 }
 function dashboard(){
   const active=data.servicos.filter(x=>x.status==='Em execução').length,urgent=data.servicos.filter(x=>x.prioridade==='Emergencial'&&x.status!=='Concluído').length,done=data.servicos.filter(x=>x.status==='Concluído').length;
@@ -109,7 +166,7 @@ function dashboard(){
   document.querySelector('#app').innerHTML=`
     <section class="hero"><div class="hero-grid"><div><div class="eyebrow">AMETEC • CENTRO DE OPERAÇÕES</div><h2>Tecnologia para manter a indústria em movimento.</h2><p>Clientes, chamados, equipamentos, agenda e custos em uma única central.</p></div><div class="hero-actions"><button class="btn primary" data-new="servico">+ Serviço</button><button class="btn ghost" data-go="agenda">Abrir agenda</button></div></div></section>
     <div class="metrics">${card('Em execução',active,'serviços ativos')}${card('Emergenciais',urgent,'prioridade máxima')}${card('Concluídos',done,'histórico total')}${card('Carteira registrada',money(revenue),'serviços + materiais')}</div>
-    <div class="quick"><button data-go="clientes"><strong>🏭</strong><b>Clientes</b><small>cadastros e histórico</small></button><button data-new="servico"><strong>⚡</strong><b>Novo chamado</b><small>registre rapidamente</small></button><button data-go="equipamentos"><strong>⚙️</strong><b>Equipamentos</b><small>ativos dos clientes</small></button><button data-go="financeiro"><strong>📈</strong><b>Financeiro</b><small>valores registrados</small></button></div>
+    <div class="quick"><button data-go="clientes"><strong>🏭</strong><b>Clientes</b><small>cadastros e histórico</small></button><button data-new="servico"><strong>⚡</strong><b>Novo chamado</b><small>registre rapidamente</small></button><button data-go="equipamentos"><strong>⚙️</strong><b>Equipamentos</b><small>ativos dos clientes</small></button><button data-go="pendencias"><strong>📋</strong><b>Pendências</b><small>orçamentos e recebimentos</small></button></div>
     <div class="two">
       <section class="panel"><div class="panel-head"><div><h3>Distribuição dos serviços</h3><small>por tipo de atendimento</small></div></div><div class="bars">${arr.length?arr.map(([n,v])=>`<div class="bar-wrap"><b>${v}</b><div class="bar" style="height:${Math.max(8,Math.round(v/max*130))}px"></div><small>${esc(n)}</small></div>`).join(''):'<div class="empty">Sem serviços ainda.</div>'}</div></section>
       <section class="panel"><div class="panel-head"><div><h3>Evolução operacional</h3><small>média dos serviços</small></div></div><div class="donut" style="--p:${avg}"><b>${avg}%</b></div></section>
@@ -118,6 +175,58 @@ function dashboard(){
   bindCommon()
 }
 function serviceCard(x){const c=data.clientes.find(a=>a.id===x.cliente_id);return `<article class="entity"><div class="entity-head"><div><b>${esc(x.titulo)}</b><small>${esc(c?.nome_fantasia||'Sem cliente')} • ${esc(x.tipo||'Serviço')}</small></div>${status(x.status)}</div><div class="entity-body"><div><div style="display:flex;justify-content:space-between;font-size:9px;color:#748397;margin-bottom:5px"><span>EVOLUÇÃO</span><b>${x.progresso||0}%</b></div><div class="progress"><i style="width:${x.progresso||0}%"></i></div></div><div class="entity-grid"><div><span>Prioridade</span><b>${esc(x.prioridade)}</b></div><div><span>Agenda</span><b>${date(x.data_agendada)}</b></div><div><span>Responsável</span><b>${esc(x.responsavel||'—')}</b></div></div></div></article>`}
+function pendencias(){
+  const stages=['Novo','Aguardando avaliação','Aguardando valor','Aguardando cliente','Aguardando disponibilidade','Agendado','Em execução','Concluído'];
+  document.querySelector('#app').innerHTML=`
+    <section class="hero"><div class="hero-grid"><div><div class="eyebrow">CENTRAL DE PENDÊNCIAS</div><h2>Atendimentos, orçamentos e recebimentos</h2><p>Organize tudo por etapa e saiba exatamente qual é a próxima ação.</p></div><button class="btn primary" id="newPending">+ Serviço</button></div></section>
+    <div class="metrics">
+      ${card('Aguardando cliente',data.servicos.filter(x=>x.atendimento_status==='Aguardando cliente').length)}
+      ${card('Aguardando valor',data.servicos.filter(x=>x.atendimento_status==='Aguardando valor').length)}
+      ${card('Para executar',data.servicos.filter(x=>['Agendado','Em execução'].includes(x.atendimento_status)).length)}
+      ${card('A receber',money(data.servicos.reduce((s,x)=>s+paySummary(x).balance,0)))}
+    </div>
+    <section class="panel">
+      <div class="toolbar"><input id="pendingSearch" placeholder="🔎 Buscar cliente, serviço, responsável, orçamento ou próxima ação"></div>
+      <div id="pendingBoard"></div>
+    </section>`;
+
+  const draw=(query='')=>{
+    const q=query.trim().toLowerCase();
+    const rows=data.servicos.filter(x=>{
+      const c=data.clientes.find(a=>a.id===x.cliente_id);
+      return !q||[x.titulo,x.tipo,x.responsavel,x.orcamento_status,x.proxima_acao,c?.nome_fantasia].filter(Boolean).join(' ').toLowerCase().includes(q);
+    });
+    document.querySelector('#pendingBoard').innerHTML=`<div class="pending-board">${stages.map(st=>`<div class="pending-col"><h4><span>${st}</span><span>${rows.filter(x=>(x.atendimento_status||'Novo')===st).length}</span></h4>${rows.filter(x=>(x.atendimento_status||'Novo')===st).map(pendingCard).join('')||'<div class="empty">Sem itens</div>'}</div>`).join('')}</div>`;
+    bindPending();
+  };
+  const bindPending=()=>{
+    document.querySelectorAll('[data-atendimento]').forEach(s=>s.onchange=async e=>{
+      const st=e.target.value,patch={atendimento_status:st};
+      if(st==='Em execução')patch.status='Em execução';
+      if(st==='Agendado')patch.status='Planejado';
+      if(st==='Concluído'){patch.status='Concluído';patch.progresso=100;patch.data_conclusao=today}
+      const {error}=await supabase.from('ametec_servicos').update(patch).eq('id',e.target.dataset.atendimento);
+      if(error)toast(error.message,true);else toast('Atendimento atualizado')
+    });
+    document.querySelectorAll('[data-orcamento]').forEach(s=>s.onchange=async e=>{
+      const patch={orcamento_status:e.target.value};
+      if(['Enviado','Aguardando resposta'].includes(e.target.value)&&!data.servicos.find(x=>x.id===e.target.dataset.orcamento)?.orcamento_data_envio)patch.orcamento_data_envio=today;
+      const {error}=await supabase.from('ametec_servicos').update(patch).eq('id',e.target.dataset.orcamento);
+      if(error)toast(error.message,true);else toast('Orçamento atualizado')
+    });
+    document.querySelectorAll('[data-action]').forEach(b=>b.onclick=()=>{
+      const x=data.servicos.find(s=>s.id===b.dataset.action);
+      openForm('Próxima ação — '+x.titulo,[['proxima_acao','Próxima ação','text'],['proxima_acao_data','Data / prazo','date'],['vencimento_pagamento','Vencimento financeiro','date']],async v=>{const {error}=await supabase.from('ametec_servicos').update(v).eq('id',x.id);if(error)throw error})
+    });
+    document.querySelectorAll('[data-pay]').forEach(b=>b.onclick=()=>{
+      const x=data.servicos.find(s=>s.id===b.dataset.pay),p=paySummary(x);
+      openForm('Registrar pagamento — '+x.titulo,[['data_pagamento','Data do pagamento','date'],['valor','Valor recebido','number'],['forma_pagamento','Forma de pagamento','select',['PIX','Dinheiro','Cartão','Transferência','Boleto','Outro']],['observacoes','Observações','textarea']],async v=>{v.valor=+v.valor||0;if(v.valor<=0)throw new Error('Informe um valor maior que zero.');v.servico_id=x.id;const {error}=await supabase.from('ametec_pagamentos').insert(v);if(error)throw error})
+    });
+  };
+  draw();
+  document.querySelector('#pendingSearch').oninput=e=>draw(e.target.value);
+  document.querySelector('#newPending').onclick=newService;
+}
 function clientes(){
   document.querySelector('#app').innerHTML=`<section class="hero"><div class="hero-grid"><div><div class="eyebrow">RELACIONAMENTO</div><h2>Clientes AMETEC</h2><p>Base central de empresas atendidas, contatos e histórico técnico.</p></div><button class="btn primary" id="add">+ Cliente</button></div></section><section class="panel"><div class="toolbar"><input id="search" placeholder="🔎 Buscar cliente, contato ou cidade"></div><div id="list" class="cards"></div></section>`;
   const draw=q=>{q=(q||'').toLowerCase();const rows=data.clientes.filter(x=>[x.nome_fantasia,x.contato,x.endereco].join(' ').toLowerCase().includes(q));document.querySelector('#list').innerHTML=rows.map(x=>`<article class="entity"><div class="entity-head"><div><b>🏭 ${esc(x.nome_fantasia)}</b><small>${esc(x.contato||'Sem contato')} • ${esc(x.telefone||'Sem telefone')}</small></div>${status(x.status)}</div><div class="entity-body"><small style="color:#748397">📍 ${esc(x.endereco||'Endereço não informado')}</small><div class="actions"><button class="btn secondary" onclick="openClientServices('${x.id}')">Ver serviços</button></div></div></article>`).join('')||'<div class="empty">Nenhum cliente encontrado.</div>'};
@@ -130,7 +239,7 @@ function servicos(){
   const draw=()=>{const q=document.querySelector('#search').value.toLowerCase(),f=document.querySelector('#filter').value;const rows=data.servicos.filter(x=>{const c=data.clientes.find(a=>a.id===x.cliente_id);return(!q||[x.titulo,x.tipo,x.responsavel,c?.nome_fantasia].join(' ').toLowerCase().includes(q))&&(f==='Todos'||x.status===f)});document.querySelector('#list').innerHTML=rows.map(serviceCard).join('')||'<div class="empty">Nenhum serviço encontrado.</div>';};
   document.querySelector('#search').oninput=draw;document.querySelector('#filter').onchange=draw;draw();document.querySelector('#add').onclick=newService
 }
-function newService(){if(!data.clientes.length)return toast('Cadastre um cliente primeiro.',true);openForm('Novo serviço',[['cliente_id','Cliente','select',data.clientes.map(x=>({value:x.id,label:x.nome_fantasia}))],['titulo','Título','text'],['tipo','Tipo','select',['Emergência','Preventiva','Contrato','Instalação elétrica','Automação','Comando elétrico','Máquina de padaria','Outro']],['prioridade','Prioridade','select',['Emergencial','Alta','Média','Baixa']],['status','Status','select',['Novo','Planejado','Em execução','Pausado','Concluído','Cancelado']],['data_agendada','Data agendada','date'],['responsavel','Responsável','text'],['progresso','Progresso (%)','number'],['valor_servico','Valor serviço','number'],['valor_material','Valor material','number'],['descricao','Descrição','textarea']],async v=>{for(const k of ['progresso','valor_servico','valor_material'])v[k]=+v[k]||0;const {error}=await supabase.from('ametec_servicos').insert(v);if(error)throw error})}
+function newService(){if(!data.clientes.length)return toast('Cadastre um cliente primeiro.',true);openForm('Novo serviço',[['cliente_id','Cliente','select',data.clientes.map(x=>({value:x.id,label:x.nome_fantasia}))],['titulo','Título','text'],['tipo','Tipo','select',['Emergência','Preventiva','Contrato','Instalação elétrica','Automação','Comando elétrico','Máquina de padaria','Outro']],['prioridade','Prioridade','select',['Emergencial','Alta','Média','Baixa']],['status','Status','select',['Novo','Planejado','Em execução','Pausado','Concluído','Cancelado']],['atendimento_status','Etapa do atendimento','select',['Novo','Aguardando avaliação','Aguardando valor','Aguardando cliente','Aguardando disponibilidade','Agendado','Em execução','Concluído']],['orcamento_status','Situação do orçamento','select',['Não iniciado','Em elaboração','Enviado','Aguardando resposta','Aprovado','Recusado','Expirado']],['orcamento_data_envio','Data de envio do orçamento','date'],['orcamento_validade','Validade do orçamento','date'],['data_agendada','Data agendada','date'],['responsavel','Responsável','text'],['progresso','Progresso (%)','number'],['valor_servico','Valor serviço','number'],['valor_material','Valor material','number'],['vencimento_pagamento','Vencimento financeiro','date'],['proxima_acao','Próxima ação','text'],['proxima_acao_data','Prazo da próxima ação','date'],['descricao','Descrição','textarea']],async v=>{for(const k of ['progresso','valor_servico','valor_material'])v[k]=+v[k]||0;const {error}=await supabase.from('ametec_servicos').insert(v);if(error)throw error})}
 function agenda(){
   const rows=[...data.servicos].sort((a,b)=>(a.data_agendada||'9999').localeCompare(b.data_agendada||'9999'));
   document.querySelector('#app').innerHTML=`<section class="hero"><div class="hero-grid"><div><div class="eyebrow">PLANEJAMENTO</div><h2>Agenda operacional</h2><p>Visualize prioridades, datas e evolução dos atendimentos.</p></div><button class="btn primary" id="add">+ Serviço</button></div></section><section class="panel"><div class="cards">${rows.map(x=>{const c=data.clientes.find(a=>a.id===x.cliente_id);return `<article class="entity"><div class="entity-head"><div><b>${date(x.data_agendada)} • ${esc(x.titulo)}</b><small>${esc(c?.nome_fantasia||'Sem cliente')} • ${esc(x.responsavel||'Sem responsável')}</small></div>${status(x.prioridade)}</div><div class="entity-body"><div><div style="display:flex;justify-content:space-between;font-size:9px;color:#748397;margin-bottom:5px"><span>EVOLUÇÃO</span><b data-label="${x.id}">${x.progresso||0}%</b></div><input type="range" min="0" max="100" step="5" value="${x.progresso||0}" data-progress="${x.id}" style="width:100%;accent-color:#0075c9"></div><div class="actions"><button class="btn secondary" data-set="${x.id}" data-v="25">25%</button><button class="btn secondary" data-set="${x.id}" data-v="50">50%</button><button class="btn secondary" data-set="${x.id}" data-v="75">75%</button><button class="btn primary" data-set="${x.id}" data-v="100">Concluir</button></div></div></article>`}).join('')||'<div class="empty">Nenhum serviço agendado.</div>'}</div></section>`;
@@ -153,8 +262,17 @@ function colaboradores(){
   document.querySelector('#add').onclick=()=>openForm('Novo colaborador',[['nome','Nome','text'],['funcao','Função','text'],['telefone','Telefone','text'],['tipo_pagamento','Pagamento','select',['diária','hora','mensal','valor fechado']],['valor_base','Valor base','number'],['ativo','Ativo?','select',[{value:'true',label:'Sim'},{value:'false',label:'Não'}]]],async v=>{v.valor_base=+v.valor_base||0;v.ativo=v.ativo==='true';const {error}=await supabase.from('ametec_colaboradores').insert(v);if(error)throw error})
 }
 function financeiro(){
-  const serv=data.servicos.reduce((s,x)=>s+(+x.valor_servico||0),0),mat=data.servicos.reduce((s,x)=>s+(+x.valor_material||0),0),total=serv+mat,done=data.servicos.filter(x=>x.status==='Concluído').reduce((s,x)=>s+(+x.valor_servico||0)+(+x.valor_material||0),0);
-  document.querySelector('#app').innerHTML=`<section class="hero"><div class="hero-grid"><div><div class="eyebrow">CONTROLE FINANCEIRO</div><h2>Visão financeira</h2><p>Valores registrados nos serviços, sem complicação.</p></div></div></section><div class="metrics">${card('Serviços',money(serv))}${card('Materiais',money(mat))}${card('Carteira total',money(total))}${card('Concluído',money(done))}</div><section class="panel"><div class="cards">${data.servicos.map(x=>{const c=data.clientes.find(a=>a.id===x.cliente_id);return `<article class="entity"><div class="entity-head"><div><b>${esc(x.titulo)}</b><small>${esc(c?.nome_fantasia||'Sem cliente')}</small></div>${status(x.status)}</div><div class="entity-body"><div class="entity-grid"><div><span>Serviço</span><b>${money(x.valor_servico)}</b></div><div><span>Material</span><b>${money(x.valor_material)}</b></div><div><span>Total</span><b>${money((+x.valor_servico||0)+(+x.valor_material||0))}</b></div></div></div></article>`}).join('')||'<div class="empty">Sem valores registrados.</div>'}</div></section>`
+  const total=data.servicos.reduce((s,x)=>s+(+x.valor_servico||0)+(+x.valor_material||0),0);
+  const received=data.pagamentos.reduce((s,x)=>s+(+x.valor||0),0);
+  const balance=Math.max(total-received,0);
+  const overdue=data.servicos.reduce((s,x)=>{const p=paySummary(x);return s+(p.state==='Vencido'?p.balance:0)},0);
+  document.querySelector('#app').innerHTML=`
+    <section class="hero"><div class="hero-grid"><div><div class="eyebrow">CONTROLE FINANCEIRO</div><h2>Recebimentos AMETEC</h2><p>Acompanhe o que foi pago, quando foi pago e o que ainda falta receber.</p></div></div></section>
+    <div class="metrics">${card('Faturado',money(total))}${card('Recebido',money(received))}${card('A receber',money(balance))}${card('Vencido',money(overdue))}</div>
+    <section class="panel"><div class="panel-head"><div><h3>Serviços e recebimentos</h3><small>Histórico financeiro por atendimento</small></div></div><div class="cards">
+      ${data.servicos.map(x=>{const c=data.clientes.find(a=>a.id===x.cliente_id),p=paySummary(x);return `<article class="entity"><div class="entity-head"><div><b>${esc(x.titulo)}</b><small>${esc(c?.nome_fantasia||'Sem cliente')}</small></div>${status(p.state==='Pago'?'Concluído':p.state==='Vencido'?'Emergencial':'Planejado')}</div><div class="entity-body"><div class="entity-grid"><div><span>Total</span><b>${money(p.total)}</b></div><div><span>Recebido</span><b>${money(p.received)}</b></div><div><span>Saldo</span><b>${money(p.balance)}</b></div></div><div class="pending-line"><span>Último pagamento</span><b>${p.last?date(p.last.data_pagamento)+' • '+money(p.last.valor):'—'}</b></div><div class="actions"><button class="btn primary" data-fin-pay="${x.id}">+ Pagamento</button></div></div></article>`}).join('')||'<div class="empty">Sem serviços financeiros.</div>'}
+    </div></section>`;
+  document.querySelectorAll('[data-fin-pay]').forEach(b=>b.onclick=()=>{const x=data.servicos.find(s=>s.id===b.dataset.finPay);openForm('Registrar pagamento — '+x.titulo,[['data_pagamento','Data do pagamento','date'],['valor','Valor recebido','number'],['forma_pagamento','Forma de pagamento','select',['PIX','Dinheiro','Cartão','Transferência','Boleto','Outro']],['observacoes','Observações','textarea']],async v=>{v.valor=+v.valor||0;if(v.valor<=0)throw new Error('Informe um valor maior que zero.');v.servico_id=x.id;const {error}=await supabase.from('ametec_pagamentos').insert(v);if(error)throw error})})
 }
 function relatorios(){
   const total=data.servicos.length,done=data.servicos.filter(x=>x.status==='Concluído').length,em=data.servicos.filter(x=>x.status==='Em execução').length,urgent=data.servicos.filter(x=>x.prioridade==='Emergencial').length;
@@ -162,7 +280,7 @@ function relatorios(){
   document.querySelector('#csv').onclick=()=>{const csv='Servico,Cliente,Tipo,Prioridade,Status,Progresso,ValorServico,ValorMaterial\n'+data.servicos.map(x=>{const c=data.clientes.find(a=>a.id===x.cliente_id);return [x.titulo,c?.nome_fantasia||'',x.tipo||'',x.prioridade,x.status,x.progresso,x.valor_servico,x.valor_material].map(v=>'"'+String(v??'').replaceAll('"','""')+'"').join(',')}).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download='ametec-relatorio.csv';a.click()}
 }
 function bindCommon(){document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{page=b.dataset.go;render()});document.querySelectorAll('[data-new="servico"]').forEach(b=>b.onclick=newService)}
-function placeholder(k,l){const m={nome_fantasia:'Ex.: Panificadora Central',contato:'Ex.: João',telefone:'Ex.: (85) 99999-9999',endereco:'Ex.: Fortaleza - CE',titulo:'Ex.: Manutenção no quadro principal',responsavel:'Ex.: Técnico responsável',descricao:'Descreva o diagnóstico, serviço ou observação',fabricante:'Ex.: WEG',modelo:'Ex.: CFW300',setor:'Ex.: Produção',fornecedor:'Ex.: Distribuidor elétrico'};return m[k]||('Digite '+String(l).toLowerCase())}
+function placeholder(k,l){const m={nome_fantasia:'Ex.: Panificadora Central',contato:'Ex.: João',telefone:'Ex.: (85) 99999-9999',endereco:'Ex.: Fortaleza - CE',titulo:'Ex.: Manutenção no quadro principal',responsavel:'Ex.: Técnico responsável',descricao:'Descreva o diagnóstico, serviço ou observação',fabricante:'Ex.: WEG',modelo:'Ex.: CFW300',setor:'Ex.: Produção',fornecedor:'Ex.: Distribuidor elétrico',proxima_acao:'Ex.: Confirmar aprovação do orçamento',forma_pagamento:'Ex.: PIX'};return m[k]||('Digite '+String(l).toLowerCase())}
 function openForm(title,fields,onSave){
   document.querySelector('#modalTitle').textContent=title;const f=document.querySelector('#modalForm');
   f.innerHTML=fields.map(([k,l,t,o])=>{if(t==='select')return '<label class="field"><span>'+l+'</span><select name="'+k+'">'+o.map(x=>typeof x==='string'?'<option>'+esc(x)+'</option>':'<option value="'+esc(x.value)+'">'+esc(x.label)+'</option>').join('')+'</select></label>';if(t==='textarea')return '<label class="field full"><span>'+l+'</span><textarea name="'+k+'" rows="3" placeholder="'+esc(placeholder(k,l))+'"></textarea></label>';return '<label class="field"><span>'+l+'</span><input name="'+k+'" type="'+t+'" step="'+(t==='number'?'0.01':'any')+'" placeholder="'+esc(placeholder(k,l))+'" '+(t==='date'?'':'')+'></label>'}).join('')+'<button class="btn primary" style="grid-column:1/-1">Salvar</button>';
