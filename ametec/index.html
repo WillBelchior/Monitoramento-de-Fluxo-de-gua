@@ -21,6 +21,11 @@ body:before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.28;ba
 .status{font-size:9px;font-weight:900;border-radius:999px;padding:5px 8px;background:#eef2f6;color:#566474}.status.run{background:#e6f5ff;color:#0877b7}.status.done{background:#e8f7ef;color:#168253}.status.late{background:#fff0ea;color:#c0552d}.status.high{background:#fff4dc;color:#a96900}
 .progress{height:8px;background:#edf2f6;border-radius:99px;overflow:hidden}.progress i{display:block;height:100%;background:linear-gradient(90deg,var(--blue),var(--cyan),var(--orange));border-radius:99px}
 .cards{display:grid;gap:10px}.entity{border:1px solid #e5ebf0;border-radius:13px;background:#fff;overflow:hidden}.entity-head{padding:12px 13px;display:flex;justify-content:space-between;gap:10px;align-items:flex-start;border-bottom:1px solid #edf1f4}.entity-head b{font-size:13px}.entity-head small{display:block;color:var(--muted);margin-top:3px;font-size:10px}.entity-body{padding:11px 13px;display:grid;gap:10px}.entity-grid{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid #edf0f3;border-radius:10px;overflow:hidden;background:#f9fbfc}.entity-grid>div{padding:8px 10px;border-right:1px solid #edf0f3}.entity-grid>div:last-child{border:0}.entity-grid span{display:block;font-size:8px;text-transform:uppercase;color:#7e8b99}.entity-grid b{display:block;font-size:11px;margin-top:2px}.actions{display:flex;gap:7px;flex-wrap:wrap}.actions .btn{flex:1;min-width:100px}
+.client-detail{display:grid;gap:16px}.client-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.contact-card{border:1px solid var(--line);border-radius:14px;background:#091923;padding:13px;display:grid;gap:10px}
+.contact-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.contact-top b{font-size:14px}.contact-top small{display:block;color:var(--muted);margin-top:3px}
+.contact-meta{display:grid;grid-template-columns:1fr 1fr;gap:8px}.contact-meta div{background:#071722;border:1px solid #17384b;border-radius:9px;padding:8px}.contact-meta span{display:block;font-size:8px;text-transform:uppercase;color:#7f9aab}.contact-meta b{display:block;font-size:11px;margin-top:2px}
+@media(max-width:700px){.client-summary{grid-template-columns:1fr 1fr}.contact-meta{grid-template-columns:1fr}}
 .quick{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.quick button{border:1px solid var(--line);background:#fff;border-radius:14px;padding:13px;text-align:left;cursor:pointer;min-height:82px}.quick button strong{display:block;font-size:20px;margin-bottom:6px}.quick button b{font-size:11px}.quick button small{display:block;color:var(--muted);margin-top:3px;font-size:9px}
 .bars{height:175px;display:flex;align-items:flex-end;gap:12px;padding:8px 6px 0}.bar-wrap{flex:1;text-align:center;display:grid;gap:5px;align-items:end}.bar{max-width:60px;width:100%;margin:auto;background:linear-gradient(180deg,var(--cyan),var(--blue));border-radius:10px 10px 3px 3px;min-height:4px}.bar-wrap b{font-size:10px}.bar-wrap small{font-size:9px;color:var(--muted)}
 .donut{--p:0;width:132px;height:132px;border-radius:50%;background:conic-gradient(var(--orange) calc(var(--p)*1%),#e8eef3 0);display:grid;place-items:center;margin:auto}.donut:after{content:"";width:88px;height:88px;background:#fff;border-radius:50%;grid-area:1/1}.donut b{grid-area:1/1;z-index:1;font-size:21px}
@@ -190,7 +195,7 @@ const today=new Date().toISOString().slice(0,10);
 const money=v=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(+v||0);
 const date=v=>v?new Date(v+'T12:00:00').toLocaleDateString('pt-BR'):'—';
 const esc=s=>String(s??'').replace(/[&<>'"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[m]));
-let data={clientes:[],servicos:[],equipamentos:[],materiais:[],colaboradores:[],registros:[],pagamentos:[]},page='dashboard',session=null,channel=null;
+let data={clientes:[],clienteContatos:[],servicos:[],equipamentos:[],materiais:[],colaboradores:[],registros:[],pagamentos:[]},page='dashboard',session=null,channel=null;
 const pages=[['dashboard','Centro','⚡'],['pendencias','Pendências','📋'],['clientes','Clientes','🏭'],['servicos','Serviços','🔧'],['agenda','Agenda','📅'],['equipamentos','Equipamentos','⚙️'],['materiais','Materiais','📦'],['colaboradores','Colaboradores','👷'],['financeiro','Financeiro','💰'],['relatorios','Relatórios','📊']];
 const status=s=>{const c=['Concluído','Operacional','Ativo'].includes(s)?'done':['Em execução','Em manutenção','Planejado'].includes(s)?'run':['Emergencial','Alta'].includes(s)?'high':'';return '<span class="status '+c+'">'+esc(s||'—')+'</span>'};
 const card=(l,v,s='')=>'<div class="metric"><span>'+l+'</span><b>'+v+'</b><small>'+s+'</small></div>';
@@ -206,6 +211,7 @@ function showApp(){document.querySelector('.shell').style.display='block';docume
 async function load(){
   const qs=await Promise.all([
     supabase.from('ametec_clientes').select('*').order('created_at',{ascending:false}),
+    supabase.from('ametec_cliente_contatos').select('*').order('principal',{ascending:false}).order('created_at',{ascending:true}),
     supabase.from('ametec_servicos').select('*').order('created_at',{ascending:false}),
     supabase.from('ametec_equipamentos').select('*').order('created_at',{ascending:false}),
     supabase.from('ametec_materiais').select('*').order('created_at',{ascending:false}),
@@ -214,13 +220,13 @@ async function load(){
     supabase.from('ametec_pagamentos').select('*').order('data_pagamento',{ascending:false})
   ]);
   if(qs.some(x=>x.error))return toast('Não foi possível carregar todos os dados.',true);
-  [data.clientes,data.servicos,data.equipamentos,data.materiais,data.colaboradores,data.registros,data.pagamentos]=qs.map(x=>x.data||[]);
+  [data.clientes,data.clienteContatos,data.servicos,data.equipamentos,data.materiais,data.colaboradores,data.registros,data.pagamentos]=qs.map(x=>x.data||[]);
   render()
 }
 function subscribe(){
   if(channel)supabase.removeChannel(channel);
   channel=supabase.channel('ametec-live');
-  ['ametec_clientes','ametec_servicos','ametec_equipamentos','ametec_materiais','ametec_colaboradores','ametec_registros','ametec_pagamentos'].forEach(t=>channel.on('postgres_changes',{event:'*',schema:'public',table:t},()=>load()));
+  ['ametec_clientes','ametec_cliente_contatos','ametec_servicos','ametec_equipamentos','ametec_materiais','ametec_colaboradores','ametec_registros','ametec_pagamentos'].forEach(t=>channel.on('postgres_changes',{event:'*',schema:'public',table:t},()=>load()));
   channel.subscribe()
 }
 function initNav(){
@@ -357,10 +363,116 @@ function pendencias(){
   document.querySelector('#newPending').onclick=newService;
 }
 function clientes(){
-  document.querySelector('#app').innerHTML=`<section class="hero"><div class="hero-grid"><div><div class="eyebrow">RELACIONAMENTO</div><h2>Clientes AMETEC</h2><p>Base central de empresas atendidas, contatos e histórico técnico.</p></div><button class="btn primary" id="add">+ Cliente</button></div></section><section class="panel"><div class="toolbar"><input id="search" placeholder="🔎 Buscar cliente, contato ou cidade"></div><div id="list" class="cards"></div></section>`;
-  const draw=q=>{q=(q||'').toLowerCase();const rows=data.clientes.filter(x=>[x.nome_fantasia,x.contato,x.endereco].join(' ').toLowerCase().includes(q));document.querySelector('#list').innerHTML=rows.map(x=>`<article class="entity"><div class="entity-head"><div><b>🏭 ${esc(x.nome_fantasia)}</b><small>${esc(x.contato||'Sem contato')} • ${esc(x.telefone||'Sem telefone')}</small></div>${status(x.status)}</div><div class="entity-body"><small style="color:#748397">📍 ${esc(x.endereco||'Endereço não informado')}</small><div class="actions"><button class="btn secondary" onclick="openClientServices('${x.id}')">Ver serviços</button></div></div></article>`).join('')||'<div class="empty">Nenhum cliente encontrado.</div>'};
-  draw();document.querySelector('#search').oninput=e=>draw(e.target.value);
-  document.querySelector('#add').onclick=()=>openForm('Novo cliente',[['nome_fantasia','Empresa','text'],['contato','Contato','text'],['telefone','Telefone','text'],['endereco','Endereço','text'],['status','Status','select',['Ativo','Prospect','Bloqueado','Inativo']],['observacoes','Observações','textarea']],async v=>{const {error}=await supabase.from('ametec_clientes').insert(v);if(error)throw error})
+  document.querySelector('#app').innerHTML=`<section class="hero"><div class="hero-grid"><div><div class="eyebrow">RELACIONAMENTO</div><h2>Clientes AMETEC</h2><p>Empresas, contatos, responsáveis e histórico técnico em uma única visão.</p></div><button class="btn primary" id="add">+ Cliente</button></div></section><section class="panel"><div class="toolbar"><input id="search" placeholder="🔎 Buscar cliente, contato, cidade ou responsável"></div><div id="list" class="cards"></div></section>`;
+  const draw=q=>{
+    q=(q||'').toLowerCase();
+    const rows=data.clientes.filter(x=>{
+      const people=data.clienteContatos.filter(p=>p.cliente_id===x.id);
+      return [x.nome_fantasia,x.contato,x.endereco,...people.flatMap(p=>[p.nome,p.cargo,p.setor,p.telefone,p.email])].filter(Boolean).join(' ').toLowerCase().includes(q)
+    });
+    document.querySelector('#list').innerHTML=rows.map(x=>{
+      const people=data.clienteContatos.filter(p=>p.cliente_id===x.id);
+      const principal=people.find(p=>p.principal)||people[0];
+      return `<article class="entity">
+        <div class="entity-head">
+          <div><b>🏭 ${esc(x.nome_fantasia)}</b><small>${principal?esc(principal.nome)+' • '+esc(principal.cargo||'Contato'):(esc(x.contato||'Sem contato'))}</small></div>
+          ${status(x.status)}
+        </div>
+        <div class="entity-body">
+          <div class="entity-grid">
+            <div><span>Contatos</span><b>${people.length}</b></div>
+            <div><span>Telefone principal</span><b>${esc(principal?.telefone||x.telefone||'—')}</b></div>
+            <div><span>Local</span><b>${esc(x.endereco||'—')}</b></div>
+          </div>
+          <div class="actions">
+            <button class="btn secondary" data-client="${x.id}">Abrir ficha</button>
+            <button class="btn secondary" onclick="openClientServices('${x.id}')">Serviços</button>
+            <button class="btn primary" data-edit-client="${x.id}">Editar</button>
+          </div>
+        </div>
+      </article>`
+    }).join('')||'<div class="empty">Nenhum cliente encontrado.</div>';
+    bindClientCards();
+  };
+  const bindClientCards=()=>{
+    document.querySelectorAll('[data-client]').forEach(b=>b.onclick=()=>openClientDetail(b.dataset.client));
+    document.querySelectorAll('[data-edit-client]').forEach(b=>b.onclick=()=>editClient(b.dataset.editClient));
+  };
+  draw();
+  document.querySelector('#search').oninput=e=>draw(e.target.value);
+  document.querySelector('#add').onclick=()=>openForm('Novo cliente',[['nome_fantasia','Empresa','text'],['contato','Contato geral','text'],['telefone','Telefone geral','text'],['endereco','Endereço','text'],['status','Status','select',['Ativo','Prospect','Bloqueado','Inativo']],['observacoes','Observações','textarea']],async v=>{const {error}=await supabase.from('ametec_clientes').insert(v);if(error)throw error})
+}
+function editClient(id){
+  const x=data.clientes.find(c=>c.id===id);if(!x)return;
+  openForm('Editar cliente',[['nome_fantasia','Empresa','text'],['contato','Contato geral','text'],['telefone','Telefone geral','text'],['endereco','Endereço','text'],['status','Status','select',['Ativo','Prospect','Bloqueado','Inativo']],['observacoes','Observações','textarea']],async v=>{const {error}=await supabase.from('ametec_clientes').update(v).eq('id',id);if(error)throw error},x)
+}
+function openClientDetail(id){
+  const x=data.clientes.find(c=>c.id===id);if(!x)return;
+  const people=data.clienteContatos.filter(p=>p.cliente_id===id);
+  const services=data.servicos.filter(s=>s.cliente_id===id);
+  const equips=data.equipamentos.filter(e=>e.cliente_id===id);
+  document.querySelector('#app').innerHTML=`
+    <section class="hero"><div class="hero-grid"><div><div class="eyebrow">CLIENTE 360°</div><h2>${esc(x.nome_fantasia)}</h2><p>${esc(x.endereco||'Endereço não informado')}</p></div><div class="hero-actions"><button class="btn ghost" id="backClients">← Clientes</button><button class="btn primary" id="editClient">Editar cliente</button></div></div></section>
+    <div class="client-summary">
+      ${card('Contatos',people.length)}
+      ${card('Serviços',services.length)}
+      ${card('Equipamentos',equips.length)}
+      ${card('Status',esc(x.status))}
+    </div>
+    <div class="two">
+      <section class="panel">
+        <div class="panel-head"><div><h3>Pessoas relacionadas</h3><small>Responsáveis, gestores, compras, financeiro e outros contatos.</small></div><button class="btn primary" id="addContact">+ Pessoa</button></div>
+        <div class="cards">
+          ${people.length?people.map(p=>`<article class="contact-card">
+            <div class="contact-top"><div><b>👤 ${esc(p.nome)}</b><small>${esc(p.cargo||'Sem cargo')} ${p.setor?'• '+esc(p.setor):''}</small></div>${p.principal?'<span class="status done">Principal</span>':''}</div>
+            <div class="contact-meta">
+              <div><span>Telefone</span><b>${esc(p.telefone||'—')}</b></div>
+              <div><span>E-mail</span><b>${esc(p.email||'—')}</b></div>
+            </div>
+            ${p.observacoes?`<small style="color:#91aabc">${esc(p.observacoes)}</small>`:''}
+            <div class="actions"><button class="btn secondary" data-edit-contact="${p.id}">Editar</button><button class="btn secondary" data-delete-contact="${p.id}">Remover</button></div>
+          </article>`).join(''):'<div class="empty">Nenhuma pessoa relacionada cadastrada.</div>'}
+        </div>
+      </section>
+      <section class="panel">
+        <div class="panel-head"><div><h3>Resumo do cliente</h3><small>Informações principais</small></div></div>
+        <div class="entity-grid">
+          <div><span>Contato geral</span><b>${esc(x.contato||'—')}</b></div>
+          <div><span>Telefone</span><b>${esc(x.telefone||'—')}</b></div>
+          <div><span>Status</span><b>${esc(x.status)}</b></div>
+        </div>
+        <div style="margin-top:12px;color:#91aabc;font-size:12px">${esc(x.observacoes||'Sem observações.')}</div>
+        <div class="actions" style="margin-top:14px"><button class="btn secondary" onclick="openClientServices('${x.id}')">Ver serviços</button><button class="btn secondary" data-go-equip="${x.id}">Equipamentos</button></div>
+      </section>
+    </div>`;
+  document.querySelector('#backClients').onclick=()=>{page='clientes';render()};
+  document.querySelector('#editClient').onclick=()=>editClient(id);
+  document.querySelector('#addContact').onclick=()=>contactForm(id);
+  document.querySelectorAll('[data-edit-contact]').forEach(b=>b.onclick=()=>contactForm(id,b.dataset.editContact));
+  document.querySelectorAll('[data-delete-contact]').forEach(b=>b.onclick=async()=>{
+    if(!confirm('Remover esta pessoa relacionada ao cliente?'))return;
+    const {error}=await supabase.from('ametec_cliente_contatos').delete().eq('id',b.dataset.deleteContact);
+    if(error)return toast(error.message,true);await load();openClientDetail(id);toast('Contato removido')
+  });
+  document.querySelector('[data-go-equip]')?.addEventListener('click',()=>{page='equipamentos';render()});
+}
+function contactForm(clienteId,contactId=null){
+  const x=contactId?data.clienteContatos.find(p=>p.id===contactId):null;
+  openForm(x?'Editar pessoa relacionada':'Adicionar pessoa relacionada',[
+    ['nome','Nome','text'],
+    ['cargo','Cargo / função','select',['Responsável de manutenção','Gerente','Proprietário','Diretor','Supervisor','Compras','Financeiro','Produção','Técnico','Engenheiro','Outro']],
+    ['setor','Setor','text'],
+    ['telefone','Telefone / WhatsApp','text'],
+    ['email','E-mail','text'],
+    ['principal','Contato principal?','select',[{value:'false',label:'Não'},{value:'true',label:'Sim'}]],
+    ['observacoes','Observações','textarea']
+  ],async v=>{
+    v.cliente_id=clienteId;v.principal=v.principal==='true';
+    if(v.principal)await supabase.from('ametec_cliente_contatos').update({principal:false}).eq('cliente_id',clienteId);
+    const q=x?supabase.from('ametec_cliente_contatos').update(v).eq('id',contactId):supabase.from('ametec_cliente_contatos').insert(v);
+    const {error}=await q;if(error)throw error;
+    setTimeout(()=>openClientDetail(clienteId),50)
+  },x)
 }
 window.openClientServices=id=>{page='servicos';render();setTimeout(()=>{const s=document.querySelector('#search');if(s){const c=data.clientes.find(x=>x.id===id);s.value=c?.nome_fantasia||'';s.dispatchEvent(new Event('input'))}},0)}
 function servicos(){
@@ -409,10 +521,10 @@ function relatorios(){
   document.querySelector('#csv').onclick=()=>{const csv='Servico,Cliente,Tipo,Prioridade,Status,Progresso,ValorServico,ValorMaterial\n'+data.servicos.map(x=>{const c=data.clientes.find(a=>a.id===x.cliente_id);return [x.titulo,c?.nome_fantasia||'',x.tipo||'',x.prioridade,x.status,x.progresso,x.valor_servico,x.valor_material].map(v=>'"'+String(v??'').replaceAll('"','""')+'"').join(',')}).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download='ametec-relatorio.csv';a.click()}
 }
 function bindCommon(){document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{page=b.dataset.go;render()});document.querySelectorAll('[data-new="servico"]').forEach(b=>b.onclick=newService)}
-function placeholder(k,l){const m={nome_fantasia:'Ex.: Panificadora Central',contato:'Ex.: João',telefone:'Ex.: (85) 99999-9999',endereco:'Ex.: Fortaleza - CE',titulo:'Ex.: Manutenção no quadro principal',responsavel:'Ex.: Técnico responsável',descricao:'Descreva o diagnóstico, serviço ou observação',fabricante:'Ex.: WEG',modelo:'Ex.: CFW300',setor:'Ex.: Produção',fornecedor:'Ex.: Distribuidor elétrico',proxima_acao:'Ex.: Confirmar aprovação do orçamento',forma_pagamento:'Ex.: PIX'};return m[k]||('Digite '+String(l).toLowerCase())}
-function openForm(title,fields,onSave){
+function placeholder(k,l){const m={nome_fantasia:'Ex.: Panificadora Central',contato:'Ex.: João',telefone:'Ex.: (85) 99999-9999',endereco:'Ex.: Fortaleza - CE',titulo:'Ex.: Manutenção no quadro principal',responsavel:'Ex.: Técnico responsável',descricao:'Descreva o diagnóstico, serviço ou observação',fabricante:'Ex.: WEG',modelo:'Ex.: CFW300',setor:'Ex.: Produção',fornecedor:'Ex.: Distribuidor elétrico',email:'Ex.: contato@empresa.com',setor:'Ex.: Manutenção',proxima_acao:'Ex.: Confirmar aprovação do orçamento',forma_pagamento:'Ex.: PIX'};return m[k]||('Digite '+String(l).toLowerCase())}
+function openForm(title,fields,onSave,initial={}){
   document.querySelector('#modalTitle').textContent=title;const f=document.querySelector('#modalForm');
-  f.innerHTML=fields.map(([k,l,t,o])=>{if(t==='select')return '<label class="field"><span>'+l+'</span><select name="'+k+'">'+o.map(x=>typeof x==='string'?'<option>'+esc(x)+'</option>':'<option value="'+esc(x.value)+'">'+esc(x.label)+'</option>').join('')+'</select></label>';if(t==='textarea')return '<label class="field full"><span>'+l+'</span><textarea name="'+k+'" rows="3" placeholder="'+esc(placeholder(k,l))+'"></textarea></label>';return '<label class="field"><span>'+l+'</span><input name="'+k+'" type="'+t+'" step="'+(t==='number'?'0.01':'any')+'" placeholder="'+esc(placeholder(k,l))+'" '+(t==='date'?'':'')+'></label>'}).join('')+'<button class="btn primary" style="grid-column:1/-1">Salvar</button>';
+  f.innerHTML=fields.map(([k,l,t,o])=>{const val=initial?.[k]??'';if(t==='select')return '<label class="field"><span>'+l+'</span><select name="'+k+'">'+o.map(x=>{const vv=typeof x==='string'?x:x.value,ll=typeof x==='string'?x:x.label;return '<option value="'+esc(vv)+'" '+(String(vv)===String(val)?'selected':'')+'>'+esc(ll)+'</option>'}).join('')+'</select></label>';if(t==='textarea')return '<label class="field full"><span>'+l+'</span><textarea name="'+k+'" rows="3" placeholder="'+esc(placeholder(k,l))+'">'+esc(val)+'</textarea></label>';return '<label class="field"><span>'+l+'</span><input name="'+k+'" type="'+t+'" value="'+esc(val)+'" step="'+(t==='number'?'0.01':'any')+'" placeholder="'+esc(placeholder(k,l))+'"></label>'}).join('')+'<button class="btn primary" style="grid-column:1/-1">Salvar</button>';
   f.onsubmit=async e=>{e.preventDefault();try{await onSave(Object.fromEntries(new FormData(f)));closeModal();await load();toast('Salvo com sucesso!')}catch(err){toast(err.message||String(err),true)}};
   document.querySelector('#modal').classList.add('open')
 }
