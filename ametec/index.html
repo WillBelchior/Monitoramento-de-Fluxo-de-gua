@@ -379,7 +379,7 @@ function financialAlerts(){
 function pendingCard(x){
   const c=data.clientes.find(a=>a.id===x.cliente_id),p=paySummary(x),closure=closureState(x);
   const payClass=p.state==='Pago'||p.state==='Sem cobrança'?'done':p.state==='Vencido'?'late':p.state==='Parcial'?'run':'';
-  return `<article class="pending-card">
+  return `<article class="pending-card" data-service-card="${x.id}">
     <div class="pending-head">
       <b>${esc(x.titulo)}</b>
       <small>🏭 ${esc(c?.nome_fantasia||'Sem cliente')} • ${esc(x.tipo||'Serviço')}</small>
@@ -469,19 +469,79 @@ function pendencias(){
       const c=data.clientes.find(a=>a.id===x.cliente_id);
       return !q||[x.titulo,x.tipo,x.responsavel,x.orcamento_status,x.proxima_acao,c?.nome_fantasia].filter(Boolean).join(' ').toLowerCase().includes(q);
     });
-    document.querySelector('#pendingBoard').innerHTML=`<div class="pending-board">${stages.map(st=>`<div class="pending-col"><h4><span>${st}</span><span>${rows.filter(x=>(x.atendimento_status||'Novo')===st).length}</span></h4>${rows.filter(x=>(x.atendimento_status||'Novo')===st).map(pendingCard).join('')||'<div class="empty">Sem itens</div>'}</div>`).join('')}</div>`;
+    document.querySelector('#pendingBoard').innerHTML=`<div class="pending-board">${stages.map(st=>`<div class="pending-col" data-stage="${st}"><h4><span>${st}</span><span data-stage-count="${st}">${rows.filter(x=>(x.atendimento_status||'Aguardando aprovação')===st).length}</span></h4><div data-stage-list="${st}">${rows.filter(x=>(x.atendimento_status||'Aguardando aprovação')===st).map(pendingCard).join('')||'<div class="empty">Sem itens</div>'}</div></div>`).join('')}</div>`;
     bindPending();
+  };
+  const refreshStageCounts=()=>{
+    stages.forEach(st=>{
+      const list=document.querySelector('[data-stage-list="'+st+'"]');
+      const count=document.querySelector('[data-stage-count="'+st+'"]');
+      if(count&&list)count.textContent=list.querySelectorAll('[data-service-card]').length;
+      if(list){
+        const cards=list.querySelectorAll('[data-service-card]');
+        const empty=list.querySelector('.empty');
+        if(!cards.length&&!empty)list.innerHTML='<div class="empty">Sem itens</div>';
+        if(cards.length&&empty)empty.remove();
+      }
+    });
+  };
+  const refreshPendingMetrics=()=>{
+    const metrics=document.querySelectorAll('.metrics .metric b');
+    if(metrics.length>=4){
+      metrics[0].textContent=data.servicos.filter(x=>x.atendimento_status==='Aguardando aprovação').length;
+      metrics[1].textContent=data.servicos.filter(x=>x.atendimento_status==='Orçamento aprovado').length;
+      metrics[2].textContent=data.servicos.filter(x=>x.atendimento_status==='Em andamento').length;
+      metrics[3].textContent=money(data.servicos.reduce((s,x)=>s+paySummary(x).balance,0));
+    }
+    renderFinanceAlert();
+  };
+  const moveCardInstantly=(id,newStage)=>{
+    const cardEl=document.querySelector('[data-service-card="'+id+'"]');
+    const target=document.querySelector('[data-stage-list="'+newStage+'"]');
+    if(!cardEl||!target)return;
+    const empty=target.querySelector('.empty');if(empty)empty.remove();
+    target.appendChild(cardEl);
+    refreshStageCounts();
   };
   const bindPending=()=>{
     document.querySelectorAll('[data-atendimento]').forEach(s=>s.onchange=async e=>{
-      const st=e.target.value,patch={atendimento_status:st};
+      const id=e.target.dataset.atendimento,st=e.target.value;
+      const item=data.servicos.find(x=>x.id===id);
+      const oldStage=item?.atendimento_status||'Aguardando aprovação';
+      const oldSnapshot=item?{...item}:null;
+      const patch={atendimento_status:st};
       if(st==='Aguardando aprovação'){patch.status='Planejado';patch.orcamento_status='Aguardando resposta'}
       if(st==='Orçamento aprovado'){patch.status='Planejado';patch.orcamento_status='Aprovado'}
       if(st==='Em andamento')patch.status='Em execução';
       if(st==='Pausada')patch.status='Pausado';
       if(st==='Concluída'){patch.status='Concluído';patch.progresso=100;patch.data_conclusao=today}
-      const {error}=await supabase.from('ametec_servicos').update(patch).eq('id',e.target.dataset.atendimento);
-      if(error)toast(error.message,true);else toast('Atendimento atualizado')
+
+      // Optimistic update: move immediately, no page refresh.
+      if(item)Object.assign(item,patch);
+      moveCardInstantly(id,st);
+      refreshPendingMetrics();
+
+      const {error}=await supabase.from('ametec_servicos').update(patch).eq('id',id);
+      if(error){
+        if(item&&oldSnapshot)Object.assign(item,oldSnapshot);
+        e.target.value=oldStage;
+        moveCardInstantly(id,oldStage);
+        refreshPendingMetrics();
+        toast(error.message,true);
+      }else{
+        // Rebuild only this card so its financial/conclusion banner is correct,
+        // without reloading the page.
+        const oldCard=document.querySelector('[data-service-card="'+id+'"]');
+        if(oldCard&&item){
+          const wrap=document.createElement('div');
+          wrap.innerHTML=pendingCard(item).trim();
+          const fresh=wrap.firstElementChild;
+          oldCard.replaceWith(fresh);
+          bindPending();
+          refreshStageCounts();
+        }
+        toast('Atendimento atualizado');
+      }
     });
     document.querySelectorAll('[data-orcamento]').forEach(s=>s.onchange=async e=>{
       const patch={orcamento_status:e.target.value};
@@ -502,7 +562,7 @@ function pendencias(){
   document.querySelectorAll('[data-finance-filter]').forEach(b=>b.onclick=()=>{
     const mode=b.dataset.financeFilter;
     const rows=data.servicos.filter(s=>mode==='overdue'?closureState(s).key==='overdue':closureState(s).key==='payment_pending');
-    document.querySelector('#pendingBoard').innerHTML=`<div class="pending-board">${stages.map(st=>`<div class="pending-col"><h4><span>${st}</span><span>${rows.filter(x=>x.atendimento_status===st).length}</span></h4>${rows.filter(x=>x.atendimento_status===st).map(pendingCard).join('')||'<div class="empty">Sem itens</div>'}</div>`).join('')}</div>`;
+    document.querySelector('#pendingBoard').innerHTML=`<div class="pending-board">${stages.map(st=>`<div class="pending-col" data-stage="${st}"><h4><span>${st}</span><span data-stage-count="${st}">${rows.filter(x=>x.atendimento_status===st).length}</span></h4><div data-stage-list="${st}">${rows.filter(x=>x.atendimento_status===st).map(pendingCard).join('')||'<div class="empty">Sem itens</div>'}</div></div>`).join('')}</div>`;
     bindPending();
   });
   document.querySelector('#pendingSearch').oninput=e=>draw(e.target.value);
