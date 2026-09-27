@@ -40,7 +40,16 @@ body:before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.28;ba
 .pending-actions{display:grid;grid-template-columns:1fr 1fr;gap:6px}.pending-actions .btn{padding:8px 7px;font-size:10px}
 .pending-card select{width:100%;border:1px solid var(--line);border-radius:8px;padding:7px;background:#fff;font-size:10px}
 .col{background:#eaf0f5;border-radius:12px;padding:9px;min-height:300px}.col h4{font-size:11px;margin:2px 2px 10px}.task{background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:8px}.task small,.task b{display:block}.task small{font-size:9px;color:var(--muted)}.task b{font-size:11px;margin:3px 0}.task select{width:100%;margin-top:7px;border:1px solid var(--line);border-radius:7px;padding:7px}
-.modal-bg{position:fixed;inset:0;background:#03182db5;display:none;place-items:center;padding:18px;z-index:80}.modal-bg.open{display:grid}.modal{width:min(650px,100%);max-height:90vh;overflow:auto;background:#fff;border-radius:18px;padding:16px}.modal-head{display:flex;justify-content:space-between;align-items:center}.modal-head h3{margin:0}.modal-head button{border:0;background:transparent;font-size:22px}.form{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}.field{display:grid;gap:5px}.field.full{grid-column:1/-1}.field span{font-size:10px;color:#617184}.field input,.field select,.field textarea{border:1px solid var(--line);border-radius:9px;padding:10px;font-size:14px}.empty{text-align:center;color:#8491a0;padding:24px;font-size:12px}.bottom{display:none}
+.modal-bg{position:fixed;inset:0;background:#03182db5;display:none;place-items:center;padding:18px;z-index:80}.modal-bg.open{display:grid}.modal{width:min(650px,100%);max-height:90vh;overflow:auto;background:#fff;border-radius:18px;padding:16px}.modal-head{display:flex;justify-content:space-between;align-items:center}.modal-head h3{margin:0}.modal-head button{border:0;background:transparent;font-size:22px}.form{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}.field{display:grid;gap:5px}.field.full{grid-column:1/-1}.field span{font-size:10px;color:#617184}.field input,.field select,.field textarea{border:1px solid var(--line);border-radius:9px;padding:10px;font-size:14px}
+.service-form-intro{grid-column:1/-1;padding:11px 12px;border:1px solid #17384b;border-radius:11px;background:#071722;color:#9bb4c6;font-size:11px;line-height:1.5}
+.extra-picker{grid-column:1/-1;border:1px dashed #27546c;border-radius:12px;padding:12px;background:#081925;display:grid;gap:9px}
+.extra-picker-head b{display:block;font-size:12px;color:#eefaff}.extra-picker-head small{display:block;color:#8da8b9;font-size:10px;margin-top:2px}
+.extra-picker-row{display:grid;grid-template-columns:1fr auto;gap:8px}.extra-picker-row select{min-width:0;border:1px solid #1a4259;border-radius:9px;padding:10px;background:#07141d;color:#eefaff}
+.optional-block{grid-column:1/-1;border:1px solid #17384b;border-radius:12px;background:#091923;padding:12px;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.optional-block-head{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:10px;padding-bottom:7px;border-bottom:1px solid #17384b}
+.optional-block-head b{font-size:12px;color:#f4fbff}.optional-block-head button{border:0;background:transparent;color:#8eabbc;cursor:pointer;font-size:15px}
+.optional-block .field.full{grid-column:1/-1}
+@media(max-width:700px){.extra-picker-row{grid-template-columns:1fr}.optional-block{grid-template-columns:1fr}.optional-block .field.full{grid-column:1}}.empty{text-align:center;color:#8491a0;padding:24px;font-size:12px}.bottom{display:none}
 .auth{min-height:100vh;display:grid;place-items:center;padding:20px}.auth-card{width:min(430px,100%);background:#ffffffef;border:1px solid var(--line);border-radius:22px;padding:22px;box-shadow:0 20px 60px #062c5920}.auth-brand{display:flex;gap:11px;align-items:center;margin-bottom:18px}.auth-brand b{font-size:20px}.auth-brand small{display:block;color:var(--muted)}
 @media(max-width:1200px){.pending-board{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:820px){.pending-board{grid-template-columns:1fr}}
 @media(min-width:901px){
@@ -689,7 +698,137 @@ function servicos(){
   const draw=()=>{const q=document.querySelector('#search').value.toLowerCase(),f=document.querySelector('#filter').value;const rows=data.servicos.filter(x=>{const c=data.clientes.find(a=>a.id===x.cliente_id);return(!q||[x.titulo,x.tipo,x.responsavel,c?.nome_fantasia].join(' ').toLowerCase().includes(q))&&(f==='Todos'||x.status===f)});document.querySelector('#list').innerHTML=rows.map(serviceCard).join('')||'<div class="empty">Nenhum serviço encontrado.</div>';};
   document.querySelector('#search').oninput=draw;document.querySelector('#filter').onchange=draw;draw();document.querySelector('#add').onclick=newService
 }
-function newService(){if(!data.clientes.length)return toast('Cadastre um cliente primeiro.',true);openForm('Novo serviço',[['cliente_id','Cliente','select',data.clientes.map(x=>({value:x.id,label:x.nome_fantasia}))],['titulo','Título','text'],['tipo','Tipo','select',['Emergência','Preventiva','Contrato','Instalação elétrica','Automação','Comando elétrico','Máquina de padaria','Outro']],['prioridade','Prioridade','select',['Emergencial','Alta','Média','Baixa']],['atendimento_status','Etapa do atendimento','select',['Aguardando aprovação','Orçamento aprovado','Em andamento','Pausada','Concluída']],['orcamento_status','Situação do orçamento','select',['Não iniciado','Em elaboração','Enviado','Aguardando resposta','Aprovado','Recusado','Expirado']],['orcamento_data_envio','Data de envio do orçamento','date'],['orcamento_validade','Validade do orçamento','date'],['data_agendada','Data agendada','date'],['responsavel','Responsável','text'],['progresso','Progresso (%)','number'],['valor_servico','Valor serviço','number'],['valor_material','Valor material','number'],['vencimento_pagamento','Vencimento financeiro','date'],['proxima_acao','Próxima ação','text'],['proxima_acao_data','Prazo da próxima ação','date'],['descricao','Descrição','textarea']],async v=>{for(const k of ['progresso','valor_servico','valor_material'])v[k]=+v[k]||0;v.status=v.atendimento_status==='Concluída'?'Concluído':v.atendimento_status==='Em andamento'?'Em execução':v.atendimento_status==='Pausada'?'Pausado':'Planejado';if(v.atendimento_status==='Orçamento aprovado')v.orcamento_status='Aprovado';if(v.atendimento_status==='Aguardando aprovação'&&!['Enviado','Aguardando resposta'].includes(v.orcamento_status))v.orcamento_status='Aguardando resposta';if(v.atendimento_status==='Concluída'){v.progresso=100;v.data_conclusao=today}const {error}=await supabase.from('ametec_servicos').insert(v);if(error)throw error})}
+function newService(){
+  if(!data.clientes.length)return toast('Cadastre um cliente primeiro.',true);
+
+  const modal=document.querySelector('#modal');
+  const form=document.querySelector('#modalForm');
+  document.querySelector('#modalTitle').textContent='Novo serviço';
+  const opts=(items)=>items.map(x=>typeof x==='string'?'<option>'+esc(x)+'</option>':'<option value="'+esc(x.value)+'">'+esc(x.label)+'</option>').join('');
+
+  form.innerHTML=`
+    <div class="service-form-intro">
+      Comece com as informações essenciais. Datas, valores e demais detalhes podem ser adicionados somente quando forem necessários.
+    </div>
+
+    <label class="field"><span>Cliente</span><select name="cliente_id" required>${opts(data.clientes.map(x=>({value:x.id,label:x.nome_fantasia})))}</select></label>
+    <label class="field"><span>Título</span><input name="titulo" type="text" required placeholder="Ex.: Manutenção no quadro principal"></label>
+
+    <label class="field"><span>Tipo</span><select name="tipo">${opts(['Emergência','Preventiva','Contrato','Instalação elétrica','Automação','Comando elétrico','Máquina de padaria','Outro'])}</select></label>
+    <label class="field"><span>Prioridade</span><select name="prioridade">${opts(['Emergencial','Alta','Média','Baixa'])}</select></label>
+
+    <label class="field"><span>Etapa do atendimento</span><select name="atendimento_status">${opts(['Aguardando aprovação','Orçamento aprovado','Em andamento','Pausada','Concluída'])}</select></label>
+    <label class="field"><span>Situação do orçamento</span><select name="orcamento_status">${opts(['Não iniciado','Em elaboração','Enviado','Aguardando resposta','Aprovado','Recusado','Expirado'])}</select></label>
+
+    <div class="extra-picker">
+      <div class="extra-picker-head"><b>+ Adicionar informação</b><small>Escolha somente o bloco que você precisa incluir neste orçamento.</small></div>
+      <div class="extra-picker-row">
+        <select id="extraInfoType">
+          <option value="">Selecione uma informação...</option>
+          <option value="budget_dates">📅 Datas do orçamento</option>
+          <option value="schedule">🗓️ Agendamento</option>
+          <option value="responsible">👤 Responsável</option>
+          <option value="progress">📊 Progresso</option>
+          <option value="values">💰 Valores</option>
+          <option value="finance">💳 Financeiro</option>
+          <option value="next_action">✅ Próxima ação</option>
+          <option value="description">📝 Descrição</option>
+        </select>
+        <button type="button" class="btn secondary" id="addExtraInfo">+ Adicionar</button>
+      </div>
+    </div>
+
+    <div id="optionalServiceFields" style="grid-column:1/-1;display:grid;gap:10px"></div>
+    <button class="btn primary" style="grid-column:1/-1">Salvar serviço</button>`;
+
+  const blocks={
+    budget_dates:{
+      title:'📅 Datas do orçamento',
+      html:`<label class="field"><span>Data de envio</span><input name="orcamento_data_envio" type="date"></label><label class="field"><span>Validade</span><input name="orcamento_validade" type="date"></label>`
+    },
+    schedule:{
+      title:'🗓️ Agendamento',
+      html:`<label class="field"><span>Data agendada</span><input name="data_agendada" type="date"></label>`
+    },
+    responsible:{
+      title:'👤 Responsável',
+      html:`<label class="field full"><span>Responsável</span><input name="responsavel" type="text" placeholder="Ex.: Técnico responsável"></label>`
+    },
+    progress:{
+      title:'📊 Progresso',
+      html:`<label class="field full"><span>Progresso (%)</span><input name="progresso" type="number" min="0" max="100" step="5" placeholder="0"></label>`
+    },
+    values:{
+      title:'💰 Valores',
+      html:`<label class="field"><span>Valor do serviço</span><input name="valor_servico" type="number" min="0" step="0.01" placeholder="0,00"></label><label class="field"><span>Valor de material</span><input name="valor_material" type="number" min="0" step="0.01" placeholder="0,00"></label>`
+    },
+    finance:{
+      title:'💳 Financeiro',
+      html:`<label class="field full"><span>Vencimento financeiro</span><input name="vencimento_pagamento" type="date"></label>`
+    },
+    next_action:{
+      title:'✅ Próxima ação',
+      html:`<label class="field"><span>Próxima ação</span><input name="proxima_acao" type="text" placeholder="Ex.: Confirmar aprovação do orçamento"></label><label class="field"><span>Prazo</span><input name="proxima_acao_data" type="date"></label>`
+    },
+    description:{
+      title:'📝 Descrição',
+      html:`<label class="field full"><span>Descrição</span><textarea name="descricao" rows="3" placeholder="Diagnóstico, necessidade do cliente ou observação..."></textarea></label>`
+    }
+  };
+
+  const added=new Set();
+  const container=form.querySelector('#optionalServiceFields');
+  const select=form.querySelector('#extraInfoType');
+
+  const syncOptions=()=>{
+    [...select.options].forEach(o=>{if(o.value)o.disabled=added.has(o.value)});
+    if(added.has(select.value))select.value='';
+  };
+
+  const addBlock=(key)=>{
+    if(!key||!blocks[key]||added.has(key))return;
+    added.add(key);
+    const box=document.createElement('section');
+    box.className='optional-block';
+    box.dataset.optionalBlock=key;
+    box.innerHTML=`<div class="optional-block-head"><b>${blocks[key].title}</b><button type="button" data-remove-block="${key}" title="Remover bloco">✕</button></div>${blocks[key].html}`;
+    container.appendChild(box);
+    box.querySelector('[data-remove-block]').onclick=()=>{
+      added.delete(key);
+      box.remove();
+      syncOptions();
+    };
+    select.value='';
+    syncOptions();
+  };
+
+  form.querySelector('#addExtraInfo').onclick=()=>addBlock(select.value);
+  select.onchange=()=>{ if(select.value) form.querySelector('#addExtraInfo').focus() };
+
+  form.onsubmit=async e=>{
+    e.preventDefault();
+    try{
+      const v=Object.fromEntries(new FormData(form));
+      for(const k of ['progresso','valor_servico','valor_material'])if(k in v)v[k]=+v[k]||0;
+
+      v.status=v.atendimento_status==='Concluída'?'Concluído':
+        v.atendimento_status==='Em andamento'?'Em execução':
+        v.atendimento_status==='Pausada'?'Pausado':'Planejado';
+
+      if(v.atendimento_status==='Orçamento aprovado')v.orcamento_status='Aprovado';
+      if(v.atendimento_status==='Aguardando aprovação'&&!['Enviado','Aguardando resposta'].includes(v.orcamento_status))v.orcamento_status='Aguardando resposta';
+      if(v.atendimento_status==='Concluída'){v.progresso=100;v.data_conclusao=today}
+
+      const {error}=await supabase.from('ametec_servicos').insert(v);
+      if(error)throw error;
+      closeModal();
+      await load();
+      toast('Serviço criado com sucesso!');
+    }catch(err){toast(err.message||String(err),true)}
+  };
+
+  modal.classList.add('open');
+}
 function agenda(){
   const rows=[...data.servicos].sort((a,b)=>(a.data_agendada||'9999').localeCompare(b.data_agendada||'9999'));
   document.querySelector('#app').innerHTML=`<section class="hero"><div class="hero-grid"><div><div class="eyebrow">PLANEJAMENTO</div><h2>Agenda operacional</h2><p>Visualize prioridades, datas e evolução dos atendimentos.</p></div><button class="btn primary" id="add">+ Serviço</button></div></section><section class="panel"><div class="cards">${rows.map(x=>{const c=data.clientes.find(a=>a.id===x.cliente_id);return `<article class="entity"><div class="entity-head"><div><b>${date(x.data_agendada)} • ${esc(x.titulo)}</b><small>${esc(c?.nome_fantasia||'Sem cliente')} • ${esc(x.responsavel||'Sem responsável')}</small></div>${status(x.prioridade)}</div><div class="entity-body"><div><div style="display:flex;justify-content:space-between;font-size:9px;color:#748397;margin-bottom:5px"><span>EVOLUÇÃO</span><b data-label="${x.id}">${x.progresso||0}%</b></div><input type="range" min="0" max="100" step="5" value="${x.progresso||0}" data-progress="${x.id}" style="width:100%;accent-color:#0075c9"></div><div class="actions"><button class="btn secondary" data-set="${x.id}" data-v="25">25%</button><button class="btn secondary" data-set="${x.id}" data-v="50">50%</button><button class="btn secondary" data-set="${x.id}" data-v="75">75%</button><button class="btn primary" data-set="${x.id}" data-v="100">Concluir</button></div></div></article>`}).join('')||'<div class="empty">Nenhum serviço agendado.</div>'}</div></section>`;
