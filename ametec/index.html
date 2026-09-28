@@ -286,6 +286,13 @@ const today=new Date().toISOString().slice(0,10);
 const money=v=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(+v||0);
 const date=v=>v?new Date(v+'T12:00:00').toLocaleDateString('pt-BR'):'—';
 const esc=s=>String(s??'').replace(/[&<>'"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[m]));
+function sanitizeServicePayload(v){
+  const dateFields=['orcamento_data_envio','orcamento_validade','data_agendada','vencimento_pagamento','proxima_acao_data','data_conclusao'];
+  const nullableText=['responsavel','proxima_acao','descricao','descricao_valor_adicional','tipo_valor_adicional'];
+  dateFields.forEach(k=>{if(k in v&&(v[k]===''||v[k]===undefined))v[k]=null});
+  nullableText.forEach(k=>{if(k in v&&typeof v[k]==='string'&&!v[k].trim())v[k]=null});
+  return v;
+}
 let data={perfil:null,clientes:[],clienteContatos:[],servicos:[],equipamentos:[],materiais:[],colaboradores:[],registros:[],pagamentos:[]},page='dashboard',session=null,channel=null;
 const pages=[['dashboard','Centro','⚡'],['pendencias','Pendências','📋'],['clientes','Clientes','🏭'],['servicos','Serviços','🔧'],['agenda','Agenda','📅'],['equipamentos','Equipamentos','⚙️'],['materiais','Materiais','📦'],['colaboradores','Colaboradores','👷'],['financeiro','Financeiro','💰'],['relatorios','Relatórios','📊']];
 const status=s=>{const c=['Concluído','Operacional','Ativo'].includes(s)?'done':['Em execução','Em manutenção','Planejado'].includes(s)?'run':['Emergencial','Alta'].includes(s)?'high':'';return '<span class="status '+c+'">'+esc(s||'—')+'</span>'};
@@ -841,7 +848,7 @@ function editService(id){
       if(v.atendimento_status==='Concluída'){v.progresso=100;v.data_conclusao=x.data_conclusao||today}
       else if(x.data_conclusao)v.data_conclusao=null;
 
-      const {error}=await supabase.from('ametec_servicos').update(v).eq('id',id);if(error)throw error;
+      sanitizeServicePayload(v);const {error}=await supabase.from('ametec_servicos').update(v).eq('id',id);if(error)throw error;
       closeModal();await load();toast('Serviço atualizado!');
     }catch(err){toast(err.message||String(err),true)}
   };
@@ -974,7 +981,7 @@ function newService(){
       if(v.atendimento_status==='Aguardando aprovação'&&!['Enviado','Aguardando resposta'].includes(v.orcamento_status))v.orcamento_status='Aguardando resposta';
       if(v.atendimento_status==='Concluída'){v.progresso=100;v.data_conclusao=today}
 
-      const {error}=await supabase.from('ametec_servicos').insert(v);
+      sanitizeServicePayload(v);const {error}=await supabase.from('ametec_servicos').insert(v);
       if(error)throw error;
       closeModal();
       await load();
