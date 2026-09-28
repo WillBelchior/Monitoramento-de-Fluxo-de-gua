@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Caminho Leve</title>
+<style>
+:root{--bg:#f7f5ee;--card:#fff;--text:#23403d;--muted:#6c7d78;--sage:#73997f;--sage2:#e5efe7;--gold:#d0a95b;--teal:#3e7074;--danger:#a45b5b;--shadow:0 12px 35px rgba(42,73,67,.12)}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--text)}
+body.dark{--bg:#172320;--card:#21312d;--text:#eef5ef;--muted:#b7c4bf;--sage2:#2a4338;--shadow:0 12px 35px rgba(0,0,0,.28)}
+button,input,select,textarea{font:inherit}.app{display:flex;min-height:100vh}.side{width:230px;padding:24px 16px;background:var(--card);border-right:1px solid #dfe7e2;position:fixed;inset:0 auto 0 0}.brand{font-weight:800;font-size:24px;margin-bottom:6px}.tag{font-size:13px;color:var(--muted);margin-bottom:22px}.nav button{width:100%;text-align:left;border:0;background:transparent;padding:13px 14px;border-radius:14px;margin:4px 0;color:var(--text);cursor:pointer}.nav button.active,.nav button:hover{background:var(--sage2)}main{margin-left:230px;width:calc(100% - 230px);padding:24px;max-width:1200px}.top{display:flex;justify-content:space-between;gap:12px;align-items:center}.title{font-size:30px;font-weight:800;margin:0}.muted{color:var(--muted)}.grid{display:grid;gap:16px}.g2{grid-template-columns:repeat(2,minmax(0,1fr))}.g3{grid-template-columns:repeat(3,minmax(0,1fr))}.card{background:var(--card);border:1px solid rgba(115,153,127,.18);border-radius:24px;padding:18px;box-shadow:var(--shadow)}.hero{background:linear-gradient(135deg,var(--sage2),#f2ead4)}body.dark .hero{background:linear-gradient(135deg,#294238,#3b3626)}.progress{height:12px;background:#dfe6e1;border-radius:999px;overflow:hidden}.progress>div{height:100%;background:var(--sage);transition:.3s}.meal{display:flex;gap:12px;align-items:flex-start;padding:14px 0;border-bottom:1px solid rgba(120,140,130,.15)}.meal:last-child{border:0}.meal input{width:22px;height:22px;margin-top:3px}.meal strong{display:block}.meal small{color:var(--muted)}.pill{display:inline-block;padding:6px 10px;border-radius:999px;background:var(--sage2);font-size:12px}.btn{border:0;border-radius:14px;padding:11px 14px;background:var(--sage);color:#fff;cursor:pointer}.btn.ghost{background:var(--sage2);color:var(--text)}.btn.gold{background:var(--gold);color:#2c291e}.weektabs{display:flex;gap:8px;overflow:auto;padding-bottom:8px}.weektabs button{white-space:nowrap}.daycard{border-left:5px solid var(--sage)}.daycard.today{outline:2px solid var(--gold)}.recipes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.recipe h3{margin:0 0 8px}.recipe details{margin-top:8px}.list{margin:0;padding-left:18px}.shoprow{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid rgba(120,140,130,.15)}.calendar{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}.d{aspect-ratio:1;border-radius:12px;display:grid;place-items:center;background:#d9dfdc;font-size:12px}.d.partial{background:#ead39a}.d.done{background:#8ab397;color:white}.quote{font-size:17px;line-height:1.5}.bottom{display:none}.hide{display:none!important}.mood button{margin:4px}.notice{font-size:13px;background:#fff8d9;padding:12px;border-radius:14px;border:1px solid #eadb9b}body.dark .notice{background:#3b3524;border-color:#6d6237}
+@media(max-width:800px){.side{display:none}main{margin:0;width:100%;padding:16px 16px 90px}.g2,.g3,.recipes{grid-template-columns:1fr}.bottom{display:grid;grid-template-columns:repeat(5,1fr);position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid #dfe7e2;z-index:20}.bottom button{border:0;background:transparent;padding:10px 4px;color:var(--text);font-size:11px}.bottom button.active{background:var(--sage2)}.calendar{grid-template-columns:repeat(5,1fr)}.title{font-size:25px}}
+</style>
+</head>
+<body>
+<div class="app">
+<aside class="side"><div class="brand">🌿 Caminho Leve</div><div class="tag">30 dias de cuidado, constância e fé</div><nav class="nav" id="nav"></nav></aside>
+<main>
+<div id="page-hoje"></div><div id="page-cardapio" class="hide"></div><div id="page-progresso" class="hide"></div><div id="page-receitas" class="hide"></div><div id="page-mais" class="hide"></div>
+</main>
+<nav class="bottom" id="bottom"></nav>
+</div>
+<script>
+const menu=[
+["Cuscuz + ovo mexido + banana","Arroz, feijão, frango cozido, batata e cenoura","Mamão com aveia","Sopa de frango, batata e cenoura"],
+["Tapioca com queijo branco + mamão","Arroz, peixe assado + purê de batata + abobrinha","Banana com aveia","Cuscuz + frango desfiado"],
+["Pão + ovo cozido + melão","Arroz, feijão, carne moída com abobrinha","Maçã","Macaxeira + frango desfiado"],
+["Mingau de aveia + banana","Arroz, frango grelhado + batata e cenoura","Mamão","Cuscuz + ovo mexido + cenoura cozida"],
+["Cuscuz + queijo coalho + melancia","Arroz, feijão, peixe cozido + batata e cenoura","Vitamina de banana opcional, se leite for tolerado","Canja de galinha"],
+["Tapioca + ovo mexido + pera","Arroz, carne de panela + batata e cenoura","Iogurte natural + banana, se tolerado","Macaxeira + frango"],
+["Pão + frango desfiado + mamão","Arroz, feijão, frango assado sem pele + cenoura e abobrinha","Melão","Cuscuz + ovo cozido + batata cozida"],
+["Cuscuz + ovo mexido + mamão","Arroz, feijão, carne moída + cenoura e abobrinha","Banana","Purê de batata + frango desfiado"],
+["Tapioca com queijo branco + banana","Arroz, peixe grelhado + batata-doce + abobrinha","Maçã cozida","Sopa de legumes com frango"],
+["Pão + ovo mexido + melancia","Arroz, feijão, frango cozido + cenoura e vagem","Mamão com aveia","Cuscuz + carne moída"],
+["Mingau de aveia + mamão","Arroz, carne cozida + batata e cenoura","Pera","Macaxeira + ovo mexido"],
+["Cuscuz + frango desfiado","Arroz, feijão, peixe assado + cenoura e abobrinha","Banana","Canja de frango"],
+["Tapioca + ovo mexido + melão","Arroz, frango desfiado + purê de batata + cenoura","Mamão","Batata-doce + frango desfiado"],
+["Pão + queijo branco + banana","Arroz, feijão, carne moída + vagem","Melancia","Cuscuz + ovo cozido + cenoura"],
+["Cuscuz + ovo mexido + mamão","Arroz, frango ensopado + batata e cenoura","Maçã","Sopa de carne com batata, cenoura e abobrinha"],
+["Tapioca + frango desfiado + melão","Arroz, feijão, peixe + batata e vagem","Banana com aveia","Macaxeira + ovo mexido"],
+["Pão + ovo cozido + mamão","Arroz, carne de panela + cenoura e batata","Pera","Cuscuz + frango desfiado"],
+["Mingau de aveia + banana","Arroz, feijão, frango grelhado + abobrinha e cenoura","Melancia","Purê de batata + peixe"],
+["Cuscuz + queijo branco + melão","Arroz, carne moída + batata e abobrinha","Mamão","Sopa de frango com macarrão e cenoura"],
+["Tapioca + ovo mexido + banana","Arroz, feijão, peixe cozido + batata e cenoura","Maçã","Macaxeira + carne desfiada"],
+["Pão + frango desfiado + mamão","Arroz, frango assado + cenoura e vagem","Melão","Cuscuz + ovo mexido"],
+["Cuscuz + ovo mexido + banana","Arroz, feijão, carne de panela + batata e cenoura","Mamão com aveia","Canja de frango"],
+["Tapioca + queijo branco + melão","Arroz, peixe assado + purê de batata + abobrinha","Pera","Cuscuz + frango desfiado"],
+["Pão + ovo mexido + mamão","Arroz, feijão, frango ensopado + cenoura e batata","Banana","Macaxeira + peixe desfiado"],
+["Mingau de aveia + banana","Arroz, carne moída + batata e abobrinha","Melancia","Sopa de legumes com frango"],
+["Cuscuz + frango desfiado + mamão","Arroz, feijão, peixe + abobrinha e cenoura","Maçã","Batata-doce + ovo mexido"],
+["Tapioca + ovo mexido + pera","Arroz, frango grelhado + purê de batata + cenoura","Banana com aveia","Cuscuz + carne moída"],
+["Pão + queijo branco + mamão","Arroz, feijão, carne cozida + cenoura e vagem","Melão","Macaxeira + frango desfiado"],
+["Cuscuz + ovo mexido + banana","Arroz, peixe assado + batata + abobrinha","Mamão","Canja de galinha"],
+["Tapioca + frango desfiado + melão","Arroz, feijão, frango assado + batata e cenoura","Banana com aveia","Cuscuz + ovo cozido + cenoura"]
+];
+const mealNames=["Café da manhã","Almoço","Lanche","Jantar"];
+const faith=[
+"Seu esforço de hoje também é uma forma de cuidado. Continue firme. — cf. Gálatas 6:9",
+"Pequenos passos, feitos com constância, constroem grandes mudanças. — cf. Zacarias 4:10",
+"Faça o que está ao seu alcance hoje e entregue o restante a Deus. — cf. Provérbios 16:3",
+"A força pode ser renovada a cada manhã. — cf. Isaías 40:31",
+"Há propósito também nos dias simples. — cf. Romanos 8:28",
+"Deus vê a fidelidade nos pequenos passos. — cf. Lucas 16:10",
+"Hoje é uma nova oportunidade de cuidar do que Deus confiou a você. — cf. 1 Coríntios 6:19-20",
+"A paz também cresce quando você escolhe constância. — cf. Filipenses 4:7",
+"Não despreze o começo pequeno. — cf. Zacarias 4:10",
+"Persistir com mansidão também é força. — cf. Colossenses 3:12",
+"Um passo fiel vale mais que uma promessa perfeita. — cf. Tiago 1:22",
+"Há graça suficiente para o dia de hoje. — cf. Mateus 6:34",
+"Renove a mente e avance um pouco mais. — cf. Romanos 12:2",
+"Cuide de si com gratidão. — cf. Salmos 139:14",
+"Permaneça firme no bem. — cf. 2 Tessalonicenses 3:13",
+"A disciplina de hoje pode gerar fruto amanhã. — cf. Hebreus 12:11",
+"Você pode recomeçar quantas vezes forem necessárias. — cf. Lamentações 3:22-23",
+"Seu corpo merece cuidado, paciência e respeito. — cf. 1 Coríntios 6:19",
+"Faça tudo com equilíbrio e gratidão. — cf. Colossenses 3:17",
+"Deus fortalece quem continua caminhando. — cf. Salmos 37:23-24",
+"Um dia difícil não apaga os dias de fidelidade. — cf. Provérbios 24:16",
+"A constância silenciosa também transforma. — cf. Gálatas 6:9",
+"Que sua rotina seja leve e seu coração permaneça firme. — cf. Mateus 11:28-30",
+"Escolhas simples, repetidas com sabedoria, constroem saúde. — cf. Provérbios 4:26",
+"Faça o próximo passo possível, não o passo perfeito. — cf. Filipenses 3:13-14",
+"Cuide do hoje; Deus conhece o amanhã. — cf. Mateus 6:34",
+"Persevere com alegria e paciência. — cf. Romanos 12:12",
+"Você já caminhou muito. Continue com gratidão. — cf. Salmos 126:3",
+"Terminar bem também é honrar o processo. — cf. 2 Timóteo 4:7",
+"Gratidão pelo caminho percorrido; siga cuidando de si com sabedoria. — cf. Salmos 103:2"
+];
+const recipeData=[
+["Cuscuz simples","150 g de flocão, 120 ml de água, pitada de sal","Hidrate 5 min e cozinhe no vapor por 8–10 min."],
+["Cuscuz com ovo mexido","Cuscuz pronto, 3 ovos, 1 cchá de óleo, cheiro-verde","Faça o cuscuz; mexa os ovos em fogo baixo com pouca gordura e sirva junto."],
+["Cuscuz com frango desfiado","Cuscuz pronto, 200 g de frango desfiado","Aqueça o frango com um pouco de água e sirva sobre o cuscuz."],
+["Tapioca com queijo branco","8 cs de goma, 60 g de queijo branco","Prepare duas tapiocas na frigideira, recheie e dobre."],
+["Tapioca com ovo mexido","8 cs de goma, 2 ovos","Prepare o ovo em fogo baixo e use como recheio."],
+["Tapioca com frango desfiado","8 cs de goma, 140 g de frango desfiado","Prepare as tapiocas e recheie com o frango aquecido."],
+["Mingau de aveia com banana","6 cs de aveia, 400 ml de água ou leite se tolerado, 1 banana","Cozinhe a aveia em fogo baixo até engrossar e finalize com banana."],
+["Ovo cozido","2 a 4 ovos","Cozinhe por cerca de 10 min após levantar fervura."],
+["Ovo mexido com pouca gordura","3 a 4 ovos, 1 cchá de óleo","Mexa em fogo baixo até cozinhar, sem dourar demais."],
+["Frango cozido com batata e cenoura","400 g de frango, 2 batatas, 1 cenoura, alho, cebola","Cozinhe o frango; junte legumes e deixe até ficarem macios."],
+["Frango desfiado suave","600 g de peito, alho, cebola, cheiro-verde","Cozinhe, desfie e umedeça com um pouco do próprio caldo."],
+["Frango grelhado suave","300 g de filés, pouco sal","Grelhe em frigideira antiaderente com pouquíssima gordura."],
+["Frango assado sem pele","500 g de frango sem pele, alho, cebola","Asse coberto até cozinhar e descubra apenas no final."],
+["Frango ensopado suave","400 g de frango, batata, cenoura","Cozinhe com água suficiente para formar caldo leve."],
+["Peixe assado","350 g de filé, cebola, cheiro-verde","Asse em papel-alumínio até ficar macio."],
+["Peixe cozido","350 g de peixe, batata, cenoura","Cozinhe suavemente com pouca gordura e temperos leves."],
+["Peixe grelhado","350 g de filé","Grelhe rapidamente dos dois lados sem ressecar."],
+["Carne moída com abobrinha","350 g de carne magra, 1 abobrinha","Refogue a carne com pouca gordura e acrescente a abobrinha até amaciar."],
+["Carne de panela com batata e cenoura","400 g de carne, 2 batatas, 1 cenoura","Cozinhe na pressão até maciar; junte os legumes no final."],
+["Carne desfiada","500 g de carne magra","Cozinhe até maciar e desfie com um pouco do caldo."],
+["Arroz branco","1 xícara de arroz, 2 xícaras de água","Refogue levemente, cubra com água e cozinhe até secar."],
+["Feijão simples com pouco tempero","1 xícara de feijão, alho, cebola","Cozinhe até maciar e tempere suavemente."],
+["Purê de batata","500 g de batata, um pouco de leite ou água, se tolerado","Cozinhe, amasse e ajuste a textura sem excesso de gordura."],
+["Macaxeira cozida","600 g de macaxeira, água e sal","Cozinhe até ficar bem macia."],
+["Batata-doce cozida","500 g de batata-doce","Cozinhe em água até ficar macia."],
+["Cenoura cozida","2 cenouras","Cozinhe em rodelas até ficarem macias."],
+["Abobrinha refogada suave","2 abobrinhas, alho","Refogue rapidamente com pouca gordura e fogo médio."],
+["Vagem cozida","300 g de vagem","Cozinhe até macia, sem deixar desmanchar."],
+["Canja de galinha","300 g de frango, 1/2 xícara de arroz, cenoura","Cozinhe tudo em caldo leve até ficar macio."],
+["Sopa de frango, batata e cenoura","300 g de frango, 2 batatas, 1 cenoura","Cozinhe em água até formar uma sopa leve e macia."],
+["Sopa de legumes com frango","300 g de frango, batata, cenoura, abobrinha","Cozinhe tudo até amaciar e ajuste o sal."],
+["Sopa de carne com legumes","300 g de carne, batata, cenoura, abobrinha","Cozinhe a carne até maciar; acrescente os legumes."],
+["Sopa de frango com macarrão","300 g de frango, 120 g de macarrão, cenoura","Faça caldo leve com frango e cenoura; acrescente o macarrão no final."],
+["Mamão com aveia","1/2 mamão, 2 cs de aveia","Sirva o mamão picado com aveia."],
+["Banana com aveia","2 bananas, 2 cs de aveia","Amasse ou fatie e polvilhe aveia."],
+["Maçã cozida","2 maçãs, água","Cozinhe em pouca água até amaciar."],
+["Vitamina suave de banana","2 bananas, 300 ml de leite se tolerado","Bata e consuma em pequena porção; use água se preferir."],
+["Porção de fruta prática","2 porções de banana, mamão, melão, melancia, maçã ou pera","Higienize, corte e sirva sem excesso de açúcar."]
+];
+const shopping=[
+["Arroz","5 kg"],["Feijão","3 kg"],["Flocão de milho","4 kg"],["Goma de tapioca","2 kg"],["Aveia","1,5 kg"],["Macarrão","1 kg"],["Pão","comprar semanalmente"],["Macaxeira","5 kg"],["Batata inglesa","7 kg"],["Batata-doce","3 kg"],["Frango","7 kg"],["Peixe","4 kg"],["Carne para panela","2 kg"],["Carne moída magra","2 kg"],["Ovos","60 unidades"],["Cenoura","5 kg"],["Abobrinha","3 kg"],["Vagem","2 kg"],["Beterraba","1,5 kg opcional"],["Cebola","2 kg"],["Alho","500 g"],["Cheiro-verde","4–6 maços"],["Banana","6–7 dúzias"],["Mamão","8–10 unidades"],["Melão","4 unidades"],["Melancia","2 médias"],["Maçã","3 kg"],["Pera","2 kg"],["Leite","8–12 L, opcional"],["Iogurte natural","8–12 unidades, opcional"],["Queijo branco/coalho","1–1,5 kg"],["Óleo/azeite","900 ml"],["Sal","1 kg"]
+];
+const tips=["Faça porções menores.","Coma devagar e mastigue bem.","Evite longos períodos sem comer se isso piorar seus sintomas.","Prefira preparações cozidas, assadas ou grelhadas.","Evite deitar logo após as refeições.","Prepare alimentos duas vezes por semana e congele porções.","Tenha cuscuz, ovos, frango desfiado e frutas como opções rápidas.","Fruta inteira costuma ser uma escolha mais prática que suco.","Observe quais alimentos aumentam o desconforto e registre no app.","Não interrompa antibióticos ou medicamentos prescritos sem orientação médica.","Procure atendimento diante de vômitos persistentes, sangue no vômito, fezes muito escuras sem explicação, perda de peso importante, dificuldade para engolir ou dor intensa."];
+const defaultState={start:new Date().toISOString().slice(0,10),checks:{},water:{},mood:{},notes:{},faith:true,dark:false,shop:{}};
+let state=Object.assign({},defaultState,JSON.parse(localStorage.getItem("caminhoLeve")||"{}"));
+function save(){localStorage.setItem("caminhoLeve",JSON.stringify(state))}
+function dayIndex(){const a=new Date(state.start+"T00:00:00"),b=new Date();const d=Math.floor((b-a)/86400000);return Math.max(0,Math.min(29,d))}
+function key(d,m){return d+"-"+m} function doneCount(d){return [0,1,2,3].filter(m=>state.checks[key(d,m)]).length}
+function show(page){["hoje","cardapio","progresso","receitas","mais"].forEach(p=>document.getElementById("page-"+p).classList.toggle("hide",p!==page));document.querySelectorAll("[data-page]").forEach(b=>b.classList.toggle("active",b.dataset.page===page)); if(page==="hoje")renderHoje(); if(page==="cardapio")renderCardapio(); if(page==="progresso")renderProgresso(); if(page==="receitas")renderReceitas(); if(page==="mais")renderMais()}
+const navs=[["hoje","Hoje"],["cardapio","Cardápio"],["progresso","Progresso"],["receitas","Receitas"],["mais","Mais"]];
+document.getElementById("nav").innerHTML=navs.map(x=>'<button data-page="'+x[0]+'">'+x[1]+'</button>').join("");
+document.getElementById("bottom").innerHTML=navs.map(x=>'<button data-page="'+x[0]+'">'+x[1]+'</button>').join("");
+document.querySelectorAll("[data-page]").forEach(b=>b.onclick=()=>show(b.dataset.page));
+function renderHoje(){const d=dayIndex(),n=doneCount(d),pct=Math.round(n/4*100);document.getElementById("page-hoje").innerHTML=
+'<div class="top"><div><h1 class="title">Um dia de cada vez 🌿</h1><div class="muted">Dia '+(d+1)+' de 30</div></div><button class="btn ghost" onclick="toggleDark()">☾</button></div>'+
+'<div class="card hero" style="margin-top:16px"><h2 style="margin-top:0">Progresso de hoje: '+pct+'%</h2><div class="progress"><div style="width:'+pct+'%"></div></div><p class="quote">'+(state.faith?faith[d]:"Consistência vale mais que perfeição.")+'</p></div>'+
+'<div class="grid g2" style="margin-top:16px"><div class="card"><h2>Refeições</h2>'+menu[d].map((x,i)=>'<label class="meal"><input type="checkbox" '+(state.checks[key(d,i)]?"checked":"")+' onchange="toggleMeal('+d+','+i+',this.checked)"><span><strong>'+mealNames[i]+'</strong><small>'+x+'</small></span></label>').join("")+
+'<label class="meal"><input type="checkbox" '+(state.water[d]?"checked":"")+' onchange="state.water['+d+']=this.checked;save()"><span><strong>Água / hidratação</strong><small>Marque quando lembrar de se hidratar ao longo do dia.</small></span></label></div>'+
+'<div class="card"><h2>Como me senti hoje?</h2><div class="mood">'+["Muito bem","Bem","Sensível","Desconfortável"].map(x=>'<button class="btn ghost" onclick="setMood('+d+',\''+x+'\')">'+x+'</button>').join("")+'</div><textarea id="note" rows="4" style="width:100%;margin-top:12px;border-radius:14px;padding:10px;border:1px solid #ccd8d1" placeholder="Observação opcional">'+(state.notes[d]||"")+'</textarea><button class="btn" style="margin-top:10px" onclick="saveNote('+d+')">Salvar observação</button><p class="muted">'+(state.mood[d]?("Registro: "+state.mood[d]):"")+'</p></div></div>'+
+(n===4?'<div class="card" style="margin-top:16px;border:2px solid var(--gold)"><h2>✨ Dia concluído!</h2><p>Você cuidou de si hoje. Continue firme: um passo por vez, com gratidão e constância.</p></div>':"")+
+'<div class="notice" style="margin-top:16px">Este cardápio é apoio alimentar e não substitui acompanhamento médico. Se algum alimento piorar seus sintomas, suspenda e converse com seu profissional de saúde.</div>';
+}
+function toggleMeal(d,m,v){state.checks[key(d,m)]=v;save();renderHoje()}function setMood(d,v){state.mood[d]=v;save();renderHoje()}function saveNote(d){state.notes[d]=document.getElementById("note").value;save()}
+function renderCardapio(){document.getElementById("page-cardapio").innerHTML='<h1 class="title">Cardápio de 30 dias</h1><p class="muted">Para 2 pessoas • refeições simples e variadas</p><div class="grid g2" style="margin-top:16px">'+menu.map((day,d)=>'<div class="card daycard '+(d===dayIndex()?"today":"")+'"><div class="pill">Dia '+(d+1)+'</div>'+day.map((x,i)=>'<label class="meal"><input type="checkbox" '+(state.checks[key(d,i)]?"checked":"")+' onchange="state.checks[\''+key(d,i)+'\']=this.checked;save()"><span><strong>'+mealNames[i]+'</strong><small>'+x+'</small></span></label>').join("")+'</div>').join("")+'</div>'}
+function renderProgresso(){let total=0;for(let d=0;d<30;d++)total+=doneCount(d);const pct=Math.round(total/120*100),full=[...Array(30)].map((_,d)=>doneCount(d)===4).filter(Boolean).length;document.getElementById("page-progresso").innerHTML='<h1 class="title">Progresso</h1><div class="grid g3" style="margin-top:16px"><div class="card"><h2>'+pct+'%</h2><p class="muted">do plano concluído</p></div><div class="card"><h2>'+full+'</h2><p class="muted">dias completos</p></div><div class="card"><h2>'+total+'</h2><p class="muted">refeições marcadas</p></div></div><div class="card" style="margin-top:16px"><h2>Calendário</h2><div class="calendar">'+[...Array(30)].map((_,d)=>{let c=doneCount(d);return '<div class="d '+(c===4?"done":c>0?"partial":"")+'">'+(d+1)+'</div>'}).join("")+'</div><p class="muted">Verde: completo • dourado: parcial • cinza: ainda não iniciado</p></div><div class="card" style="margin-top:16px"><h2>Conquistas</h2><p>'+(full>=1?"✅ Primeiro dia completo":"⬜ Primeiro dia completo")+'</p><p>'+(full>=3?"✅ 3 dias firmes":"⬜ 3 dias firmes")+'</p><p>'+(full>=7?"✅ 7 dias firmes":"⬜ 7 dias firmes")+'</p><p>'+(full>=15?"✅ Metade do caminho":"⬜ Metade do caminho")+'</p><p>'+(full>=21?"✅ 21 dias":"⬜ 21 dias")+'</p><p>'+(full>=30?"✅ Plano concluído":"⬜ Plano concluído")+'</p><p class="quote">Hoje não define o mês inteiro. Recomeçar também é progresso.</p></div>'}
+function renderReceitas(){document.getElementById("page-receitas").innerHTML='<h1 class="title">Receitas</h1><p class="muted">Todas pensadas para 2 pessoas e com preparo simples.</p><div class="recipes" style="margin-top:16px">'+recipeData.map((r,i)=>'<article class="card recipe"><div class="pill">'+(i+1)+'</div><h3>'+r[0]+'</h3><details><summary>Ver ingredientes e preparo</summary><p><strong>Ingredientes:</strong> '+r[1]+'</p><p><strong>Modo de preparo:</strong> '+r[2]+'</p><p class="muted">Dica: use pouco óleo, pouco sal e temperos suaves; ajuste qualquer alimento conforme sua tolerância.</p></details></article>').join("")+'</div>'}
+function renderMais(){document.getElementById("page-mais").innerHTML='<h1 class="title">Mais</h1><div class="grid g2" style="margin-top:16px"><div class="card"><h2>Lista de compras</h2>'+shopping.map((x,i)=>'<label class="shoprow"><input type="checkbox" '+(state.shop[i]?"checked":"")+' onchange="state.shop['+i+']=this.checked;save()"><span><strong>'+x[0]+'</strong> — '+x[1]+'</span></label>').join("")+'</div><div><div class="card"><h2>Dicas para manter a rotina</h2><ul class="list">'+tips.map(x=>'<li style="margin:8px 0">'+x+'</li>').join("")+'</ul></div><div class="card" style="margin-top:16px"><h2>Configurações</h2><label>Data de início<br><input type="date" value="'+state.start+'" onchange="state.start=this.value;save();renderHoje()" style="padding:10px;border-radius:12px;border:1px solid #ccd8d1;margin-top:6px"></label><p><label><input type="checkbox" '+(state.faith?"checked":"")+' onchange="state.faith=this.checked;save()"> Mensagens de fé</label></p><p><label><input type="checkbox" '+(state.dark?"checked":"")+' onchange="state.dark=this.checked;save();applyDark()"> Modo escuro</label></p><button class="btn ghost" onclick="exportData()">Exportar progresso (JSON)</button><p class="muted">Os dados ficam salvos apenas neste dispositivo e navegador.</p></div></div></div>'}
+function exportData(){const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(state,null,2)],{type:"application/json"}));a.download="caminho-leve-progresso.json";a.click()}
+function toggleDark(){state.dark=!state.dark;save();applyDark();renderHoje()}function applyDark(){document.body.classList.toggle("dark",!!state.dark)}applyDark();show("hoje");
+</script>
+</body></html>
