@@ -361,8 +361,15 @@ function renderUser(){
   document.querySelector('#subtitle').textContent=page==='dashboard'?'Centro de Operações • visão geral':'Gestão AMETEC';
   ({dashboard,pendencias,clientes,servicos,agenda,equipamentos,materiais,colaboradores,financeiro,relatorios}[page]||dashboard)()
 }
+function serviceValues(s){
+  const add=+s.valor_adicional||0;
+  const service=(+s.valor_servico||0)+(s.tipo_valor_adicional==='Serviço'?add:0);
+  const material=(+s.valor_material||0)+(s.tipo_valor_adicional==='Material'?add:0);
+  return {service,material,additional:add,total:service+material};
+}
 function paySummary(s){
-  const total=(+s.valor_servico||0)+(+s.valor_material||0)+(+s.valor_adicional||0);
+  const values=serviceValues(s);
+  const total=values.total;
   const pays=data.pagamentos.filter(p=>p.servico_id===s.id);
   const received=pays.reduce((a,p)=>a+(+p.valor||0),0);
   const balance=Math.max(total-received,0);
@@ -409,7 +416,7 @@ function pendingCard(x){
           ${['Não iniciado','Em elaboração','Enviado','Aguardando resposta','Aprovado','Recusado','Expirado'].map(v=>`<option ${v===(x.orcamento_status||'Não iniciado')?'selected':''}>${v}</option>`).join('')}
         </select>
       </div>
-      ${(+x.valor_adicional||0)>0?`<div class="pending-line"><span>${esc(x.descricao_valor_adicional||'Valor adicional')}</span><b>+${money(x.valor_adicional)}</b></div>`:''}
+      ${(+x.valor_adicional||0)>0?`<div class="pending-line"><span>${esc(x.descricao_valor_adicional||'Valor adicional')} • ${esc(x.tipo_valor_adicional||'Serviço')}</span><b>+${money(x.valor_adicional)}</b></div>`:''}
       <div class="pending-fin">
         <div><span>Total</span><b>${money(p.total)}</b></div>
         <div><span>Recebido</span><b>${money(p.received)}</b></div>
@@ -789,7 +796,7 @@ function editService(id){
     responsible:{title:'👤 Responsável',html:`<label class="field full"><span>Responsável</span><input name="responsavel" type="text" value="${esc(x.responsavel||'')}" placeholder="Ex.: Técnico responsável"></label>`},
     progress:{title:'📊 Progresso',html:`<label class="field full"><span>Progresso (%)</span><input name="progresso" type="number" min="0" max="100" step="5" value="${+x.progresso||0}"></label>`},
     values:{title:'💰 Valores',html:`<label class="field"><span>Valor do serviço</span><input name="valor_servico" type="number" min="0" step="0.01" value="${+x.valor_servico||0}"></label><label class="field"><span>Valor de material</span><input name="valor_material" type="number" min="0" step="0.01" value="${+x.valor_material||0}"></label>`},
-    additional_value:{title:'➕ Valor adicional',html:`<label class="field full"><span>Descrição do valor adicional</span><input name="descricao_valor_adicional" type="text" value="${esc(x.descricao_valor_adicional||'')}" placeholder="Ex.: Material extra, deslocamento, ajuste adicional..."></label><label class="field full"><span>Valor adicional</span><input name="valor_adicional" type="number" min="0" step="0.01" value="${+x.valor_adicional||0}"></label>`},
+    additional_value:{title:'➕ Valor adicional',html:`<label class="field full"><span>Descrição do valor adicional</span><input name="descricao_valor_adicional" type="text" value="${esc(x.descricao_valor_adicional||'')}" placeholder="Ex.: Material extra, deslocamento, ajuste adicional..."></label><label class="field"><span>Valor adicional</span><input name="valor_adicional" type="number" min="0" step="0.01" value="${+x.valor_adicional||0}"></label><label class="field"><span>Somar em</span><select name="tipo_valor_adicional"><option value="Serviço" ${(x.tipo_valor_adicional||'Serviço')==='Serviço'?'selected':''}>Serviço</option><option value="Material" ${x.tipo_valor_adicional==='Material'?'selected':''}>Material</option></select></label>`},
     finance:{title:'💳 Financeiro',html:`<label class="field full"><span>Vencimento financeiro</span><input name="vencimento_pagamento" type="date" value="${esc(x.vencimento_pagamento||'')}"></label>`},
     next_action:{title:'✅ Próxima ação',html:`<label class="field"><span>Próxima ação</span><input name="proxima_acao" type="text" value="${esc(x.proxima_acao||'')}"></label><label class="field"><span>Prazo</span><input name="proxima_acao_data" type="date" value="${esc(x.proxima_acao_data||'')}"></label>`},
     description:{title:'📝 Descrição',html:`<label class="field full"><span>Descrição</span><textarea name="descricao" rows="3">${esc(x.descricao||'')}</textarea></label>`}
@@ -812,6 +819,7 @@ function editService(id){
   if(has('responsavel'))addBlock('responsible');
   if((+x.progresso||0)>0)addBlock('progress');
   if((+x.valor_servico||0)>0||(+x.valor_material||0)>0)addBlock('values');
+  if((+x.valor_adicional||0)>0||has('descricao_valor_adicional','tipo_valor_adicional'))addBlock('additional_value');
   if((+x.valor_adicional||0)>0||has('descricao_valor_adicional'))addBlock('additional_value');
   if(has('vencimento_pagamento'))addBlock('finance');
   if(has('proxima_acao','proxima_acao_data'))addBlock('next_action');
@@ -906,7 +914,7 @@ function newService(){
     },
     additional_value:{
       title:'➕ Valor adicional',
-      html:`<label class="field full"><span>Descrição do valor adicional</span><input name="descricao_valor_adicional" type="text" placeholder="Ex.: Material extra, deslocamento, ajuste adicional..."></label><label class="field full"><span>Valor adicional</span><input name="valor_adicional" type="number" min="0" step="0.01" placeholder="0,00"></label>`
+      html:`<label class="field full"><span>Descrição do valor adicional</span><input name="descricao_valor_adicional" type="text" placeholder="Ex.: Material extra, deslocamento, ajuste adicional..."></label><label class="field"><span>Valor adicional</span><input name="valor_adicional" type="number" min="0" step="0.01" placeholder="0,00"></label><label class="field"><span>Somar em</span><select name="tipo_valor_adicional"><option value="Serviço">Serviço</option><option value="Material">Material</option></select></label>`
     },
     finance:{
       title:'💳 Financeiro',
@@ -998,7 +1006,7 @@ function colaboradores(){
   document.querySelector('#add').onclick=()=>openForm('Novo colaborador',[['nome','Nome','text'],['funcao','Função','text'],['telefone','Telefone','text'],['tipo_pagamento','Pagamento','select',['diária','hora','mensal','valor fechado']],['valor_base','Valor base','number'],['ativo','Ativo?','select',[{value:'true',label:'Sim'},{value:'false',label:'Não'}]]],async v=>{v.valor_base=+v.valor_base||0;v.ativo=v.ativo==='true';const {error}=await supabase.from('ametec_colaboradores').insert(v);if(error)throw error})
 }
 function financeiro(){
-  const total=data.servicos.reduce((s,x)=>s+(+x.valor_servico||0)+(+x.valor_material||0)+(+x.valor_adicional||0),0);
+  const total=data.servicos.reduce((s,x)=>s+serviceValues(x).total,0);
   const received=data.pagamentos.reduce((s,x)=>s+(+x.valor||0),0);
   const balance=Math.max(total-received,0);
   const overdue=data.servicos.reduce((s,x)=>{const p=paySummary(x);return s+(p.state==='Vencido'?p.balance:0)},0);
@@ -1006,7 +1014,7 @@ function financeiro(){
     <section class="hero"><div class="hero-grid"><div><div class="eyebrow">CONTROLE FINANCEIRO</div><h2>Recebimentos AMETEC</h2><p>Acompanhe o que foi pago, quando foi pago e o que ainda falta receber.</p></div></div></section>
     <div class="metrics">${card('Faturado',money(total))}${card('Recebido',money(received))}${card('A receber',money(balance))}${card('Vencido',money(overdue))}</div>
     <section class="panel"><div class="panel-head"><div><h3>Serviços e recebimentos</h3><small>Histórico financeiro por atendimento</small></div></div><div class="cards">
-      ${data.servicos.map(x=>{const c=data.clientes.find(a=>a.id===x.cliente_id),p=paySummary(x),pays=data.pagamentos.filter(a=>a.servico_id===x.id).sort((a,b)=>(b.data_pagamento||'').localeCompare(a.data_pagamento||''));const pc=p.state==='Pago'?'done':p.state==='Vencido'?'late':p.state==='Parcial'?'run':'';return `<article class="entity"><div class="entity-head"><div><b>${esc(x.titulo)}</b><small>${esc(c?.nome_fantasia||'Sem cliente')}</small></div><span class="status ${pc}">${p.state}</span></div><div class="entity-body"><div class="entity-grid"><div><span>Total</span><b>${money(p.total)}</b></div><div><span>Recebido</span><b>${money(p.received)}</b></div><div><span>Saldo</span><b>${money(p.balance)}</b></div></div>${(+x.valor_adicional||0)>0?`<div class="pending-line"><span>${esc(x.descricao_valor_adicional||'Valor adicional')}</span><b>+${money(x.valor_adicional)}</b></div>`:''}${pays.length?`<div style="display:grid;gap:5px"><small style="font-weight:800;color:#5f6f80">PAGAMENTOS</small>${pays.slice(0,4).map(pg=>`<div class="pending-line"><span>${date(pg.data_pagamento)} • ${esc(pg.forma_pagamento||'Não informado')}</span><b>${money(pg.valor)}</b></div>`).join('')}</div>`:'<small style="color:#82909f">Nenhum pagamento registrado.</small>'}<div class="actions"><button class="btn primary" data-fin-pay="${x.id}">+ Pagamento</button></div></div></article>`}).join('')||'<div class="empty">Sem serviços financeiros.</div>'}
+      ${data.servicos.map(x=>{const c=data.clientes.find(a=>a.id===x.cliente_id),p=paySummary(x),pays=data.pagamentos.filter(a=>a.servico_id===x.id).sort((a,b)=>(b.data_pagamento||'').localeCompare(a.data_pagamento||''));const pc=p.state==='Pago'?'done':p.state==='Vencido'?'late':p.state==='Parcial'?'run':'';const vals=serviceValues(x);return `<article class="entity"><div class="entity-head"><div><b>${esc(x.titulo)}</b><small>${esc(c?.nome_fantasia||'Sem cliente')}</small></div><span class="status ${pc}">${p.state}</span></div><div class="entity-body"><div class="entity-grid"><div><span>Serviço</span><b>${money(vals.service)}</b></div><div><span>Material</span><b>${money(vals.material)}</b></div><div><span>Total</span><b>${money(p.total)}</b></div></div><div class="entity-grid"><div><span>Recebido</span><b>${money(p.received)}</b></div><div><span>Saldo</span><b>${money(p.balance)}</b></div><div><span>Adicional</span><b>${vals.additional?money(vals.additional):'—'}</b></div></div>${(+x.valor_adicional||0)>0?`<div class="pending-line"><span>${esc(x.descricao_valor_adicional||'Valor adicional')}</span><b>+${money(x.valor_adicional)}</b></div>`:''}${pays.length?`<div style="display:grid;gap:5px"><small style="font-weight:800;color:#5f6f80">PAGAMENTOS</small>${pays.slice(0,4).map(pg=>`<div class="pending-line"><span>${date(pg.data_pagamento)} • ${esc(pg.forma_pagamento||'Não informado')}</span><b>${money(pg.valor)}</b></div>`).join('')}</div>`:'<small style="color:#82909f">Nenhum pagamento registrado.</small>'}<div class="actions"><button class="btn primary" data-fin-pay="${x.id}">+ Pagamento</button></div></div></article>`}).join('')||'<div class="empty">Sem serviços financeiros.</div>'}
     </div></section>`;
   document.querySelectorAll('[data-fin-pay]').forEach(b=>b.onclick=()=>{const x=data.servicos.find(s=>s.id===b.dataset.finPay);openForm('Registrar pagamento — '+x.titulo,[['data_pagamento','Data do pagamento','date'],['valor','Valor recebido','number'],['forma_pagamento','Forma de pagamento','select',['PIX','Dinheiro','Cartão','Transferência','Boleto','Outro']],['observacoes','Observações','textarea']],async v=>{v.valor=+v.valor||0;if(v.valor<=0)throw new Error('Informe um valor maior que zero.');v.servico_id=x.id;const {error}=await supabase.from('ametec_pagamentos').insert(v);if(error)throw error})})
 }
