@@ -29,7 +29,7 @@ const menu=[
 ["Tapioca + ovo mexido + pera","Arroz, carne de panela + batata e cenoura","Iogurte natural + banana, se tolerado","Macaxeira + frango"],
 ["Pão + frango desfiado + mamão","Arroz, feijão, frango assado sem pele + cenoura e abobrinha","Melão","Cuscuz + ovo cozido + batata cozida"],
 ["Cuscuz + ovo mexido + mamão","Arroz, feijão, carne moída + cenoura e abobrinha","Banana","Purê de batata + frango desfiado"],
-["Tapioca com queijo branco + banana","Arroz, peixe grelhado + batata-doce + abobrinha","Maçã cozida","Sopa de legumes com frango"],
+["Tapioca com queijo branco + banana","Arroz, peixe grelhado + batata-doce + abobrinha","Milho cozido","Sopa de legumes com frango"],
 ["Pão + ovo mexido + melancia","Arroz, feijão, frango cozido + cenoura e vagem","Mamão com aveia","Cuscuz + carne moída"],
 ["Mingau de aveia + mamão","Arroz, carne cozida + batata e cenoura","Pera","Macaxeira + ovo mexido"],
 ["Cuscuz + frango desfiado","Arroz, feijão, peixe assado + cenoura e abobrinha","Banana","Canja de frango"],
@@ -39,7 +39,7 @@ const menu=[
 ["Tapioca + frango desfiado + melão","Arroz, feijão, peixe + batata e vagem","Banana com aveia","Macaxeira + ovo mexido"],
 ["Pão + ovo cozido + mamão","Arroz, carne de panela + cenoura e batata","Pera","Cuscuz + frango desfiado"],
 ["Mingau de aveia + banana","Arroz, feijão, frango grelhado + abobrinha e cenoura","Melancia","Purê de batata + peixe"],
-["Cuscuz + queijo branco + melão","Arroz, carne moída + batata e abobrinha","Mamão","Sopa de frango com macarrão e cenoura"],
+["Cuscuz + queijo branco + melão","Arroz, carne moída + batata e abobrinha","Açaí com banana e mamão, pouco açúcar","Sopa de frango com macarrão e cenoura"],
 ["Tapioca + ovo mexido + banana","Arroz, feijão, peixe cozido + batata e cenoura","Maçã","Macaxeira + carne desfiada"],
 ["Pão + frango desfiado + mamão","Arroz, frango assado + cenoura e vagem","Melão","Cuscuz + ovo mexido"],
 ["Cuscuz + ovo mexido + banana","Arroz, feijão, carne de panela + batata e cenoura","Mamão com aveia","Canja de frango"],
@@ -48,7 +48,7 @@ const menu=[
 ["Mingau de aveia + banana","Arroz, carne moída + batata e abobrinha","Melancia","Sopa de legumes com frango"],
 ["Cuscuz + frango desfiado + mamão","Arroz, feijão, peixe + abobrinha e cenoura","Maçã","Batata-doce + ovo mexido"],
 ["Tapioca + ovo mexido + pera","Arroz, frango grelhado + purê de batata + cenoura","Banana com aveia","Cuscuz + carne moída"],
-["Pão + queijo branco + mamão","Arroz, feijão, carne cozida + cenoura e vagem","Melão","Macaxeira + frango desfiado"],
+["Pão + queijo branco + mamão","Arroz, feijão, carne cozida + cenoura e vagem","Milho cozido","Macaxeira + frango desfiado"],
 ["Cuscuz + ovo mexido + banana","Arroz, peixe assado + batata + abobrinha","Mamão","Canja de galinha"],
 ["Tapioca + frango desfiado + melão","Arroz, feijão, frango assado + batata e cenoura","Banana com aveia","Cuscuz + ovo cozido + cenoura"]
 ];
@@ -123,10 +123,12 @@ const recipeData=[
 ["Banana com aveia","2 bananas, 2 cs de aveia","Amasse ou fatie e polvilhe aveia."],
 ["Maçã cozida","2 maçãs, água","Cozinhe em pouca água até amaciar."],
 ["Vitamina suave de banana","2 bananas, 300 ml de leite se tolerado","Bata e consuma em pequena porção; use água se preferir."],
+["Milho cozido","2 espigas médias de milho, água e pouco sal","Cozinhe em água até os grãos ficarem macios. Sirva morno, sem manteiga em excesso."],
+["Açaí com frutas","200 a 250 g de polpa de açaí pouco adoçada, 1 banana, 1/2 mamão","Bata ou sirva a polpa de açaí com banana e mamão. Evite leite condensado, excesso de xarope e coberturas gordurosas."],
 ["Porção de fruta prática","2 porções de banana, mamão, melão, melancia, maçã ou pera","Higienize, corte e sirva sem excesso de açúcar."]
 ];
 const shopping=[
-["Arroz","5 kg"],["Feijão","3 kg"],["Flocão de milho","4 kg"],["Goma de tapioca","2 kg"],["Aveia","1,5 kg"],["Macarrão","1 kg"],["Pão","comprar semanalmente"],["Macaxeira","5 kg"],["Batata inglesa","7 kg"],["Batata-doce","3 kg"],["Frango","7 kg"],["Peixe","4 kg"],["Carne para panela","2 kg"],["Carne moída magra","2 kg"],["Ovos","60 unidades"],["Cenoura","5 kg"],["Abobrinha","3 kg"],["Vagem","2 kg"],["Beterraba","1,5 kg opcional"],["Cebola","2 kg"],["Alho","500 g"],["Cheiro-verde","4–6 maços"],["Banana","6–7 dúzias"],["Mamão","8–10 unidades"],["Melão","4 unidades"],["Melancia","2 médias"],["Maçã","3 kg"],["Pera","2 kg"],["Leite","8–12 L, opcional"],["Iogurte natural","8–12 unidades, opcional"],["Queijo branco/coalho","1–1,5 kg"],["Óleo/azeite","900 ml"],["Sal","1 kg"]
+["Arroz","5 kg"],["Feijão","3 kg"],["Flocão de milho","4 kg"],["Goma de tapioca","2 kg"],["Aveia","1,5 kg"],["Macarrão","1 kg"],["Pão","comprar semanalmente"],["Macaxeira","5 kg"],["Batata inglesa","7 kg"],["Batata-doce","3 kg"],["Frango","7 kg"],["Peixe","4 kg"],["Carne para panela","2 kg"],["Carne moída magra","2 kg"],["Ovos","60 unidades"],["Cenoura","5 kg"],["Abobrinha","3 kg"],["Vagem","2 kg"],["Beterraba","1,5 kg opcional"],["Cebola","2 kg"],["Alho","500 g"],["Cheiro-verde","4–6 maços"],["Banana","6–7 dúzias"],["Mamão","8–10 unidades"],["Melão","4 unidades"],["Melancia","2 médias"],["Maçã","3 kg"],["Pera","2 kg"],["Leite","8–12 L, opcional"],["Iogurte natural","8–12 unidades, opcional"],["Queijo branco/coalho","1–1,5 kg"],["Óleo/azeite","900 ml"],["Sal","1 kg"],["Milho verde em espiga","8 a 10 unidades"],["Polpa de açaí pouco adoçada","1 a 1,5 kg"]
 ];
 const tips=["Faça porções menores.","Coma devagar e mastigue bem.","Evite longos períodos sem comer se isso piorar seus sintomas.","Prefira preparações cozidas, assadas ou grelhadas.","Evite deitar logo após as refeições.","Prepare alimentos duas vezes por semana e congele porções.","Tenha cuscuz, ovos, frango desfiado e frutas como opções rápidas.","Fruta inteira costuma ser uma escolha mais prática que suco.","Observe quais alimentos aumentam o desconforto e registre no app.","Não interrompa antibióticos ou medicamentos prescritos sem orientação médica.","Procure atendimento diante de vômitos persistentes, sangue no vômito, fezes muito escuras sem explicação, perda de peso importante, dificuldade para engolir ou dor intensa."];
 const defaultState={start:new Date().toISOString().slice(0,10),checks:{},water:{},mood:{},notes:{},faith:true,dark:false,shop:{}};
