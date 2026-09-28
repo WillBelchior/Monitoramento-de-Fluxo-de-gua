@@ -302,6 +302,14 @@ let data={perfil:null,clientes:[],clienteContatos:[],servicos:[],equipamentos:[]
 const pages=[['dashboard','Centro','⚡'],['pendencias','Pendências','📋'],['clientes','Clientes','🏭'],['servicos','Serviços','🔧'],['agenda','Agenda','📅'],['equipamentos','Equipamentos','⚙️'],['materiais','Materiais','📦'],['colaboradores','Colaboradores','👷'],['financeiro','Financeiro','💰'],['relatorios','Relatórios','📊']];
 const status=s=>{const c=['Concluído','Operacional','Ativo'].includes(s)?'done':['Em execução','Em manutenção','Planejado'].includes(s)?'run':['Emergencial','Alta'].includes(s)?'high':'';return '<span class="status '+c+'">'+esc(s||'—')+'</span>'};
 const card=(l,v,s='')=>'<div class="metric"><span>'+l+'</span><b>'+v+'</b><small>'+s+'</small></div>';
+function priorityRank(p){return ({'Emergencial':0,'Alta':1,'Média':2,'Baixa':3})[p]??9}
+function sortByPriority(rows){
+  return [...rows].sort((a,b)=>{
+    const pa=priorityRank(a.prioridade),pb=priorityRank(b.prioridade);
+    if(pa!==pb)return pa-pb;
+    return String(b.created_at||'').localeCompare(String(a.created_at||''));
+  });
+}
 function toast(msg,err=false){let n=document.querySelector('#toast');if(!n){n=document.createElement('div');n.id='toast';Object.assign(n.style,{position:'fixed',right:'14px',bottom:'78px',zIndex:120,padding:'11px 13px',borderRadius:'10px',font:'700 12px system-ui',boxShadow:'0 10px 30px #0002'});document.body.appendChild(n)}n.textContent=msg;n.style.background=err?'#ffe9e9':'#e9f8ef';n.style.color=err?'#a33333':'#216c49';n.style.display='block';clearTimeout(n._t);n._t=setTimeout(()=>n.style.display='none',3000)}
 function authScreen(){
   document.querySelector('.shell').style.display='none';
@@ -499,10 +507,10 @@ function pendencias(){
   }
   const draw=(query='')=>{
     const q=query.trim().toLowerCase();
-    const rows=data.servicos.filter(x=>{
+    const rows=sortByPriority(data.servicos.filter(x=>{
       const c=data.clientes.find(a=>a.id===x.cliente_id);
       return !q||[x.titulo,x.tipo,x.responsavel,x.orcamento_status,x.proxima_acao,c?.nome_fantasia].filter(Boolean).join(' ').toLowerCase().includes(q);
-    });
+    }));
     document.querySelector('#pendingBoard').innerHTML=`<div class="pending-board">${stages.map(st=>`<div class="pending-col" data-stage="${st}"><h4><span>${st}</span><span data-stage-count="${st}">${rows.filter(x=>(x.atendimento_status||'Aguardando aprovação')===st).length}</span></h4><div data-stage-list="${st}">${rows.filter(x=>(x.atendimento_status||'Aguardando aprovação')===st).map(pendingCard).join('')||'<div class="empty">Sem itens</div>'}</div></div>`).join('')}</div>`;
     bindPending();
   };
@@ -626,7 +634,7 @@ function pendencias(){
   draw();
   document.querySelectorAll('[data-finance-filter]').forEach(b=>b.onclick=()=>{
     const mode=b.dataset.financeFilter;
-    const rows=data.servicos.filter(s=>mode==='overdue'?closureState(s).key==='overdue':closureState(s).key==='payment_pending');
+    const rows=sortByPriority(data.servicos.filter(s=>mode==='overdue'?closureState(s).key==='overdue':closureState(s).key==='payment_pending'));
     document.querySelector('#pendingBoard').innerHTML=`<div class="pending-board">${stages.map(st=>`<div class="pending-col" data-stage="${st}"><h4><span>${st}</span><span data-stage-count="${st}">${rows.filter(x=>x.atendimento_status===st).length}</span></h4><div data-stage-list="${st}">${rows.filter(x=>x.atendimento_status===st).map(pendingCard).join('')||'<div class="empty">Sem itens</div>'}</div></div>`).join('')}</div>`;
     bindPending();
   });
@@ -751,7 +759,7 @@ function contactForm(clienteId,contactId=null){
 window.openClientServices=id=>{page='servicos';render();setTimeout(()=>{const s=document.querySelector('#search');if(s){const c=data.clientes.find(x=>x.id===id);s.value=c?.nome_fantasia||'';s.dispatchEvent(new Event('input'))}},0)}
 function servicos(){
   document.querySelector('#app').innerHTML=`<section class="hero"><div class="hero-grid"><div><div class="eyebrow">OPERAÇÕES</div><h2>Serviços e chamados</h2><p>Emergências, preventivas, contratos, instalações e automação.</p></div><button class="btn primary" id="add">+ Serviço</button></div></section><section class="panel"><div class="toolbar"><input id="search" placeholder="🔎 Buscar serviço, cliente, responsável ou tipo"><select id="filter"><option>Todos</option><option>Novo</option><option>Planejado</option><option>Em execução</option><option>Pausado</option><option>Concluído</option></select></div><div id="list" class="cards"></div></section>`;
-  const draw=()=>{const q=document.querySelector('#search').value.toLowerCase(),f=document.querySelector('#filter').value;const rows=data.servicos.filter(x=>{const c=data.clientes.find(a=>a.id===x.cliente_id);return(!q||[x.titulo,x.tipo,x.responsavel,c?.nome_fantasia].join(' ').toLowerCase().includes(q))&&(f==='Todos'||x.status===f)});document.querySelector('#list').innerHTML=rows.map(serviceCard).join('')||'<div class="empty">Nenhum serviço encontrado.</div>';bindServiceDeletes()};
+  const draw=()=>{const q=document.querySelector('#search').value.toLowerCase(),f=document.querySelector('#filter').value;const rows=sortByPriority(data.servicos.filter(x=>{const c=data.clientes.find(a=>a.id===x.cliente_id);return(!q||[x.titulo,x.tipo,x.responsavel,c?.nome_fantasia].join(' ').toLowerCase().includes(q))&&(f==='Todos'||x.status===f)}));document.querySelector('#list').innerHTML=rows.map(serviceCard).join('')||'<div class="empty">Nenhum serviço encontrado.</div>';bindServiceDeletes()};
   const bindServiceDeletes=()=>{
     document.querySelectorAll('[data-edit-service-list]').forEach(b=>b.onclick=()=>editService(b.dataset.editServiceList));
     document.querySelectorAll('[data-duplicate-service-list]').forEach(b=>b.onclick=()=>duplicateService(b.dataset.duplicateServiceList));
@@ -1037,7 +1045,11 @@ function newService(){
   modal.classList.add('open');
 }
 function agenda(){
-  const rows=[...data.servicos].sort((a,b)=>(a.data_agendada||'9999').localeCompare(b.data_agendada||'9999'));
+  const rows=[...data.servicos].sort((a,b)=>{
+    const da=a.data_agendada||'9999',db=b.data_agendada||'9999';
+    if(da!==db)return da.localeCompare(db);
+    return priorityRank(a.prioridade)-priorityRank(b.prioridade);
+  });
   document.querySelector('#app').innerHTML=`<section class="hero"><div class="hero-grid"><div><div class="eyebrow">PLANEJAMENTO</div><h2>Agenda operacional</h2><p>Visualize prioridades, datas e evolução dos atendimentos.</p></div><button class="btn primary" id="add">+ Serviço</button></div></section><section class="panel"><div class="cards">${rows.map(x=>{const c=data.clientes.find(a=>a.id===x.cliente_id);return `<article class="entity"><div class="entity-head"><div><b>${date(x.data_agendada)} • ${esc(x.titulo)}</b><small>${esc(c?.nome_fantasia||'Sem cliente')} • ${esc(x.responsavel||'Sem responsável')}</small></div>${status(x.prioridade)}</div><div class="entity-body"><div><div style="display:flex;justify-content:space-between;font-size:9px;color:#748397;margin-bottom:5px"><span>EVOLUÇÃO</span><b data-label="${x.id}">${x.progresso||0}%</b></div><input type="range" min="0" max="100" step="5" value="${x.progresso||0}" data-progress="${x.id}" style="width:100%;accent-color:#0075c9"></div><div class="actions"><button class="btn secondary" data-set="${x.id}" data-v="25">25%</button><button class="btn secondary" data-set="${x.id}" data-v="50">50%</button><button class="btn secondary" data-set="${x.id}" data-v="75">75%</button><button class="btn primary" data-set="${x.id}" data-v="100">Concluir</button></div></div></article>`}).join('')||'<div class="empty">Nenhum serviço agendado.</div>'}</div></section>`;
   document.querySelector('#add').onclick=newService;
   const save=async(id,v)=>{const patch={progresso:+v,status:+v===100?'Concluído':(+v>0?'Em execução':'Planejado')};const {error}=await supabase.from('ametec_servicos').update(patch).eq('id',id);if(error)toast(error.message,true);else toast('Evolução atualizada')};
