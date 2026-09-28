@@ -78,7 +78,7 @@ body:before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.28;ba
   }
 @media(max-width:900px){.metrics{grid-template-columns:1fr 1fr}.two{grid-template-columns:1fr}.quick{grid-template-columns:1fr 1fr}.pending-board{grid-template-columns:1fr}}
 @media(max-width:700px){
-.side{transform:translateX(-105%);transition:.2s;width:255px}.side.open{transform:translateX(0)}.main{margin-left:0;max-width:100vw;width:100%;padding-bottom:74px;overflow-x:hidden}.menu{display:inline-block}.top{height:64px;padding:0 9px;gap:8px}.top h1{font-size:14px}.top .badge{display:none}.finance-alert{padding:7px 9px;font-size:11px}.top small{font-size:9px}.content{padding:10px;gap:12px}.hero{padding:14px;border-radius:15px}.hero-grid{align-items:flex-start}.hero h2{font-size:17px}.hero p{font-size:10px}.hero-actions{justify-content:flex-end}.metrics{grid-template-columns:1fr 1fr;gap:7px}.metric{padding:10px}.metric b{font-size:15px}.panel{padding:12px;border-radius:13px}.quick{gap:7px}.quick button{padding:10px;min-height:72px}.entity-grid{grid-template-columns:1fr 1fr}.entity-grid>div:nth-child(2){border-right:0}.entity-grid>div:nth-child(n+3){border-top:1px solid #edf0f3}.kanban{grid-template-columns:repeat(4,82vw);scroll-snap-type:x mandatory}.pending-board{grid-template-columns:1fr;overflow:visible}.pending-col{width:100%}.col{scroll-snap-align:start}.form{grid-template-columns:1fr}.field.full{grid-column:1}.modal-bg{padding:8px;align-items:end}.modal{width:100%;max-height:88vh;border-radius:20px 20px 0 0}.bottom{display:flex;position:fixed;bottom:0;left:0;right:0;height:66px;padding-bottom:env(safe-area-inset-bottom);background:#fffffff2;backdrop-filter:blur(15px);border-top:1px solid var(--line);z-index:40;justify-content:space-around;box-shadow:0 -5px 25px #062c5910}.bottom button{border:0;background:transparent;color:#758496;font-size:9px;min-width:54px;padding:7px 3px}.bottom button.active{color:var(--blue);font-weight:900}
+.side{transform:translateX(-105%);transition:.2s;width:255px}.side.open{transform:translateX(0)}.main{margin-left:0;max-width:100vw;width:100%;padding-bottom:74px;overflow-x:hidden}.menu{display:inline-block}.top{height:64px;padding:0 9px;gap:8px}.top h1{font-size:14px}.top .badge{display:none}.refresh-btn{width:34px;height:34px;font-size:18px}.finance-alert{padding:7px 9px;font-size:11px}.top small{font-size:9px}.content{padding:10px;gap:12px}.hero{padding:14px;border-radius:15px}.hero-grid{align-items:flex-start}.hero h2{font-size:17px}.hero p{font-size:10px}.hero-actions{justify-content:flex-end}.metrics{grid-template-columns:1fr 1fr;gap:7px}.metric{padding:10px}.metric b{font-size:15px}.panel{padding:12px;border-radius:13px}.quick{gap:7px}.quick button{padding:10px;min-height:72px}.entity-grid{grid-template-columns:1fr 1fr}.entity-grid>div:nth-child(2){border-right:0}.entity-grid>div:nth-child(n+3){border-top:1px solid #edf0f3}.kanban{grid-template-columns:repeat(4,82vw);scroll-snap-type:x mandatory}.pending-board{grid-template-columns:1fr;overflow:visible}.pending-col{width:100%}.col{scroll-snap-align:start}.form{grid-template-columns:1fr}.field.full{grid-column:1}.modal-bg{padding:8px;align-items:end}.modal{width:100%;max-height:88vh;border-radius:20px 20px 0 0}.bottom{display:flex;position:fixed;bottom:0;left:0;right:0;height:66px;padding-bottom:env(safe-area-inset-bottom);background:#fffffff2;backdrop-filter:blur(15px);border-top:1px solid var(--line);z-index:40;justify-content:space-around;box-shadow:0 -5px 25px #062c5910}.bottom button{border:0;background:transparent;color:#758496;font-size:9px;min-width:54px;padding:7px 3px}.bottom button.active{color:var(--blue);font-weight:900}
 }
 
 /* ===== AMETEC PREMIUM THEME ===== */
@@ -218,6 +218,7 @@ body:before{background-image:linear-gradient(rgba(0,188,255,.045) 1px,transparen
 .progress{background:#122b3a}.progress i{background:linear-gradient(90deg,#008cd3,#16d5ff,#ffb000)}
 .status{background:#122c3b;color:#b0d1e3}
 .status.run{background:#0b3952;color:#62d8ff}.status.done{background:#113c2e;color:#78e5b1}.status.late{background:#442027;color:#ff9e9e}.status.high{background:#493612;color:#ffd26a}
+.refresh-btn{width:38px;height:38px;border:1px solid #21465b;background:#091923;color:#bfefff;border-radius:10px;display:grid;place-items:center;font-size:20px;font-weight:900;cursor:pointer;transition:.18s}.refresh-btn:hover{background:#0d2533;border-color:#2f6c89}.refresh-btn.spinning{animation:spinRefresh .7s linear infinite}@keyframes spinRefresh{to{transform:rotate(360deg)}}
 .finance-alert{border:1px solid #6b4b12;background:#2b210d;color:#ffd36b;border-radius:999px;padding:9px 12px;font-weight:900;cursor:pointer;display:flex;align-items:center;gap:6px}
 .finance-alert.has-alert{border-color:#a64036;background:#3b1718;color:#ffaaa2;box-shadow:0 0 18px rgba(255,80,70,.12)}
 .fin-alert-banner{display:flex;align-items:center;justify-content:space-between;gap:10px;border-radius:10px;padding:9px 10px;font-size:11px;font-weight:800}
@@ -278,7 +279,7 @@ body:before{background-image:linear-gradient(rgba(0,188,255,.045) 1px,transparen
     <div class="nav" id="nav"></div>
   </aside>
   <main class="main">
-    <header class="top"><button class="menu" id="menu">☰</button><div class="mobile-user" id="mobileUser"><span class="mobile-avatar" id="mobileAvatar">U</span><span><b id="mobileUserName">Usuário</b><small id="mobileUserRole">Função</small></span></div><div class="top-page-copy"><h1 id="title">Centro de Operações</h1><small id="subtitle">Gestão industrial inteligente</small></div><button class="finance-alert" id="financeAlert" title="Pendências financeiras">💰 <span id="financeAlertCount">0</span></button><span class="badge">● SISTEMA ONLINE</span></header>
+    <header class="top"><button class="menu" id="menu">☰</button><div class="mobile-user" id="mobileUser"><span class="mobile-avatar" id="mobileAvatar">U</span><span><b id="mobileUserName">Usuário</b><small id="mobileUserRole">Função</small></span></div><div class="top-page-copy"><h1 id="title">Centro de Operações</h1><small id="subtitle">Gestão industrial inteligente</small></div><button class="refresh-btn" id="refreshPage" title="Atualizar dados" aria-label="Atualizar dados">↻</button><button class="finance-alert" id="financeAlert" title="Pendências financeiras">💰 <span id="financeAlertCount">0</span></button><span class="badge">● SISTEMA ONLINE</span></header>
     <div class="content" id="app"></div>
   </main>
   <nav class="bottom" id="bottom"></nav>
@@ -354,7 +355,15 @@ function initNav(){
   b.innerHTML=mobile.map(([k,l,i])=>'<button data-p="'+k+'">'+i+'<br>'+l+'</button>').join('');
   document.querySelectorAll('[data-p]').forEach(x=>x.onclick=()=>{page=x.dataset.p;document.querySelector('#side').classList.remove('open');render()});
   document.querySelector('#menu').onclick=()=>document.querySelector('#side').classList.toggle('open');
-  document.querySelector('#logout').onclick=()=>supabase.auth.signOut();renderUser()
+  document.querySelector('#logout').onclick=()=>supabase.auth.signOut();
+  const refreshBtn=document.querySelector('#refreshPage');
+  if(refreshBtn)refreshBtn.onclick=async()=>{
+    refreshBtn.classList.add('spinning');
+    refreshBtn.disabled=true;
+    try{await load();toast('Dados atualizados')}catch(e){toast('Não foi possível atualizar.',true)}
+    finally{refreshBtn.classList.remove('spinning');refreshBtn.disabled=false}
+  };
+  renderUser()
 }
 function renderUser(){
     const p=data.perfil||{};
