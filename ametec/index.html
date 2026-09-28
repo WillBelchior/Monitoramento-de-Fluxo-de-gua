@@ -128,6 +128,11 @@ body:before{opacity:.18;background-image:linear-gradient(rgba(24,212,255,.055) 1
 .btn.primary{background:linear-gradient(135deg,#ffb000,#ffd45a);color:#06131d;box-shadow:0 8px 22px rgba(255,176,0,.18)}
 .btn.secondary{background:#102c3d;color:#d8f2ff;border:1px solid #1d4960}
 .btn.ghost{background:rgba(0,174,240,.12);color:#e8faff;border-color:#2d6e8d}.btn.danger{background:#3a1719;color:#ffaaa2;border:1px solid #7d3035}.btn.danger:hover{background:#4a1b1f}
+.icon-btn{width:30px;height:30px;min-width:30px;padding:0!important;display:inline-grid;place-items:center;border-radius:8px;font-size:14px;line-height:1}
+.icon-actions{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.icon-actions .delete-zone{margin-left:auto;padding-left:10px;border-left:1px solid #223a49}
+.icon-btn.danger{background:#2b1214;color:#ff9d97;border:1px solid #6d2a2f}
+@media(max-width:700px){.icon-btn{width:32px;height:32px;min-width:32px}.icon-actions .delete-zone{margin-left:auto}}
 .status{background:#122b3b;color:#a9cadc}
 .status.run{background:#0c3851;color:#67d8ff}.status.done{background:#123c2f;color:#76e3b0}.status.late{background:#432127;color:#ff9f9f}.status.high{background:#4a3512;color:#ffd36b}
 .bar{background:linear-gradient(180deg,#19d4ff,#008ed4)}
@@ -436,11 +441,13 @@ function pendingCard(x){
       <div class="pending-line"><span>Próxima ação</span><b>${esc(x.proxima_acao||'Definir próxima ação')}</b></div>
       <div class="pending-line"><span>Prazo</span><b>${date(x.proxima_acao_data)}</b></div>
       <div class="pending-actions">
-        <button class="btn secondary" data-edit-service="${x.id}">✏️ Editar</button>
-        <button class="btn secondary" data-duplicate-service="${x.id}">📄 Duplicar</button>
+        <div class="icon-actions" style="grid-column:1/-1">
+          <button class="btn secondary icon-btn" data-edit-service="${x.id}" title="Editar serviço" aria-label="Editar serviço">✏️</button>
+          <button class="btn secondary icon-btn" data-duplicate-service="${x.id}" title="Duplicar serviço" aria-label="Duplicar serviço">📄</button>
+          <span class="delete-zone"><button class="btn danger icon-btn" data-delete-service="${x.id}" title="Excluir serviço" aria-label="Excluir serviço">🗑️</button></span>
+        </div>
         <button class="btn secondary" data-action="${x.id}">✅ Próxima ação</button>
         <button class="btn primary" data-pay="${x.id}">💰 Pagamento</button>
-        <button class="btn danger" data-delete-service="${x.id}" style="grid-column:1/-1">🗑 Excluir</button>
       </div>
     </div>
   </article>`;
@@ -464,7 +471,7 @@ function dashboard(){
     <section class="panel"><div class="panel-head"><div><h3>Operações recentes</h3><small>últimos serviços cadastrados</small></div><button class="btn secondary" data-go="servicos">Ver todos</button></div><div class="cards">${data.servicos.slice(0,5).map(serviceCard).join('')||'<div class="empty">Nenhum serviço cadastrado.</div>'}</div></section>`;
   bindCommon()
 }
-function serviceCard(x){const c=data.clientes.find(a=>a.id===x.cliente_id);return `<article class="entity"><div class="entity-head"><div><b>${esc(x.titulo)}</b><small>${esc(c?.nome_fantasia||'Sem cliente')} • ${esc(x.tipo||'Serviço')}</small></div>${status(x.status)}</div><div class="entity-body"><div><div style="display:flex;justify-content:space-between;font-size:9px;color:#748397;margin-bottom:5px"><span>EVOLUÇÃO</span><b>${x.progresso||0}%</b></div><div class="progress"><i style="width:${x.progresso||0}%"></i></div></div><div class="entity-grid"><div><span>Prioridade</span><b>${esc(x.prioridade)}</b></div><div><span>Agenda</span><b>${date(x.data_agendada)}</b></div><div><span>Responsável</span><b>${esc(x.responsavel||'—')}</b></div></div><div class="actions"><button class="btn secondary" data-edit-service-list="${x.id}">✏️ Editar</button><button class="btn secondary" data-duplicate-service-list="${x.id}">📄 Duplicar</button><button class="btn danger" data-delete-service-list="${x.id}">🗑 Excluir</button></div></div></article>`}
+function serviceCard(x){const c=data.clientes.find(a=>a.id===x.cliente_id);return `<article class="entity"><div class="entity-head"><div><b>${esc(x.titulo)}</b><small>${esc(c?.nome_fantasia||'Sem cliente')} • ${esc(x.tipo||'Serviço')}</small></div>${status(x.status)}</div><div class="entity-body"><div><div style="display:flex;justify-content:space-between;font-size:9px;color:#748397;margin-bottom:5px"><span>EVOLUÇÃO</span><b>${x.progresso||0}%</b></div><div class="progress"><i style="width:${x.progresso||0}%"></i></div></div><div class="entity-grid"><div><span>Prioridade</span><b>${esc(x.prioridade)}</b></div><div><span>Agenda</span><b>${date(x.data_agendada)}</b></div><div><span>Responsável</span><b>${esc(x.responsavel||'—')}</b></div></div><div class="actions icon-actions"><button class="btn secondary icon-btn" data-edit-service-list="${x.id}" title="Editar serviço" aria-label="Editar serviço">✏️</button><button class="btn secondary icon-btn" data-duplicate-service-list="${x.id}" title="Duplicar serviço" aria-label="Duplicar serviço">📄</button><span class="delete-zone"><button class="btn danger icon-btn" data-delete-service-list="${x.id}" title="Excluir serviço" aria-label="Excluir serviço">🗑️</button></span></div></div></article>`}
 function pendencias(){
   const stages=['Elaborando orçamento','Aguardando aprovação','Orçamento aprovado','Em andamento','Pausada','Concluída'];
   document.querySelector('#app').innerHTML=`
