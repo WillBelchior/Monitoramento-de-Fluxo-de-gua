@@ -401,7 +401,7 @@ function pendingCard(x){
         </div>`:''}
       <div><span style="display:block;font-size:8px;color:#7b8998;text-transform:uppercase;margin-bottom:4px">Atendimento</span>
         <select data-atendimento="${x.id}">
-          ${['Aguardando aprovação','Orçamento aprovado','Em andamento','Pausada','Concluída'].map(v=>`<option ${v===(x.atendimento_status||'Aguardando aprovação')?'selected':''}>${v}</option>`).join('')}
+          ${['Elaborando orçamento','Aguardando aprovação','Orçamento aprovado','Em andamento','Pausada','Concluída'].map(v=>`<option ${v===(x.atendimento_status||'Aguardando aprovação')?'selected':''}>${v}</option>`).join('')}
         </select>
       </div>
       <div><span style="display:block;font-size:8px;color:#7b8998;text-transform:uppercase;margin-bottom:4px">Orçamento</span>
@@ -450,13 +450,13 @@ function dashboard(){
 }
 function serviceCard(x){const c=data.clientes.find(a=>a.id===x.cliente_id);return `<article class="entity"><div class="entity-head"><div><b>${esc(x.titulo)}</b><small>${esc(c?.nome_fantasia||'Sem cliente')} • ${esc(x.tipo||'Serviço')}</small></div>${status(x.status)}</div><div class="entity-body"><div><div style="display:flex;justify-content:space-between;font-size:9px;color:#748397;margin-bottom:5px"><span>EVOLUÇÃO</span><b>${x.progresso||0}%</b></div><div class="progress"><i style="width:${x.progresso||0}%"></i></div></div><div class="entity-grid"><div><span>Prioridade</span><b>${esc(x.prioridade)}</b></div><div><span>Agenda</span><b>${date(x.data_agendada)}</b></div><div><span>Responsável</span><b>${esc(x.responsavel||'—')}</b></div></div><div class="actions"><button class="btn secondary" data-edit-service-list="${x.id}">✏️ Editar</button><button class="btn danger" data-delete-service-list="${x.id}">🗑 Excluir</button></div></div></article>`}
 function pendencias(){
-  const stages=['Aguardando aprovação','Orçamento aprovado','Em andamento','Pausada','Concluída'];
+  const stages=['Elaborando orçamento','Aguardando aprovação','Orçamento aprovado','Em andamento','Pausada','Concluída'];
   document.querySelector('#app').innerHTML=`
     <section class="hero"><div class="hero-grid"><div><div class="eyebrow">CENTRAL DE PENDÊNCIAS</div><h2>Atendimentos, orçamentos e recebimentos</h2><p>Organize tudo por etapa e saiba exatamente qual é a próxima ação.</p></div><button class="btn primary" id="newPending">+ Serviço</button></div></section>
     <div class="metrics">
+      ${card('Elaborando orçamento',data.servicos.filter(x=>x.atendimento_status==='Elaborando orçamento').length)}
       ${card('Aguardando aprovação',data.servicos.filter(x=>x.atendimento_status==='Aguardando aprovação').length)}
       ${card('Orçamentos aprovados',data.servicos.filter(x=>x.atendimento_status==='Orçamento aprovado').length)}
-      ${card('Em andamento',data.servicos.filter(x=>x.atendimento_status==='Em andamento').length)}
       ${card('A receber',money(data.servicos.reduce((s,x)=>s+paySummary(x).balance,0)))}
     </div>
     <div id="financeManagementAlerts"></div>
@@ -522,6 +522,7 @@ function pendencias(){
       const oldStage=item?.atendimento_status||'Aguardando aprovação';
       const oldSnapshot=item?{...item}:null;
       const patch={atendimento_status:st};
+      if(st==='Elaborando orçamento'){patch.status='Planejado';patch.orcamento_status='Em elaboração'}
       if(st==='Aguardando aprovação'){patch.status='Planejado';patch.orcamento_status='Aguardando resposta'}
       if(st==='Orçamento aprovado'){patch.status='Planejado';patch.orcamento_status='Aprovado'}
       if(st==='Em andamento')patch.status='Em execução';
@@ -760,7 +761,7 @@ function editService(id){
     <label class="field"><span>Tipo</span><select name="tipo">${opts(['Emergência','Preventiva','Contrato','Instalação elétrica','Automação','Comando elétrico','Máquina de padaria','Outro'],x.tipo)}</select></label>
     <label class="field"><span>Prioridade</span><select name="prioridade">${opts(['Emergencial','Alta','Média','Baixa'],x.prioridade)}</select></label>
 
-    <label class="field"><span>Etapa do atendimento</span><select name="atendimento_status">${opts(['Aguardando aprovação','Orçamento aprovado','Em andamento','Pausada','Concluída'],x.atendimento_status)}</select></label>
+    <label class="field"><span>Etapa do atendimento</span><select name="atendimento_status">${opts(['Elaborando orçamento','Aguardando aprovação','Orçamento aprovado','Em andamento','Pausada','Concluída'],x.atendimento_status)}</select></label>
     <label class="field"><span>Situação do orçamento</span><select name="orcamento_status">${opts(['Não iniciado','Em elaboração','Enviado','Aguardando resposta','Aprovado','Recusado','Expirado'],x.orcamento_status)}</select></label>
 
     <div class="extra-picker">
@@ -824,6 +825,7 @@ function editService(id){
       for(const k of ['progresso','valor_servico','valor_material'])v[k]=v[k]===null?0:(+v[k]||0);
 
       v.status=v.atendimento_status==='Concluída'?'Concluído':v.atendimento_status==='Em andamento'?'Em execução':v.atendimento_status==='Pausada'?'Pausado':'Planejado';
+      if(v.atendimento_status==='Elaborando orçamento')v.orcamento_status='Em elaboração';
       if(v.atendimento_status==='Orçamento aprovado')v.orcamento_status='Aprovado';
       if(v.atendimento_status==='Concluída'){v.progresso=100;v.data_conclusao=x.data_conclusao||today}
       else if(x.data_conclusao)v.data_conclusao=null;
@@ -854,7 +856,7 @@ function newService(){
     <label class="field"><span>Tipo</span><select name="tipo">${opts(['Emergência','Preventiva','Contrato','Instalação elétrica','Automação','Comando elétrico','Máquina de padaria','Outro'])}</select></label>
     <label class="field"><span>Prioridade</span><select name="prioridade">${opts(['Emergencial','Alta','Média','Baixa'])}</select></label>
 
-    <label class="field"><span>Etapa do atendimento</span><select name="atendimento_status">${opts(['Aguardando aprovação','Orçamento aprovado','Em andamento','Pausada','Concluída'])}</select></label>
+    <label class="field"><span>Etapa do atendimento</span><select name="atendimento_status">${opts(['Elaborando orçamento','Aguardando aprovação','Orçamento aprovado','Em andamento','Pausada','Concluída'])}</select></label>
     <label class="field"><span>Situação do orçamento</span><select name="orcamento_status">${opts(['Não iniciado','Em elaboração','Enviado','Aguardando resposta','Aprovado','Recusado','Expirado'])}</select></label>
 
     <div class="extra-picker">
@@ -952,6 +954,7 @@ function newService(){
         v.atendimento_status==='Em andamento'?'Em execução':
         v.atendimento_status==='Pausada'?'Pausado':'Planejado';
 
+      if(v.atendimento_status==='Elaborando orçamento')v.orcamento_status='Em elaboração';
       if(v.atendimento_status==='Orçamento aprovado')v.orcamento_status='Aprovado';
       if(v.atendimento_status==='Aguardando aprovação'&&!['Enviado','Aguardando resposta'].includes(v.orcamento_status))v.orcamento_status='Aguardando resposta';
       if(v.atendimento_status==='Concluída'){v.progresso=100;v.data_conclusao=today}
@@ -1022,7 +1025,7 @@ supabase.auth.onAuthStateChange(async(_,s)=>{session=s;if(session){showApp();awa
 
 <style id="ametec-five-stage-board">
 @media(min-width:1400px){
-  .pending-board{grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:14px!important;overflow:visible!important}
+  .pending-board{grid-template-columns:repeat(6,minmax(0,1fr))!important;gap:14px!important;overflow:visible!important}
   .pending-col{min-width:0!important}
 }
 @media(min-width:901px) and (max-width:1399px){
@@ -1035,11 +1038,12 @@ supabase.auth.onAuthStateChange(async(_,s)=>{session=s;if(session){showApp();awa
   .pending-board{grid-template-columns:1fr!important;overflow:visible!important}
 }
 .pending-col h4{font-weight:800}
-.pending-col:nth-child(1){border-top:3px solid #ffb000}
-.pending-col:nth-child(2){border-top:3px solid #19d4ff}
-.pending-col:nth-child(3){border-top:3px solid #00aef0}
-.pending-col:nth-child(4){border-top:3px solid #9aa9b5}
-.pending-col:nth-child(5){border-top:3px solid #38d996}
+.pending-col:nth-child(1){border-top:3px solid #ff8a00}
+.pending-col:nth-child(2){border-top:3px solid #ffb000}
+.pending-col:nth-child(3){border-top:3px solid #19d4ff}
+.pending-col:nth-child(4){border-top:3px solid #00aef0}
+.pending-col:nth-child(5){border-top:3px solid #9aa9b5}
+.pending-col:nth-child(6){border-top:3px solid #38d996}
 </style>
 </body>
 </html>
