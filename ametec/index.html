@@ -1114,7 +1114,13 @@ supabase.auth.onAuthStateChange(async(_,s)=>{session=s;if(session){showApp();awa
   .pending-board{grid-template-columns:repeat(2,minmax(0,1fr))!important;overflow:visible!important}
 }
 @media(max-width:700px){
-  .pending-board{grid-template-columns:1fr!important;overflow:visible!important}
+  #pendingBoard{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;padding-bottom:10px;scroll-snap-type:x proximity}
+  .pending-board{display:flex!important;grid-template-columns:none!important;gap:12px!important;width:max-content!important;min-width:100%!important;overflow:visible!important}
+  .pending-col{flex:0 0 86vw!important;width:86vw!important;min-width:86vw!important;max-width:86vw!important;scroll-snap-align:start}
+  .pending-card{width:100%!important;max-width:100%!important}
+  #pendingBoard::-webkit-scrollbar{height:7px}
+  #pendingBoard::-webkit-scrollbar-thumb{background:#2b5c73;border-radius:999px}
+  #pendingBoard::-webkit-scrollbar-track{background:#07131c;border-radius:999px}
 }
 .pending-col h4{font-weight:800}
 .pending-col:nth-child(1){border-top:3px solid #ff8a00}
