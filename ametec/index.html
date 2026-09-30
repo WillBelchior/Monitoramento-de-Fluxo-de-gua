@@ -299,7 +299,7 @@ function sanitizeServicePayload(v){
   nullableText.forEach(k=>{if(k in v&&typeof v[k]==='string'&&!v[k].trim())v[k]=null});
   return v;
 }
-let data={perfil:null,clientes:[],clienteContatos:[],servicos:[],equipamentos:[],materiais:[],colaboradores:[],registros:[],pagamentos:[],movimentacoes:[],orcamentos:[],orcamentoItens:[]},page='dashboard',session=null,channel=null;
+let data={perfil:null,clientes:[],clienteContatos:[],servicos:[],equipamentos:[],materiais:[],colaboradores:[],registros:[],pagamentos:[],movimentacoes:[],orcamentos:[],orcamentoItens:[],lembretes:[]},page='dashboard',session=null,channel=null;
 const pages=[['dashboard','Centro','⚡'],['pendencias','Pendências','📋'],['clientes','Clientes','🏭'],['servicos','Serviços','🔧'],['agenda','Agenda','📅'],['equipamentos','Equipamentos','⚙️'],['materiais','Materiais','📦'],['colaboradores','Colaboradores','👷'],['financeiro','Financeiro','💰'],['relatorios','Relatórios','📊']];
 const status=s=>{const c=['Concluído','Operacional','Ativo'].includes(s)?'done':['Em execução','Em manutenção','Planejado'].includes(s)?'run':['Emergencial','Alta'].includes(s)?'high':'';return '<span class="status '+c+'">'+esc(s||'—')+'</span>'};
 const card=(l,v,s='')=>'<div class="metric"><span>'+l+'</span><b>'+v+'</b><small>'+s+'</small></div>';
@@ -335,22 +335,23 @@ async function load(){
     supabase.from('ametec_pagamentos').select('*').order('data_pagamento',{ascending:false}),
     supabase.from('ametec_movimentacoes').select('*').order('data_movimentacao',{ascending:false}),
     supabase.from('ametec_orcamentos').select('*').order('created_at',{ascending:false}),
-    supabase.from('ametec_orcamento_itens').select('*').order('ordem',{ascending:true}).order('created_at',{ascending:true})
+    supabase.from('ametec_orcamento_itens').select('*').order('ordem',{ascending:true}).order('created_at',{ascending:true}),
+    supabase.from('ametec_servico_lembretes').select('*').order('created_at',{ascending:false})
   ]);
   if(qs.some(x=>x.error))return toast('Não foi possível carregar todos os dados.',true);
-  let [perfil,clientes,clienteContatos,servicos,equipamentos,materiais,colaboradores,registros,pagamentos,movimentacoes,orcamentos,orcamentoItens]=qs.map(x=>x.data??null);
+  let [perfil,clientes,clienteContatos,servicos,equipamentos,materiais,colaboradores,registros,pagamentos,movimentacoes,orcamentos,orcamentoItens,lembretes]=qs.map(x=>x.data??null);
   if(!perfil){
     const fallback=(session?.user?.user_metadata?.full_name||session?.user?.email?.split('@')[0]||'Usuário').replace(/[._-]+/g,' ');
     const {data:p}=await supabase.from('ametec_usuarios').upsert({user_id:session.user.id,nome:fallback,funcao:'Administrador'}).select().single();
     perfil=p;
   }
-  data={perfil,clientes:clientes||[],clienteContatos:clienteContatos||[],servicos:servicos||[],equipamentos:equipamentos||[],materiais:materiais||[],colaboradores:colaboradores||[],registros:registros||[],pagamentos:pagamentos||[],movimentacoes:movimentacoes||[],orcamentos:orcamentos||[],orcamentoItens:orcamentoItens||[]};
+  data={perfil,clientes:clientes||[],clienteContatos:clienteContatos||[],servicos:servicos||[],equipamentos:equipamentos||[],materiais:materiais||[],colaboradores:colaboradores||[],registros:registros||[],pagamentos:pagamentos||[],movimentacoes:movimentacoes||[],orcamentos:orcamentos||[],orcamentoItens:orcamentoItens||[],lembretes:lembretes||[]};
   render()
 }
 function subscribe(){
   if(channel)supabase.removeChannel(channel);
   channel=supabase.channel('ametec-live');
-  ['ametec_usuarios','ametec_clientes','ametec_cliente_contatos','ametec_servicos','ametec_equipamentos','ametec_materiais','ametec_colaboradores','ametec_registros','ametec_pagamentos','ametec_movimentacoes','ametec_orcamentos','ametec_orcamento_itens'].forEach(t=>channel.on('postgres_changes',{event:'*',schema:'public',table:t},()=>load()));
+  ['ametec_usuarios','ametec_clientes','ametec_cliente_contatos','ametec_servicos','ametec_equipamentos','ametec_materiais','ametec_colaboradores','ametec_registros','ametec_pagamentos','ametec_movimentacoes','ametec_orcamentos','ametec_orcamento_itens','ametec_servico_lembretes'].forEach(t=>channel.on('postgres_changes',{event:'*',schema:'public',table:t},()=>load()));
   channel.subscribe()
 }
 function initNav(){
@@ -572,7 +573,42 @@ function dashboard(){
     <section class="panel"><div class="panel-head"><div><h3>Operações recentes</h3><small>últimos serviços cadastrados</small></div><button class="btn secondary" data-go="servicos">Ver todos</button></div><div class="cards">${data.servicos.slice(0,5).map(serviceCard).join('')||'<div class="empty">Nenhum serviço cadastrado.</div>'}</div></section>`;
   bindCommon()
 }
-function serviceCard(x){const c=data.clientes.find(a=>a.id===x.cliente_id);return `<article class="entity"><div class="entity-head"><div><b>${esc(x.titulo)}</b><small>${esc(c?.nome_fantasia||'Sem cliente')} • ${esc(x.tipo||'Serviço')}</small></div>${status(x.status)}</div><div class="entity-body"><div><div style="display:flex;justify-content:space-between;font-size:9px;color:#748397;margin-bottom:5px"><span>EVOLUÇÃO</span><b>${x.progresso||0}%</b></div><div class="progress"><i style="width:${x.progresso||0}%"></i></div></div><div class="entity-grid"><div><span>Prioridade</span><b>${esc(x.prioridade)}</b></div><div><span>Agenda</span><b>${date(x.data_agendada)}</b></div><div><span>Responsável</span><b>${esc(x.responsavel||'—')}</b></div></div><div class="actions icon-actions"><button class="btn secondary icon-btn" data-edit-service-list="${x.id}" title="Editar serviço" aria-label="Editar serviço">✏️</button><button class="btn secondary icon-btn" data-duplicate-service-list="${x.id}" title="Duplicar serviço" aria-label="Duplicar serviço">📄</button><button class="btn secondary icon-btn" data-proposal-service-list="${x.id}" title="Proposta de orçamento" aria-label="Proposta de orçamento">💼</button><span class="delete-zone"><button class="btn danger icon-btn" data-delete-service-list="${x.id}" title="Excluir serviço" aria-label="Excluir serviço">🗑️</button></span></div></div></article>`}
+function serviceCard(x){
+  const c=data.clientes.find(a=>a.id===x.cliente_id);
+  const p=paySummary(x);
+  const reminders=data.lembretes.filter(r=>r.servico_id===x.id&&!r.concluido);
+  const desc=(x.descricao||x.proxima_acao||'Sem descrição cadastrada.').trim();
+  return `<article class="service-mini">
+    <div class="service-mini-head">
+      <div><b>${esc(x.titulo)}</b><small>🏭 ${esc(c?.nome_fantasia||'Sem cliente')} • ${esc(x.tipo||'Serviço')}</small></div>
+      ${status(x.status)}
+    </div>
+    <div class="service-mini-body">
+      <div class="service-desc">${esc(desc)}</div>
+      <div class="service-chips">
+        <span class="service-chip">⚡ ${esc(x.prioridade||'Sem prioridade')}</span>
+        <span class="service-chip">📌 ${esc(x.atendimento_status||x.status||'—')}</span>
+        ${x.responsavel?`<span class="service-chip">👷 ${esc(x.responsavel)}</span>`:''}
+      </div>
+      <div class="service-mini-info">
+        <div><span>Agenda</span><b>${date(x.data_agendada)}</b></div>
+        <div><span>Progresso</span><b>${x.progresso||0}%</b></div>
+        <div><span>Valor</span><b>${money(serviceValues(x).total)}</b></div>
+        <div><span>A receber</span><b>${money(p.balance)}</b></div>
+      </div>
+      <div class="service-mini-action">
+        <div class="service-next" title="${esc(x.proxima_acao||'')}">Próxima: <b>${esc(x.proxima_acao||'Definir próxima ação')}</b></div>
+        <button class="btn secondary icon-btn reminder-btn" data-reminders-service="${x.id}" title="Lembretes do serviço" aria-label="Lembretes">📝${reminders.length?`<span class="reminder-count">${reminders.length}</span>`:''}</button>
+      </div>
+      <div class="actions icon-actions">
+        <button class="btn secondary icon-btn" data-edit-service-list="${x.id}" title="Editar serviço" aria-label="Editar serviço">✏️</button>
+        <button class="btn secondary icon-btn" data-duplicate-service-list="${x.id}" title="Duplicar serviço" aria-label="Duplicar serviço">📄</button>
+        <button class="btn secondary icon-btn" data-proposal-service-list="${x.id}" title="Proposta de orçamento" aria-label="Proposta de orçamento">💼</button>
+        <span class="delete-zone"><button class="btn danger icon-btn" data-delete-service-list="${x.id}" title="Excluir serviço" aria-label="Excluir serviço">🗑️</button></span>
+      </div>
+    </div>
+  </article>`
+}
 function pendencias(){
   const stages=['Elaborando orçamento','Aguardando aprovação','Orçamento aprovado','Em andamento','Pausada','Concluída'];
   document.querySelector('#app').innerHTML=`
@@ -851,23 +887,100 @@ function contactForm(clienteId,contactId=null){
 }
 window.openClientServices=id=>{page='servicos';render();setTimeout(()=>{const s=document.querySelector('#search');if(s){const c=data.clientes.find(x=>x.id===id);s.value=c?.nome_fantasia||'';s.dispatchEvent(new Event('input'))}},0)}
 function servicos(){
-  document.querySelector('#app').innerHTML=`<section class="hero"><div class="hero-grid"><div><div class="eyebrow">OPERAÇÕES</div><h2>Serviços e chamados</h2><p>Emergências, preventivas, contratos, instalações e automação.</p></div><button class="btn primary" id="add">+ Serviço</button></div></section><section class="panel"><div class="toolbar"><input id="search" placeholder="🔎 Buscar serviço, cliente, responsável ou tipo"><select id="filter"><option>Todos</option><option>Novo</option><option>Planejado</option><option>Em execução</option><option>Pausado</option><option>Concluído</option></select></div><div id="list" class="cards"></div></section>`;
-  const draw=()=>{const q=document.querySelector('#search').value.toLowerCase(),f=document.querySelector('#filter').value;const rows=sortByPriority(data.servicos.filter(x=>{const c=data.clientes.find(a=>a.id===x.cliente_id);return(!q||[x.titulo,x.tipo,x.responsavel,c?.nome_fantasia].join(' ').toLowerCase().includes(q))&&(f==='Todos'||x.status===f)}));document.querySelector('#list').innerHTML=rows.map(serviceCard).join('')||'<div class="empty">Nenhum serviço encontrado.</div>';bindServiceDeletes()};
-  const bindServiceDeletes=()=>{
+  const active=data.servicos.filter(x=>x.status==='Em execução').length;
+  const planned=data.servicos.filter(x=>x.status==='Planejado'||x.status==='Novo').length;
+  const completed=data.servicos.filter(x=>x.status==='Concluído').length;
+  const reminders=data.lembretes.filter(x=>!x.concluido).length;
+  document.querySelector('#app').innerHTML=`
+    <section class="hero"><div class="hero-grid"><div><div class="eyebrow">OPERAÇÕES</div><h2>Serviços</h2><p>Visão compacta dos atendimentos, próxima ação, valores e lembretes operacionais.</p></div><button class="btn primary" id="add">+ Serviço</button></div></section>
+    <div class="services-summary">
+      ${card('Em execução',active)}
+      ${card('Planejados',planned)}
+      ${card('Concluídos',completed)}
+      ${card('Lembretes abertos',reminders)}
+    </div>
+    <section class="panel">
+      <div class="toolbar"><input id="search" placeholder="🔎 Buscar serviço, cliente, descrição ou responsável"><select id="filter"><option>Todos</option><option>Novo</option><option>Planejado</option><option>Em execução</option><option>Pausado</option><option>Concluído</option></select></div>
+      <div id="list" class="service-grid-compact"></div>
+    </section>`;
+
+  const draw=()=>{
+    const q=document.querySelector('#search').value.toLowerCase(),f=document.querySelector('#filter').value;
+    const rows=sortByPriority(data.servicos.filter(x=>{
+      const c=data.clientes.find(a=>a.id===x.cliente_id);
+      const reminderText=data.lembretes.filter(r=>r.servico_id===x.id).map(r=>r.texto).join(' ');
+      return(!q||[x.titulo,x.tipo,x.responsavel,x.descricao,x.proxima_acao,c?.nome_fantasia,reminderText].filter(Boolean).join(' ').toLowerCase().includes(q))&&(f==='Todos'||x.status===f)
+    }));
+    document.querySelector('#list').innerHTML=rows.map(serviceCard).join('')||'<div class="empty">Nenhum serviço encontrado.</div>';
+    bindServices();
+  };
+
+  const bindServices=()=>{
     document.querySelectorAll('[data-edit-service-list]').forEach(b=>b.onclick=()=>editService(b.dataset.editServiceList));
     document.querySelectorAll('[data-duplicate-service-list]').forEach(b=>b.onclick=()=>duplicateService(b.dataset.duplicateServiceList));
     document.querySelectorAll('[data-proposal-service-list]').forEach(b=>b.onclick=()=>openProposal(b.dataset.proposalServiceList));
+    document.querySelectorAll('[data-reminders-service]').forEach(b=>b.onclick=()=>openServiceReminders(b.dataset.remindersService,draw));
     document.querySelectorAll('[data-delete-service-list]').forEach(b=>b.onclick=async()=>{
-    const id=b.dataset.deleteServiceList,x=data.servicos.find(s=>s.id===id);if(!x)return;
-    const c=data.clientes.find(a=>a.id===x.cliente_id);
-    if(!confirm('Excluir o serviço "'+x.titulo+'" de '+(c?.nome_fantasia||'cliente')+'?\n\nPagamentos, materiais e registros vinculados também serão removidos.'))return;
-    const {error}=await supabase.from('ametec_servicos').delete().eq('id',id);
-    if(error)return toast(error.message,true);
-    data.servicos=data.servicos.filter(s=>s.id!==id);draw();renderFinanceAlert();toast('Serviço excluído');
+      const id=b.dataset.deleteServiceList,x=data.servicos.find(s=>s.id===id);if(!x)return;
+      const c=data.clientes.find(a=>a.id===x.cliente_id);
+      if(!confirm('Excluir o serviço "'+x.titulo+'" de '+(c?.nome_fantasia||'cliente')+'?\n\nPagamentos, materiais, registros e lembretes vinculados também serão removidos.'))return;
+      const {error}=await supabase.from('ametec_servicos').delete().eq('id',id);
+      if(error)return toast(error.message,true);
+      data.servicos=data.servicos.filter(s=>s.id!==id);data.lembretes=data.lembretes.filter(r=>r.servico_id!==id);draw();renderFinanceAlert();toast('Serviço excluído');
     });
   };
-  document.querySelector('#search').oninput=draw;document.querySelector('#filter').onchange=draw;draw();document.querySelector('#add').onclick=newService
+
+  document.querySelector('#search').oninput=draw;
+  document.querySelector('#filter').onchange=draw;
+  draw();
+  document.querySelector('#add').onclick=newService
 }
+
+async function openServiceReminders(id,afterChange){
+  const s=data.servicos.find(x=>x.id===id);if(!s)return;
+  const c=data.clientes.find(x=>x.id===s.cliente_id);
+  const modal=document.querySelector('#modal'),form=document.querySelector('#modalForm');
+  document.querySelector('#modalTitle').textContent='Lembretes — '+s.titulo;
+  form.innerHTML=`<div class="reminder-shell">
+    <div class="service-form-intro"><b>${esc(c?.nome_fantasia||'Sem cliente')}</b><br>Use este espaço como rascunho rápido do serviço: itens para conferir, ideias, peças, ajustes e orientações.</div>
+    <div class="reminder-compose"><textarea id="reminderText" placeholder="Ex.: Conferir medida da correia antes da compra..."></textarea><button type="button" class="btn primary" id="addReminder">+ Adicionar</button></div>
+    <div id="reminderList" class="reminder-list"></div>
+  </div>`;
+
+  const drawReminders=()=>{
+    const rows=data.lembretes.filter(r=>r.servico_id===id).sort((a,b)=>(+a.concluido)-(+b.concluido)||(b.created_at||'').localeCompare(a.created_at||''));
+    form.querySelector('#reminderList').innerHTML=rows.map(r=>`<div class="reminder-item ${r.concluido?'done':''}">
+      <input type="checkbox" data-reminder-done="${r.id}" ${r.concluido?'checked':''} title="Concluir lembrete">
+      <div><div class="reminder-text">${esc(r.texto)}</div><div class="reminder-meta">${r.concluido?'Concluído':'Rascunho'} • ${new Date(r.created_at).toLocaleDateString('pt-BR')}</div></div>
+      <button type="button" class="btn danger icon-btn" data-reminder-delete="${r.id}" title="Excluir">🗑️</button>
+    </div>`).join('')||'<div class="empty">Nenhum lembrete neste serviço.</div>';
+
+    form.querySelectorAll('[data-reminder-done]').forEach(ch=>ch.onchange=async()=>{
+      const r=data.lembretes.find(x=>x.id===ch.dataset.reminderDone);if(!r)return;
+      const {error}=await supabase.from('ametec_servico_lembretes').update({concluido:ch.checked,updated_at:new Date().toISOString()}).eq('id',r.id);
+      if(error){ch.checked=!ch.checked;return toast(error.message,true)}
+      r.concluido=ch.checked;drawReminders();if(afterChange)afterChange();
+    });
+    form.querySelectorAll('[data-reminder-delete]').forEach(b=>b.onclick=async()=>{
+      if(!confirm('Excluir este lembrete?'))return;
+      const {error}=await supabase.from('ametec_servico_lembretes').delete().eq('id',b.dataset.reminderDelete);
+      if(error)return toast(error.message,true);
+      data.lembretes=data.lembretes.filter(x=>x.id!==b.dataset.reminderDelete);drawReminders();if(afterChange)afterChange();
+    });
+  };
+
+  form.querySelector('#addReminder').onclick=async()=>{
+    const ta=form.querySelector('#reminderText'),texto=ta.value.trim();
+    if(!texto)return toast('Escreva o lembrete.',true);
+    const {data:r,error}=await supabase.from('ametec_servico_lembretes').insert({servico_id:id,texto}).select().single();
+    if(error)return toast(error.message,true);
+    data.lembretes.unshift(r);ta.value='';drawReminders();if(afterChange)afterChange();toast('Lembrete adicionado');
+  };
+  form.onsubmit=e=>e.preventDefault();
+  drawReminders();
+  modal.classList.add('open');
+}
+
 async function openProposal(id){
   const s=data.servicos.find(x=>x.id===id);if(!s)return;
   const c=data.clientes.find(x=>x.id===s.cliente_id);
@@ -1591,6 +1704,23 @@ supabase.auth.onAuthStateChange(async(_,s)=>{session=s;if(session){showApp();awa
 <style id="ametec-proposal">
 .proposal-shell{display:grid;gap:12px}.proposal-section{border:1px solid #17384b;border-radius:12px;background:#081923;padding:12px;display:grid;gap:9px}.proposal-section h4{margin:0;color:#eefaff;font-size:13px}.proposal-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.proposal-items{display:grid;gap:7px}.proposal-item{display:grid;grid-template-columns:120px 1fr 80px 120px 34px;gap:7px;align-items:center}.proposal-item input,.proposal-item select,.proposal-section textarea,.proposal-section input{width:100%;box-sizing:border-box;background:#06141d;border:1px solid #1c4257;color:#eefaff;border-radius:8px;padding:9px}.proposal-item button{width:32px;height:32px}.proposal-total{display:flex;justify-content:space-between;align-items:center;padding:10px;border-radius:9px;background:#0b2736;border:1px solid #245c76}.proposal-total b{font-size:18px}.proposal-preview{white-space:pre-wrap;font-size:12px;line-height:1.55;color:#cfe7f4}.proposal-whatsapp{background:#06141d;border:1px solid #1c4257;border-radius:10px;padding:12px;white-space:pre-wrap;line-height:1.6;color:#d9eef8;font-size:12px;max-height:360px;overflow:auto}.proposal-whatsapp-actions{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}
 @media(max-width:700px){.proposal-grid{grid-template-columns:1fr}.proposal-item{grid-template-columns:1fr 1fr}.proposal-item .proposal-desc{grid-column:1/-1}.proposal-item button{grid-column:2;justify-self:end}}
+</style>
+
+<style id="ametec-services-redesign">
+.service-grid-compact{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.service-mini{background:#081923;border:1px solid #17384b;border-radius:13px;overflow:hidden;display:grid}
+.service-mini-head{padding:12px 12px 9px;display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.service-mini-head b{font-size:14px;color:#eefaff;display:block;line-height:1.25}
+.service-mini-head small{font-size:10px;color:#8da8b8;display:block;margin-top:4px}
+.service-mini-body{padding:0 12px 12px;display:grid;gap:9px}
+.service-desc{font-size:11px;line-height:1.45;color:#b7cfdb;background:#06141d;border:1px solid #122f40;border-radius:9px;padding:9px;min-height:50px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.service-chips{display:flex;gap:6px;flex-wrap:wrap}.service-chip{font-size:9px;border:1px solid #23495c;background:#0b2634;color:#b9d8e7;border-radius:999px;padding:4px 7px}
+.service-mini-info{display:grid;grid-template-columns:1fr 1fr;gap:7px}.service-mini-info div{background:#07151e;border:1px solid #142f3f;border-radius:8px;padding:7px}.service-mini-info span{display:block;font-size:8px;color:#7895a5;text-transform:uppercase}.service-mini-info b{font-size:11px;color:#eefaff;display:block;margin-top:2px}
+.service-mini-action{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}.service-next{font-size:10px;color:#9db6c5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.reminder-btn{position:relative}.reminder-count{position:absolute;top:-6px;right:-6px;background:#ffb347;color:#15100a;border-radius:999px;min-width:17px;height:17px;padding:0 4px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:900;border:2px solid #081923}
+.reminder-shell{display:grid;gap:10px;grid-column:1/-1}.reminder-compose{display:grid;grid-template-columns:1fr auto;gap:8px}.reminder-compose textarea{background:#06141d;border:1px solid #1c4257;color:#eefaff;border-radius:9px;padding:10px;min-height:72px;resize:vertical}.reminder-list{display:grid;gap:8px}.reminder-item{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:start;background:#071820;border:1px solid #17384b;border-radius:10px;padding:9px}.reminder-item.done{opacity:.55}.reminder-item.done .reminder-text{text-decoration:line-through}.reminder-text{font-size:12px;line-height:1.4;color:#d6eaf4}.reminder-meta{font-size:9px;color:#7895a5;margin-top:3px}.services-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:12px}
+@media(max-width:1050px){.service-grid-compact{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:700px){.service-grid-compact{grid-template-columns:1fr}.services-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.reminder-compose{grid-template-columns:1fr}}
 </style>
 </body>
 </html>
