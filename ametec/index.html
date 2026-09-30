@@ -1050,6 +1050,7 @@ function renderServiceDetail(id){
             <button class="btn secondary" id="detailEdit">✏️ Editar</button>
             <button class="btn secondary" id="detailReminder">📝 Lembretes</button>
             <button class="btn secondary" id="detailProposal">💼 Proposta</button>
+            <button class="btn secondary" id="detailShare">🔗 Compartilhar</button>
             <button class="btn primary" id="detailPayment">💰 Pagamento</button>
           </div>
         </div>
@@ -1127,8 +1128,60 @@ function renderServiceDetail(id){
   document.querySelector('#detailReminder2').onclick=()=>openServiceReminders(id,()=>load());
   document.querySelector('#detailProposal').onclick=()=>openProposal(id);
   document.querySelector('#detailProposal2').onclick=()=>openProposal(id);
+  document.querySelector('#detailShare').onclick=()=>openServiceShare(id);
   document.querySelector('#detailPayment').onclick=()=>openPaymentForm(x);
 }
+async function openServiceShare(id){
+  const s=data.servicos.find(x=>x.id===id);if(!s)return;
+  const c=data.clientes.find(x=>x.id===s.cliente_id);
+  const {data:existing,error:readErr}=await supabase.from('ametec_servico_compartilhamentos').select('*').eq('servico_id',id).maybeSingle();
+  if(readErr)return toast(readErr.message,true);
+
+  let share=existing;
+  if(!share){
+    const {data:created,error}=await supabase.from('ametec_servico_compartilhamentos').insert({servico_id:id}).select().single();
+    if(error)return toast(error.message,true);
+    share=created;
+  }else if(!share.ativo){
+    const {data:renewed,error}=await supabase.from('ametec_servico_compartilhamentos')
+      .update({ativo:true,token:crypto.randomUUID(),revoked_at:null,created_at:new Date().toISOString()})
+      .eq('id',share.id).select().single();
+    if(error)return toast(error.message,true);
+    share=renewed;
+  }
+
+  const publicUrl=new URL('servico.html',window.location.href);
+  publicUrl.searchParams.set('t',share.token);
+  const modal=document.querySelector('#modal'),form=document.querySelector('#modalForm');
+  document.querySelector('#modalTitle').textContent='Compartilhar serviço';
+  form.innerHTML=`<div style="grid-column:1/-1;display:grid;gap:12px">
+    <div class="service-form-intro"><b>${esc(s.titulo)}</b><br>${esc(c?.nome_fantasia||'Cliente')} poderá visualizar somente a página pública deste serviço.</div>
+    <label class="field full"><span>Link público</span><input id="publicServiceLink" value="${esc(publicUrl.toString())}" readonly></label>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <button type="button" class="btn primary" id="copyPublicServiceLink">📋 Copiar link</button>
+      <button type="button" class="btn secondary" id="openPublicServiceLink">↗ Abrir página</button>
+    </div>
+    <div style="padding:10px;border:1px solid #17384b;border-radius:10px;background:#07151e;color:#9fb9c7;font-size:11px;line-height:1.5">
+      A página compartilhada não possui menu, login ou acesso ao sistema. Ela mostra apenas informações deste atendimento destinadas ao cliente. Lembretes internos e dados administrativos não são publicados.
+    </div>
+    <button type="button" class="btn danger" id="revokePublicServiceLink">Revogar acesso</button>
+  </div>`;
+  form.onsubmit=e=>e.preventDefault();
+
+  form.querySelector('#copyPublicServiceLink').onclick=async()=>{
+    try{await navigator.clipboard.writeText(publicUrl.toString());toast('Link copiado')}
+    catch(e){const i=form.querySelector('#publicServiceLink');i.select();document.execCommand('copy');toast('Link copiado')}
+  };
+  form.querySelector('#openPublicServiceLink').onclick=()=>window.open(publicUrl.toString(),'_blank','noopener');
+  form.querySelector('#revokePublicServiceLink').onclick=async()=>{
+    if(!confirm('Revogar este link público? O cliente não conseguirá mais abrir a página compartilhada.'))return;
+    const {error}=await supabase.from('ametec_servico_compartilhamentos').update({ativo:false,revoked_at:new Date().toISOString()}).eq('id',share.id);
+    if(error)return toast(error.message,true);
+    closeModal();toast('Acesso público revogado');
+  };
+  modal.classList.add('open');
+}
+
 function servicos(){
   if(serviceDetailId)return renderServiceDetail(serviceDetailId);
 
