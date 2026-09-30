@@ -393,14 +393,44 @@ function renderUser(){
 function serviceValues(s){
   const add=+s.valor_adicional||0;
   const service=(+s.valor_servico||0)+(s.tipo_valor_adicional==='Serviço'?add:0);
-  const material=(+s.valor_material||0)+(s.tipo_valor_adicional==='Material'?add:0);
-  return {service,material,additional:add,total:service+material};
+  const materialQuoted=(+s.valor_material||0)+(s.tipo_valor_adicional==='Material'?add:0);
+  const materialMode=s.material_fornecimento||(materialQuoted>0?'AMETEC compra para o serviço':null);
+  const materialBillable=materialMode==='Cliente compra'?0:materialQuoted;
+  const materialRecovery=materialMode==='AMETEC compra para o serviço'?materialBillable:0;
+  const materialSale=materialMode==='Estoque AMETEC'?materialBillable:0;
+  return {service,material:materialBillable,materialQuoted,materialMode,materialRecovery,materialSale,additional:add,total:service+materialBillable};
 }
 function paySummary(s){
   const values=serviceValues(s);
   const total=values.total;
   const pays=data.pagamentos.filter(p=>p.servico_id===s.id);
   const received=pays.reduce((a,p)=>a+(+p.valor||0),0);
+
+  let serviceReceived=0,materialReceived=0,legacyReceived=0;
+  pays.forEach(p=>{
+    const cat=p.categoria||'Geral';
+    if(cat==='Serviço')serviceReceived+=+p.valor||0;
+    else if(cat==='Material')materialReceived+=+p.valor||0;
+    else if(cat==='Ambos'){
+      serviceReceived+=+p.valor_servico||0;
+      materialReceived+=+p.valor_material||0;
+    }else legacyReceived+=+p.valor||0;
+  });
+
+  // Pagamentos antigos não possuíam categoria. Para preservar o histórico,
+  // o valor legado é abatido primeiro do material e depois do serviço.
+  let legacy=legacyReceived;
+  const matNeed=Math.max(values.material-materialReceived,0);
+  const legacyToMaterial=Math.min(matNeed,legacy);
+  materialReceived+=legacyToMaterial;legacy-=legacyToMaterial;
+  const svcNeed=Math.max(values.service-serviceReceived,0);
+  const legacyToService=Math.min(svcNeed,legacy);
+  serviceReceived+=legacyToService;
+
+  serviceReceived=Math.min(serviceReceived,values.service);
+  materialReceived=Math.min(materialReceived,values.material);
+  const serviceBalance=Math.max(values.service-serviceReceived,0);
+  const materialBalance=Math.max(values.material-materialReceived,0);
   const balance=Math.max(total-received,0);
   const last=[...pays].sort((a,b)=>(b.data_pagamento||'').localeCompare(a.data_pagamento||''))[0];
   let state=total<=0?'Sem cobrança':'Não pago';
@@ -408,7 +438,50 @@ function paySummary(s){
   else if(received>0&&balance>0)state='Parcial';
   if(balance>0&&s.vencimento_pagamento&&s.vencimento_pagamento<today)state='Vencido';
   const settled=balance<=0;
-  return {total,received,balance,last,state,settled};
+  return {total,received,balance,last,state,settled,serviceReceived,materialReceived,serviceBalance,materialBalance,legacyReceived,values};
+}
+function openPaymentForm(x){
+  const modal=document.querySelector('#modal'),form=document.querySelector('#modalForm');
+  document.querySelector('#modalTitle').textContent='Registrar pagamento — '+x.titulo;
+  const p=paySummary(x);
+  form.innerHTML=`
+    <div class="service-form-intro">Saldo atual: <b>${money(p.balance)}</b> • Serviço: ${money(p.serviceBalance)} • Material: ${money(p.materialBalance)}</div>
+    <label class="field"><span>Data do pagamento</span><input name="data_pagamento" type="date" value="${today}" required></label>
+    <label class="field"><span>Referente a</span><select name="categoria" id="paymentCategory"><option>Serviço</option><option>Material</option><option>Ambos</option></select></label>
+    <label class="field" id="paymentSingle"><span>Valor recebido</span><input name="valor" id="paymentValue" type="number" min="0.01" step="0.01" placeholder="0,00"></label>
+    <div id="paymentSplit" style="display:none;grid-column:1/-1;grid-template-columns:1fr 1fr;gap:10px">
+      <label class="field"><span>Parte de serviço</span><input name="valor_servico" id="paymentServiceValue" type="number" min="0" step="0.01" placeholder="0,00"></label>
+      <label class="field"><span>Parte de material</span><input name="valor_material" id="paymentMaterialValue" type="number" min="0" step="0.01" placeholder="0,00"></label>
+    </div>
+    <label class="field"><span>Forma de pagamento</span><select name="forma_pagamento"><option>PIX</option><option>Dinheiro</option><option>Cartão</option><option>Transferência</option><option>Boleto</option><option>Outro</option></select></label>
+    <label class="field full"><span>Observações</span><textarea name="observacoes" rows="2"></textarea></label>
+    <button class="btn primary" style="grid-column:1/-1">Registrar pagamento</button>`;
+
+  const cat=form.querySelector('#paymentCategory'),single=form.querySelector('#paymentSingle'),split=form.querySelector('#paymentSplit');
+  const toggle=()=>{const both=cat.value==='Ambos';single.style.display=both?'none':'';split.style.display=both?'grid':'none'};
+  cat.onchange=toggle;toggle();
+
+  form.onsubmit=async e=>{
+    e.preventDefault();
+    try{
+      const v=Object.fromEntries(new FormData(form));
+      if(v.categoria==='Ambos'){
+        v.valor_servico=+v.valor_servico||0;v.valor_material=+v.valor_material||0;
+        v.valor=v.valor_servico+v.valor_material;
+        if(v.valor<=0)throw new Error('Informe os valores de serviço e/ou material.');
+      }else{
+        v.valor=+v.valor||0;
+        if(v.valor<=0)throw new Error('Informe um valor maior que zero.');
+        v.valor_servico=v.categoria==='Serviço'?v.valor:null;
+        v.valor_material=v.categoria==='Material'?v.valor:null;
+      }
+      if(v.valor>p.balance+0.009&&!confirm('O pagamento informado é maior que o saldo atual. Deseja continuar?'))return;
+      v.servico_id=x.id;
+      const {error}=await supabase.from('ametec_pagamentos').insert(v);if(error)throw error;
+      closeModal();await load();toast('Pagamento registrado');
+    }catch(err){toast(err.message||String(err),true)}
+  };
+  modal.classList.add('open');
 }
 function closureState(s){
   const p=paySummary(s);
@@ -474,7 +547,7 @@ function dashboard(){
   const technicalDone=data.servicos.filter(x=>x.atendimento_status==='Concluída'||x.status==='Concluído').length;
   const closed=data.servicos.filter(x=>closureState(x).key==='closed').length;
   const finAlerts=financialAlerts();
-  const revenue=data.servicos.reduce((s,x)=>s+(+x.valor_servico||0)+(+x.valor_material||0)+(+x.valor_adicional||0),0);
+  const revenue=data.servicos.reduce((s,x)=>s+serviceValues(x).total,0);
   const avg=data.servicos.length?Math.round(data.servicos.reduce((s,x)=>s+(+x.progresso||0),0)/data.servicos.length):0;
   const byType={};data.servicos.forEach(x=>byType[x.tipo||'Outros']=(byType[x.tipo||'Outros']||0)+1);const arr=Object.entries(byType).slice(0,5),max=Math.max(...arr.map(x=>x[1]),1);
   document.querySelector('#app').innerHTML=`
@@ -636,8 +709,7 @@ function pendencias(){
     });
 
     document.querySelectorAll('[data-pay]').forEach(b=>b.onclick=()=>{
-      const x=data.servicos.find(s=>s.id===b.dataset.pay),p=paySummary(x);
-      openForm('Registrar pagamento — '+x.titulo,[['data_pagamento','Data do pagamento','date'],['valor','Valor recebido','number'],['forma_pagamento','Forma de pagamento','select',['PIX','Dinheiro','Cartão','Transferência','Boleto','Outro']],['observacoes','Observações','textarea']],async v=>{v.valor=+v.valor||0;if(v.valor<=0)throw new Error('Informe um valor maior que zero.');v.servico_id=x.id;const {error}=await supabase.from('ametec_pagamentos').insert(v);if(error)throw error})
+      const x=data.servicos.find(s=>s.id===b.dataset.pay);if(x)openPaymentForm(x)
     });
   };
   draw();
@@ -798,6 +870,7 @@ async function duplicateService(id){
       responsavel:x.responsavel||null,
       valor_servico:+x.valor_servico||0,
       valor_material:+x.valor_material||0,
+      material_fornecimento:x.material_fornecimento||null,
       valor_adicional:+x.valor_adicional||0,
       descricao_valor_adicional:x.descricao_valor_adicional||null,
       tipo_valor_adicional:x.tipo_valor_adicional||null,
@@ -900,7 +973,7 @@ function editService(id){
     e.preventDefault();
     try{
       const v=Object.fromEntries(new FormData(form));
-      const optionalKeys=['orcamento_data_envio','orcamento_validade','data_agendada','responsavel','progresso','valor_servico','valor_material','valor_adicional','descricao_valor_adicional','vencimento_pagamento','proxima_acao','proxima_acao_data','descricao'];
+      const optionalKeys=['orcamento_data_envio','orcamento_validade','data_agendada','responsavel','progresso','valor_servico','valor_material','material_fornecimento','valor_adicional','descricao_valor_adicional','tipo_valor_adicional','vencimento_pagamento','proxima_acao','proxima_acao_data','descricao'];
       for(const k of optionalKeys)if(!(k in v))v[k]=null;
       for(const k of ['progresso','valor_servico','valor_material','valor_adicional'])v[k]=v[k]===null?0:(+v[k]||0);
 
@@ -979,7 +1052,7 @@ function newService(){
     },
     values:{
       title:'💰 Valores',
-      html:`<label class="field"><span>Valor do serviço</span><input name="valor_servico" type="number" min="0" step="0.01" placeholder="0,00"></label><label class="field"><span>Valor de material</span><input name="valor_material" type="number" min="0" step="0.01" placeholder="0,00"></label>`
+      html:`<label class="field"><span>Valor do serviço</span><input name="valor_servico" type="number" min="0" step="0.01" placeholder="0,00"></label><label class="field"><span>Valor de material</span><input name="valor_material" type="number" min="0" step="0.01" placeholder="0,00"></label><label class="field full"><span>Fornecimento do material</span><select name="material_fornecimento"><option value="AMETEC compra para o serviço">AMETEC compra para o serviço — valor a recuperar</option><option value="Estoque AMETEC">Estoque AMETEC — venda de material</option><option value="Cliente compra">Cliente compra — não entra no financeiro AMETEC</option></select></label>`
     },
     additional_value:{
       title:'➕ Valor adicional',
@@ -1079,17 +1152,90 @@ function colaboradores(){
   document.querySelector('#add').onclick=()=>openForm('Novo colaborador',[['nome','Nome','text'],['funcao','Função','text'],['telefone','Telefone','text'],['tipo_pagamento','Pagamento','select',['diária','hora','mensal','valor fechado']],['valor_base','Valor base','number'],['ativo','Ativo?','select',[{value:'true',label:'Sim'},{value:'false',label:'Não'}]]],async v=>{v.valor_base=+v.valor_base||0;v.ativo=v.ativo==='true';const {error}=await supabase.from('ametec_colaboradores').insert(v);if(error)throw error})
 }
 function financeiro(){
-  const total=data.servicos.reduce((s,x)=>s+serviceValues(x).total,0);
+  const summaries=data.servicos.map(x=>({x,p:paySummary(x),c:data.clientes.find(a=>a.id===x.cliente_id)}));
+  const totalBalance=summaries.reduce((s,r)=>s+r.p.balance,0);
+  const serviceBalance=summaries.reduce((s,r)=>s+r.p.serviceBalance,0);
+  const materialBalance=summaries.reduce((s,r)=>s+r.p.materialBalance,0);
   const received=data.pagamentos.reduce((s,x)=>s+(+x.valor||0),0);
-  const balance=Math.max(total-received,0);
-  const overdue=data.servicos.reduce((s,x)=>{const p=paySummary(x);return s+(p.state==='Vencido'?p.balance:0)},0);
+  const overdue=summaries.reduce((s,r)=>s+(r.p.state==='Vencido'?r.p.balance:0),0);
+
   document.querySelector('#app').innerHTML=`
-    <section class="hero"><div class="hero-grid"><div><div class="eyebrow">CONTROLE FINANCEIRO</div><h2>Recebimentos AMETEC</h2><p>Acompanhe o que foi pago, quando foi pago e o que ainda falta receber.</p></div></div></section>
-    <div class="metrics">${card('Faturado',money(total))}${card('Recebido',money(received))}${card('A receber',money(balance))}${card('Vencido',money(overdue))}</div>
-    <section class="panel"><div class="panel-head"><div><h3>Serviços e recebimentos</h3><small>Histórico financeiro por atendimento</small></div></div><div class="cards">
-      ${data.servicos.map(x=>{const c=data.clientes.find(a=>a.id===x.cliente_id),p=paySummary(x),pays=data.pagamentos.filter(a=>a.servico_id===x.id).sort((a,b)=>(b.data_pagamento||'').localeCompare(a.data_pagamento||''));const pc=p.state==='Pago'?'done':p.state==='Vencido'?'late':p.state==='Parcial'?'run':'';const vals=serviceValues(x);return `<article class="entity"><div class="entity-head"><div><b>${esc(x.titulo)}</b><small>${esc(c?.nome_fantasia||'Sem cliente')}</small></div><span class="status ${pc}">${p.state}</span></div><div class="entity-body"><div class="entity-grid"><div><span>Serviço</span><b>${money(vals.service)}</b></div><div><span>Material</span><b>${money(vals.material)}</b></div><div><span>Total</span><b>${money(p.total)}</b></div></div><div class="entity-grid"><div><span>Recebido</span><b>${money(p.received)}</b></div><div><span>Saldo</span><b>${money(p.balance)}</b></div><div><span>Adicional</span><b>${vals.additional?money(vals.additional):'—'}</b></div></div>${(+x.valor_adicional||0)>0?`<div class="pending-line"><span>${esc(x.descricao_valor_adicional||'Valor adicional')}</span><b>+${money(x.valor_adicional)}</b></div>`:''}${pays.length?`<div style="display:grid;gap:5px"><small style="font-weight:800;color:#5f6f80">PAGAMENTOS</small>${pays.slice(0,4).map(pg=>`<div class="pending-line"><span>${date(pg.data_pagamento)} • ${esc(pg.forma_pagamento||'Não informado')}</span><b>${money(pg.valor)}</b></div>`).join('')}</div>`:'<small style="color:#82909f">Nenhum pagamento registrado.</small>'}<div class="actions"><button class="btn primary" data-fin-pay="${x.id}">+ Pagamento</button></div></div></article>`}).join('')||'<div class="empty">Sem serviços financeiros.</div>'}
-    </div></section>`;
-  document.querySelectorAll('[data-fin-pay]').forEach(b=>b.onclick=()=>{const x=data.servicos.find(s=>s.id===b.dataset.finPay);openForm('Registrar pagamento — '+x.titulo,[['data_pagamento','Data do pagamento','date'],['valor','Valor recebido','number'],['forma_pagamento','Forma de pagamento','select',['PIX','Dinheiro','Cartão','Transferência','Boleto','Outro']],['observacoes','Observações','textarea']],async v=>{v.valor=+v.valor||0;if(v.valor<=0)throw new Error('Informe um valor maior que zero.');v.servico_id=x.id;const {error}=await supabase.from('ametec_pagamentos').insert(v);if(error)throw error})})
+    <section class="hero"><div class="hero-grid"><div><div class="eyebrow">CONTROLE FINANCEIRO</div><h2>Recebimentos AMETEC</h2><p>Veja claramente o que falta receber de serviço, material e cada atendimento.</p></div></div></section>
+
+    <div class="finance-summary">
+      <div class="finance-kpi primary"><span>A receber total</span><b>${money(totalBalance)}</b><small>valor que ainda precisa entrar</small></div>
+      <div class="finance-kpi"><span>A receber • serviços</span><b>${money(serviceBalance)}</b><small>mão de obra e adicionais de serviço</small></div>
+      <div class="finance-kpi"><span>A receber • materiais</span><b>${money(materialBalance)}</b><small>material fornecido pela AMETEC</small></div>
+      <div class="finance-kpi"><span>Recebido</span><b>${money(received)}</b><small>${overdue>0?'Vencido: '+money(overdue):'Nenhum valor vencido'}</small></div>
+    </div>
+
+    <section class="panel">
+      <div class="panel-head"><div><h3>Histórico financeiro por atendimento</h3><small>Cada cartão mostra a composição real da cobrança e os pagamentos.</small></div></div>
+      <div class="finance-tools"><input id="financeSearch" placeholder="🔎 Buscar serviço ou cliente"></div>
+      <div id="financeCards" class="finance-grid" style="margin-top:12px"></div>
+    </section>`;
+
+  const draw=(q='')=>{
+    q=q.trim().toLowerCase();
+    const rows=summaries.filter(r=>!q||[r.x.titulo,r.c?.nome_fantasia,r.x.tipo].filter(Boolean).join(' ').toLowerCase().includes(q))
+      .sort((a,b)=>{
+        const ao=a.p.state==='Vencido'?0:a.p.balance>0?1:2,bo=b.p.state==='Vencido'?0:b.p.balance>0?1:2;
+        if(ao!==bo)return ao-bo;
+        return b.p.balance-a.p.balance;
+      });
+
+    document.querySelector('#financeCards').innerHTML=rows.map(({x,p,c})=>{
+      const vals=p.values;
+      const pays=data.pagamentos.filter(a=>a.servico_id===x.id).sort((a,b)=>(b.data_pagamento||'').localeCompare(a.data_pagamento||''));
+      const pc=p.state==='Pago'?'done':p.state==='Vencido'?'late':p.state==='Parcial'?'run':'';
+      const mode=vals.materialMode||'Sem material';
+      const materialInfo=mode==='Cliente compra'
+        ?'Cliente compra • '+money(vals.materialQuoted)+' não entra no A receber'
+        :mode==='Estoque AMETEC'
+          ?'Estoque AMETEC • venda de material'
+          :mode==='AMETEC compra para o serviço'
+            ?'AMETEC compra • valor a recuperar'
+            :'Sem fornecimento de material';
+      return `<article class="finance-card">
+        <div class="finance-card-head">
+          <div><b>${esc(x.titulo)}</b><small>${esc(c?.nome_fantasia||'Sem cliente')} • ${esc(x.tipo||'Serviço')}</small></div>
+          <span class="status ${pc}">${p.state}</span>
+        </div>
+        <div class="finance-card-body">
+          <div class="finance-balance">
+            <div><span>Saldo total</span><b>${money(p.balance)}</b></div>
+            <div><span>Serviço a receber</span><b>${money(p.serviceBalance)}</b></div>
+            <div><span>Material a receber</span><b>${money(p.materialBalance)}</b></div>
+          </div>
+
+          <div class="finance-composition">
+            <div><span>Serviço contratado</span><b>${money(vals.service)}</b></div>
+            <div><span>Material cobrado</span><b>${money(vals.material)}</b></div>
+            <div><span>Total AMETEC</span><b>${money(vals.total)}</b></div>
+          </div>
+
+          <div class="material-mode">📦 ${esc(materialInfo)}</div>
+
+          ${(+x.valor_adicional||0)>0?`<div class="pending-line"><span>Adicional • ${esc(x.descricao_valor_adicional||'Sem descrição')} • ${esc(x.tipo_valor_adicional||'Serviço')}</span><b>+${money(x.valor_adicional)}</b></div>`:''}
+
+          ${p.legacyReceived>0?`<div class="finance-legacy-note">⚠ ${money(p.legacyReceived)} em pagamentos antigos sem categoria. Para cálculo do saldo, o sistema abate esse valor primeiro de materiais e depois de serviços.</div>`:''}
+
+          <div class="finance-history">
+            <div class="finance-history-title">PAGAMENTOS</div>
+            ${pays.length?pays.slice(0,4).map(pg=>`<div class="finance-history-row"><span>${date(pg.data_pagamento)} • ${esc(pg.forma_pagamento||'Não informado')} • ${esc(pg.categoria||'Geral')}</span><b>${money(pg.valor)}</b></div>`).join(''):'<small style="color:#82909f">Nenhum pagamento registrado.</small>'}
+          </div>
+
+          <div class="actions"><button class="btn primary" data-fin-pay="${x.id}">+ Registrar pagamento</button><button class="btn secondary icon-btn" data-fin-edit="${x.id}" title="Editar serviço">✏️</button></div>
+        </div>
+      </article>`;
+    }).join('')||'<div class="empty">Nenhum atendimento financeiro encontrado.</div>';
+
+    document.querySelectorAll('[data-fin-pay]').forEach(b=>b.onclick=()=>{const x=data.servicos.find(s=>s.id===b.dataset.finPay);if(x)openPaymentForm(x)});
+    document.querySelectorAll('[data-fin-edit]').forEach(b=>b.onclick=()=>editService(b.dataset.finEdit));
+  };
+
+  draw();
+  document.querySelector('#financeSearch').oninput=e=>draw(e.target.value);
 }
 function relatorios(){
   const total=data.servicos.length,done=data.servicos.filter(x=>x.status==='Concluído').length,em=data.servicos.filter(x=>x.status==='Em execução').length,urgent=data.servicos.filter(x=>x.prioridade==='Emergencial').length;
@@ -1138,6 +1284,30 @@ supabase.auth.onAuthStateChange(async(_,s)=>{session=s;if(session){showApp();awa
 .pending-col:nth-child(4){border-top:3px solid #00aef0}
 .pending-col:nth-child(5){border-top:3px solid #9aa9b5}
 .pending-col:nth-child(6){border-top:3px solid #38d996}
+</style>
+
+<style id="ametec-finance-v2">
+.finance-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:16px 0}
+.finance-summary .finance-kpi{background:#091b27;border:1px solid #18445b;border-radius:14px;padding:16px;min-width:0}
+.finance-kpi span{display:block;color:#88a6b8;font-size:10px;text-transform:uppercase;letter-spacing:.06em}
+.finance-kpi b{display:block;color:#f5fbff;font-size:24px;margin-top:7px}.finance-kpi small{display:block;color:#7895a6;margin-top:4px;font-size:10px}
+.finance-kpi.primary{border-color:#1976a1;background:linear-gradient(135deg,#0a2231,#0b2c40)}
+.finance-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.finance-card{background:#0a1b27;border:1px solid #183e52;border-radius:15px;overflow:hidden;min-width:0}
+.finance-card-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;padding:15px;border-bottom:1px solid #17384b}
+.finance-card-head b{display:block;font-size:15px}.finance-card-head small{display:block;color:#86a1b2;margin-top:3px}
+.finance-card-body{padding:14px;display:grid;gap:12px}
+.finance-balance{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:8px}
+.finance-balance>div,.finance-composition>div{background:#071720;border:1px solid #17384b;border-radius:10px;padding:10px;min-width:0}
+.finance-balance span,.finance-composition span{display:block;color:#7894a5;font-size:9px;text-transform:uppercase}.finance-balance b{display:block;font-size:18px;margin-top:4px}.finance-composition b{display:block;font-size:13px;margin-top:3px}
+.finance-composition{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.material-mode{padding:8px 10px;border-radius:9px;background:#0c2532;border:1px solid #1b536d;color:#abd9ef;font-size:10px;font-weight:700}
+.finance-history{display:grid;gap:6px}.finance-history-title{font-size:9px;color:#7995a6;font-weight:900;letter-spacing:.05em}
+.finance-history-row{display:flex;justify-content:space-between;gap:10px;padding:8px 9px;background:#071720;border-radius:8px;font-size:10px}.finance-history-row span{color:#8da8b8}.finance-history-row b{white-space:nowrap}
+.finance-legacy-note{font-size:9px;color:#d7b56d;padding:7px 9px;border:1px dashed #6a5320;border-radius:8px;background:#211b0d}
+.finance-tools{display:flex;gap:8px;align-items:center}.finance-tools input{flex:1;min-width:0;background:#071720;border:1px solid #17384b;color:#eefaff;border-radius:10px;padding:10px}
+@media(max-width:1000px){.finance-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.finance-grid{grid-template-columns:1fr}}
+@media(max-width:600px){.finance-summary{grid-template-columns:1fr 1fr}.finance-kpi b{font-size:18px}.finance-balance{grid-template-columns:1fr}.finance-composition{grid-template-columns:1fr 1fr}.finance-grid{gap:10px}}
 </style>
 </body>
 </html>
