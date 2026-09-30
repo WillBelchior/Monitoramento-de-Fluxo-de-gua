@@ -707,9 +707,14 @@ function pendencias(){
     <div class="metrics">
       ${card('Elaborando orçamento',data.servicos.filter(x=>x.atendimento_status==='Elaborando orçamento').length)}
       ${card('Aguardando aprovação',data.servicos.filter(x=>x.atendimento_status==='Aguardando aprovação').length)}
-      ${card('Orçamentos aprovados',data.servicos.filter(x=>x.atendimento_status==='Orçamento aprovado').length)}
-      ${card('Serviços a receber',money(data.servicos.reduce((s,x)=>s+paySummary(x).serviceBalance,0)))}
+      ${card('Prestações ativas',data.servicos.filter(x=>x.tipo==='Prestação de serviço'&&x.atendimento_status!=='Concluída').length)}
+      ${card('Prestação a receber',money(data.servicos.filter(x=>x.tipo==='Prestação de serviço').reduce((s,x)=>s+paySummary(x).serviceBalance,0)))}
       ${card('Materiais a receber',money(data.servicos.reduce((s,x)=>s+paySummary(x).materialBalance,0)))}
+    </div>
+    <div class="pending-class-tabs">
+      <button class="active" data-pending-class="todos">Todos</button>
+      <button data-pending-class="prestacao">🤝 Prestação de serviço</button>
+      <button data-pending-class="avulsos">🔧 Serviços avulsos</button>
     </div>
     <div id="financeManagementAlerts"></div>
     <section class="panel">
@@ -726,9 +731,12 @@ function pendencias(){
       (overdueAlerts.length?`<div class="management-alert danger"><span style="font-size:22px">🔴</span><div><strong>${overdueAlerts.length} pagamento(s) vencido(s)</strong><small>Serviços: ${money(overdueAlerts.reduce((s,x)=>s+x.payment.serviceBalance,0))} • Materiais: ${money(overdueAlerts.reduce((s,x)=>s+x.payment.materialBalance,0))}</small></div><button class="btn secondary" data-finance-filter="overdue">Ver</button></div>`:'')+
       (pendingAlerts.length?`<div class="management-alert warn"><span style="font-size:22px">⚠</span><div><strong>${pendingAlerts.length} serviço(s) concluído(s) aguardando pagamento</strong><small>Serviços: ${money(pendingAlerts.reduce((s,x)=>s+x.payment.serviceBalance,0))} • Materiais: ${money(pendingAlerts.reduce((s,x)=>s+x.payment.materialBalance,0))}</small></div><button class="btn secondary" data-finance-filter="pending">Ver</button></div>`:'');
   }
+  let pendingClass='todos';
   const draw=(query='')=>{
     const q=query.trim().toLowerCase();
     const rows=sortByPriority(data.servicos.filter(x=>{
+      if(pendingClass==='prestacao'&&x.tipo!=='Prestação de serviço')return false;
+      if(pendingClass==='avulsos'&&x.tipo==='Prestação de serviço')return false;
       const c=data.clientes.find(a=>a.id===x.cliente_id);
       return !q||[x.titulo,x.tipo,x.responsavel,x.orcamento_status,x.proxima_acao,c?.nome_fantasia].filter(Boolean).join(' ').toLowerCase().includes(q);
     }));
@@ -753,8 +761,8 @@ function pendencias(){
     if(metrics.length>=5){
       metrics[0].textContent=data.servicos.filter(x=>x.atendimento_status==='Elaborando orçamento').length;
       metrics[1].textContent=data.servicos.filter(x=>x.atendimento_status==='Aguardando aprovação').length;
-      metrics[2].textContent=data.servicos.filter(x=>x.atendimento_status==='Orçamento aprovado').length;
-      metrics[3].textContent=money(data.servicos.reduce((s,x)=>s+paySummary(x).serviceBalance,0));
+      metrics[2].textContent=data.servicos.filter(x=>x.tipo==='Prestação de serviço'&&x.atendimento_status!=='Concluída').length;
+      metrics[3].textContent=money(data.servicos.filter(x=>x.tipo==='Prestação de serviço').reduce((s,x)=>s+paySummary(x).serviceBalance,0));
       metrics[4].textContent=money(data.servicos.reduce((s,x)=>s+paySummary(x).materialBalance,0));
     }
     renderFinanceAlert();
@@ -861,6 +869,11 @@ function pendencias(){
     bindPending();
   });
   document.querySelector('#pendingSearch').oninput=e=>draw(e.target.value);
+  document.querySelectorAll('[data-pending-class]').forEach(b=>b.onclick=()=>{
+    pendingClass=b.dataset.pendingClass;
+    document.querySelectorAll('[data-pending-class]').forEach(x=>x.classList.toggle('active',x===b));
+    draw(document.querySelector('#pendingSearch').value);
+  });
   document.querySelector('#newPending').onclick=newService;
 }
 function clientes(){
@@ -1051,7 +1064,7 @@ window.openClientMaterials=id=>{
   document.querySelector('#ctxBackDetail').onclick=()=>openClientDetail(id);
 };
 function serviceAreaIcon(type){
-  const map={'Automação':'🤖','Máquina de padaria':'🥖','Instalação elétrica':'⚡','Comando elétrico':'🎛️','Preventiva':'🛠️','Contrato':'📋','Emergência':'🚨'};
+  const map={'Automação':'🤖','Máquina de padaria':'🥖','Instalação elétrica':'⚡','Comando elétrico':'🎛️','Preventiva':'🛠️','Contrato':'📋','Prestação de serviço':'🤝','Emergência':'🚨'};
   return map[type]||'📁';
 }
 function openServiceFolder(type){serviceFolderType=type;serviceDetailId=null;page='servicos';render()}
@@ -1778,7 +1791,7 @@ function editService(id){
     <div id="serviceEquipmentPicker" class="service-equipment-box"></div>
     <label class="field"><span>Título</span><input name="titulo" type="text" required value="${esc(x.titulo||'')}"></label>
 
-    <label class="field"><span>Tipo</span><select name="tipo">${opts(['Emergência','Preventiva','Contrato','Instalação elétrica','Automação','Comando elétrico','Máquina de padaria','Outro'],x.tipo)}</select></label>
+    <label class="field"><span>Tipo</span><select name="tipo">${opts(['Emergência','Preventiva','Contrato','Prestação de serviço','Instalação elétrica','Automação','Comando elétrico','Máquina de padaria','Outro'],x.tipo)}</select></label>
     <label class="field"><span>Prioridade</span><select name="prioridade">${opts(['Emergencial','Alta','Média','Baixa'],x.prioridade)}</select></label>
 
     <label class="field"><span>Etapa do atendimento</span><select name="atendimento_status">${opts(['Elaborando orçamento','Aguardando aprovação','Orçamento aprovado','Em andamento','Pausada','Concluída'],x.atendimento_status)}</select></label>
@@ -1894,7 +1907,7 @@ function newService(){
     <div id="serviceEquipmentPicker" class="service-equipment-box"></div>
     <label class="field"><span>Título</span><input name="titulo" type="text" required placeholder="Ex.: Manutenção no quadro principal"></label>
 
-    <label class="field"><span>Tipo</span><select name="tipo">${opts(['Emergência','Preventiva','Contrato','Instalação elétrica','Automação','Comando elétrico','Máquina de padaria','Outro'])}</select></label>
+    <label class="field"><span>Tipo</span><select name="tipo">${opts(['Emergência','Preventiva','Contrato','Prestação de serviço','Instalação elétrica','Automação','Comando elétrico','Máquina de padaria','Outro'])}</select></label>
     <label class="field"><span>Prioridade</span><select name="prioridade">${opts(['Emergencial','Alta','Média','Baixa'])}</select></label>
 
     <label class="field"><span>Etapa do atendimento</span><select name="atendimento_status">${opts(['Elaborando orçamento','Aguardando aprovação','Orçamento aprovado','Em andamento','Pausada','Concluída'])}</select></label>
@@ -2229,13 +2242,55 @@ function financeiro(){
 
   document.querySelector('#app').innerHTML=`
     <section class="hero"><div class="hero-grid"><div><div class="eyebrow">CONTROLE FINANCEIRO</div><h2>Financeiro AMETEC</h2><p>Recebimentos por atendimento e extrato completo de entradas e saídas.</p></div></div></section>
-    <div class="subtabs"><button data-fin-tab="atendimentos">Atendimentos</button><button data-fin-tab="extrato">Extrato</button></div>
+    <div class="subtabs"><button data-fin-tab="atendimentos">Atendimentos</button><button data-fin-tab="prestacoes">🤝 Prestações de serviço</button><button data-fin-tab="extrato">Extrato</button></div>
     <div id="financeContent"></div>`;
 
   const renderTab=()=>{
     document.querySelectorAll('[data-fin-tab]').forEach(b=>b.classList.toggle('active',b.dataset.finTab===tab));
     const root=document.querySelector('#financeContent');
-    if(tab==='extrato'){
+    if(tab==='prestacoes'){
+      const rows=summaries.filter(r=>r.x.tipo==='Prestação de serviço');
+      const balance=rows.reduce((s,r)=>s+r.p.serviceBalance,0);
+      const receivedRows=rows.reduce((s,r)=>s+r.p.serviceReceived,0);
+      const overdueRows=rows.reduce((s,r)=>s+(r.p.state==='Vencido'?r.p.serviceBalance:0),0);
+      root.innerHTML=`
+        <div class="finance-summary">
+          <div class="finance-kpi primary"><span>Prestação a receber</span><b>${money(balance)}</b><small>saldo das prestações de serviço</small></div>
+          <div class="finance-kpi"><span>Recebido</span><b>${money(receivedRows)}</b><small>recebimentos registrados</small></div>
+          <div class="finance-kpi"><span>Vencido</span><b>${money(overdueRows)}</b><small>prestações com vencimento ultrapassado</small></div>
+          <div class="finance-kpi"><span>Contratos / prestações</span><b>${rows.length}</b><small>registros ativos e históricos</small></div>
+        </div>
+        <section class="panel">
+          <div class="panel-head"><div><h3>Prestações de serviço</h3><small>Cobranças recorrentes e contratos de atendimento técnico.</small></div><button class="btn primary" id="newServiceProvision">+ Prestação</button></div>
+          <div class="finance-tools"><input id="provisionSearch" placeholder="🔎 Buscar cliente ou prestação"></div>
+          <div id="provisionCards" class="finance-grid" style="margin-top:12px"></div>
+        </section>`;
+      const drawProvision=(q='')=>{
+        q=q.trim().toLowerCase();
+        const filtered=rows.filter(r=>!q||[r.x.titulo,r.c?.nome_fantasia].filter(Boolean).join(' ').toLowerCase().includes(q));
+        document.querySelector('#provisionCards').innerHTML=filtered.map(({x,p,c})=>{
+          const pc=p.state==='Pago'?'done':p.state==='Vencido'?'late':p.state==='Parcial'?'run':'';
+          return `<article class="finance-card">
+            <div class="finance-card-head"><div><b>🤝 ${esc(x.titulo)}</b><small>${esc(c?.nome_fantasia||'Sem cliente')} • Prestação de serviço</small></div><span class="status ${pc}">${p.state}</span></div>
+            <div class="finance-card-body">
+              <div class="finance-balance">
+                <div><span>Valor contratado</span><b>${money(serviceValues(x).service)}</b></div>
+                <div><span>A receber</span><b>${money(p.serviceBalance)}</b></div>
+                <div><span>Recebido</span><b>${money(p.serviceReceived)}</b></div>
+              </div>
+              <div class="pending-line"><span>Vencimento</span><b>${date(x.vencimento_pagamento)}</b></div>
+              <div class="pending-line"><span>Situação</span><b>${esc(p.state)}</b></div>
+              <div class="actions"><button class="btn primary" data-prov-pay="${x.id}">+ Registrar pagamento</button><button class="btn secondary" data-prov-edit="${x.id}">✏️ Editar</button></div>
+            </div>
+          </article>`;
+        }).join('')||'<div class="empty">Nenhuma prestação de serviço cadastrada.</div>';
+        document.querySelectorAll('[data-prov-pay]').forEach(b=>b.onclick=()=>{const x=data.servicos.find(s=>s.id===b.dataset.provPay);if(x)openPaymentForm(x)});
+        document.querySelectorAll('[data-prov-edit]').forEach(b=>b.onclick=()=>editService(b.dataset.provEdit));
+      };
+      document.querySelector('#provisionSearch').oninput=e=>drawProvision(e.target.value);
+      document.querySelector('#newServiceProvision').onclick=()=>newService();
+      drawProvision();
+    }else if(tab==='extrato'){
       const paymentRows=data.pagamentos.map(pg=>{const s=data.servicos.find(x=>x.id===pg.servico_id),c=data.clientes.find(x=>x.id===s?.cliente_id);return {kind:'Entrada',date:pg.data_pagamento,value:+pg.valor||0,desc:s?.titulo||'Recebimento',detail:[c?.nome_fantasia,pg.forma_pagamento,pg.categoria&&pg.categoria!=='Geral'?pg.categoria:null].filter(Boolean).join(' • '),source:'payment',id:pg.id}});
       const manualRows=data.movimentacoes.map(m=>{const s=data.servicos.find(x=>x.id===m.servico_id);return {kind:m.tipo,date:m.data_movimentacao,value:+m.valor||0,desc:m.descricao,detail:[m.categoria,m.forma_pagamento,s?.titulo].filter(Boolean).join(' • '),source:'manual',id:m.id}});
       const all=[...paymentRows,...manualRows].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
@@ -2275,7 +2330,7 @@ function financeiro(){
       const draw=(q='')=>{
         q=q.trim().toLowerCase();
         const rows=summaries.filter(r=>!q||[r.x.titulo,r.c?.nome_fantasia,r.x.tipo].filter(Boolean).join(' ').toLowerCase().includes(q)).sort((a,b)=>{const ao=a.p.state==='Vencido'?0:a.p.balance>0?1:2,bo=b.p.state==='Vencido'?0:b.p.balance>0?1:2;if(ao!==bo)return ao-bo;return b.p.balance-a.p.balance});
-        document.querySelector('#financeCards').innerHTML=rows.map(({x,p,c})=>{const vals=p.values,pays=data.pagamentos.filter(a=>a.servico_id===x.id).sort((a,b)=>(b.data_pagamento||'').localeCompare(a.data_pagamento||'')),pc=p.state==='Pago'?'done':p.state==='Vencido'?'late':p.state==='Parcial'?'run':'',mode=vals.materialMode||'Sem material';const materialInfo=mode==='Cliente compra'?'Cliente compra • '+money(vals.materialQuoted)+' não entra no A receber':mode==='Estoque AMETEC'?'Estoque AMETEC • venda de material':mode==='AMETEC compra para o serviço'?'AMETEC compra • valor a recuperar':'Sem fornecimento de material';return `<article class="finance-card"><div class="finance-card-head"><div><b>${esc(x.titulo)}</b><small>${esc(c?.nome_fantasia||'Sem cliente')} • ${esc(x.tipo||'Serviço')}</small></div><span class="status ${pc}">${p.state}</span></div><div class="finance-card-body"><div class="finance-balance"><div><span>Saldo total</span><b>${money(p.balance)}</b></div><div><span>Serviço a receber</span><b>${money(p.serviceBalance)}</b></div><div><span>Material a receber</span><b>${money(p.materialBalance)}</b></div></div><div class="finance-composition"><div><span>Serviço contratado</span><b>${money(vals.service)}</b></div><div><span>Material cobrado</span><b>${money(vals.material)}</b></div><div><span>Total AMETEC</span><b>${money(vals.total)}</b></div></div><div class="material-mode">📦 ${esc(materialInfo)} ${infoTip(mode==='Cliente compra'?'O material é adquirido pelo próprio cliente e não compõe o valor a receber da AMETEC.':mode==='Estoque AMETEC'?'O material já pertence à AMETEC e é tratado como venda de material da empresa.':'A AMETEC compra o material para executar o serviço e o valor é tratado como material a recuperar do cliente.')}</div>${data.adicionais.filter(a=>a.servico_id===x.id).map(a=>`<div class="pending-line"><span>Adicional • ${esc(a.descricao||'Sem descrição')}</span><b>Serviço ${money(a.valor_servico)} • Material ${money(a.valor_material)}</b></div>`).join('')}<div class="finance-history"><div class="finance-history-title">MOVIMENTAÇÕES</div>${pays.length?pays.slice(0,4).map(pg=>`<div class="finance-history-row"><span>🟢 Entrada • ${date(pg.data_pagamento)} • ${esc(pg.forma_pagamento||'Não informado')}${pg.categoria&&pg.categoria!=='Geral'?' • '+esc(pg.categoria):''}</span><b>+${money(pg.valor)}</b></div>`).join(''):'<small style="color:#82909f">Nenhuma movimentação registrada.</small>'}</div><div class="actions"><button class="btn primary" data-fin-pay="${x.id}">+ Registrar pagamento</button><button class="btn secondary icon-btn" data-fin-edit="${x.id}" title="Editar serviço">✏️</button></div></div></article>`}).join('')||'<div class="empty">Nenhum atendimento financeiro encontrado.</div>';
+        document.querySelector('#financeCards').innerHTML=rows.map(({x,p,c})=>{const vals=p.values,pays=data.pagamentos.filter(a=>a.servico_id===x.id).sort((a,b)=>(b.data_pagamento||'').localeCompare(a.data_pagamento||'')),pc=p.state==='Pago'?'done':p.state==='Vencido'?'late':p.state==='Parcial'?'run':'',mode=vals.materialMode||'Sem material';const materialInfo=mode==='Cliente compra'?'Cliente compra • '+money(vals.materialQuoted)+' não entra no A receber':mode==='Estoque AMETEC'?'Estoque AMETEC • venda de material':mode==='AMETEC compra para o serviço'?'AMETEC compra • valor a recuperar':'Sem fornecimento de material';return `<article class="finance-card"><div class="finance-card-head"><div><b>${esc(x.titulo)}</b><small>${esc(c?.nome_fantasia||'Sem cliente')} • ${esc(x.tipo||'Serviço')}${x.tipo==='Prestação de serviço'?' • 🤝 Recorrente':''}</small></div><span class="status ${pc}">${p.state}</span></div><div class="finance-card-body"><div class="finance-balance"><div><span>Saldo total</span><b>${money(p.balance)}</b></div><div><span>Serviço a receber</span><b>${money(p.serviceBalance)}</b></div><div><span>Material a receber</span><b>${money(p.materialBalance)}</b></div></div><div class="finance-composition"><div><span>Serviço contratado</span><b>${money(vals.service)}</b></div><div><span>Material cobrado</span><b>${money(vals.material)}</b></div><div><span>Total AMETEC</span><b>${money(vals.total)}</b></div></div><div class="material-mode">📦 ${esc(materialInfo)} ${infoTip(mode==='Cliente compra'?'O material é adquirido pelo próprio cliente e não compõe o valor a receber da AMETEC.':mode==='Estoque AMETEC'?'O material já pertence à AMETEC e é tratado como venda de material da empresa.':'A AMETEC compra o material para executar o serviço e o valor é tratado como material a recuperar do cliente.')}</div>${data.adicionais.filter(a=>a.servico_id===x.id).map(a=>`<div class="pending-line"><span>Adicional • ${esc(a.descricao||'Sem descrição')}</span><b>Serviço ${money(a.valor_servico)} • Material ${money(a.valor_material)}</b></div>`).join('')}<div class="finance-history"><div class="finance-history-title">MOVIMENTAÇÕES</div>${pays.length?pays.slice(0,4).map(pg=>`<div class="finance-history-row"><span>🟢 Entrada • ${date(pg.data_pagamento)} • ${esc(pg.forma_pagamento||'Não informado')}${pg.categoria&&pg.categoria!=='Geral'?' • '+esc(pg.categoria):''}</span><b>+${money(pg.valor)}</b></div>`).join(''):'<small style="color:#82909f">Nenhuma movimentação registrada.</small>'}</div><div class="actions"><button class="btn primary" data-fin-pay="${x.id}">+ Registrar pagamento</button><button class="btn secondary icon-btn" data-fin-edit="${x.id}" title="Editar serviço">✏️</button></div></div></article>`}).join('')||'<div class="empty">Nenhum atendimento financeiro encontrado.</div>';
         document.querySelectorAll('[data-fin-pay]').forEach(b=>b.onclick=()=>{const x=data.servicos.find(s=>s.id===b.dataset.finPay);if(x)openPaymentForm(x)});document.querySelectorAll('[data-fin-edit]').forEach(b=>b.onclick=()=>editService(b.dataset.finEdit));
       };
       draw();document.querySelector('#financeSearch').oninput=e=>draw(e.target.value);
@@ -2858,6 +2913,27 @@ supabase.auth.onAuthStateChange(async(_,s)=>{session=s;if(session){showApp();awa
   .liquid-progress{height:26px}
   .liquid-progress-head{font-size:12px}
   .liquid-progress-head b{font-size:13px}
+}
+</style>
+<style id="service-provision-v1">
+.pending-class-tabs{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+.pending-class-tabs button{
+  border:1px solid #234a5d;
+  background:#091923;
+  color:#a7c0cc;
+  border-radius:10px;
+  padding:9px 12px;
+  font-weight:800;
+  cursor:pointer;
+}
+.pending-class-tabs button.active{
+  background:#0f3549;
+  border-color:#2d87aa;
+  color:#ffffff;
 }
 </style>
 </body>
