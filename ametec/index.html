@@ -1469,21 +1469,28 @@ function setupServiceComposition(form,serviceId=null){
   const addList=form.querySelector('#additionalValuesList');
 
   const bindPicker=(root,selection,onChange)=>{
+    const refreshPickerMeta=()=>{
+      const count=root.querySelector('.composition-count');
+      const total=root.querySelector('.material-picker-foot b');
+      if(count)count.textContent=Object.keys(selection).length;
+      if(total)total.textContent=money(materialCatalogTotal(selection));
+      if(onChange)onChange();
+    };
     root.querySelectorAll('[data-mat-check]').forEach(ch=>ch.onchange=()=>{
       const id=ch.dataset.materialId,qty=root.querySelector('[data-mat-qty][data-material-id="'+id+'"]');
       if(ch.checked){selection[id]=+qty.value||1;qty.disabled=false}else{delete selection[id];qty.disabled=true}
-      onChange();
+      refreshPickerMeta();
     });
     root.querySelectorAll('[data-mat-qty]').forEach(q=>q.oninput=()=>{
       const id=q.dataset.materialId,ch=root.querySelector('[data-mat-check][data-material-id="'+id+'"]');
-      if(ch?.checked){selection[id]=+q.value||1;onChange()}
+      if(ch?.checked){selection[id]=+q.value||1;refreshPickerMeta()}
     });
   };
 
   const renderBase=()=>{
     if(!baseBox)return;
     baseBox.innerHTML='<details><summary>📦 Selecionar materiais cadastrados <span class="composition-count">'+Object.keys(form._baseMaterials).length+'</span></summary>'+materialPickerHtml(form._baseMaterials,'base')+'<div class="material-picker-foot"><span>Total selecionado: <b>'+money(materialCatalogTotal(form._baseMaterials))+'</b></span><button type="button" class="btn secondary" id="useBaseMaterialTotal">Usar no valor de material</button></div></details>';
-    bindPicker(baseBox,form._baseMaterials,renderBase);
+    bindPicker(baseBox,form._baseMaterials,null);
     const use=baseBox.querySelector('#useBaseMaterialTotal');
     if(use)use.onclick=()=>{
       const input=form.querySelector('[name="valor_material"]');
@@ -1495,17 +1502,23 @@ function setupServiceComposition(form,serviceId=null){
 
   const renderAdds=()=>{
     if(!addList)return;
+    const openIndexes=[...addList.querySelectorAll('[data-add-index]')].map((card,i)=>card.querySelector('details')?.open?i:null).filter(i=>i!==null);
     addList.innerHTML=form._additionalDrafts.map((a,i)=>'<article class="additional-value-card" data-add-index="'+i+'"><div class="additional-value-head"><b>Adicional '+(i+1)+'</b><button type="button" class="btn danger icon-btn" data-remove-add="'+i+'" title="Remover">×</button></div><label class="field full"><span>Descrição</span><input data-add-field="descricao" value="'+esc(a.descricao)+'" placeholder="Ex.: Fabricação e instalação do painel de comando"></label><div class="additional-money-grid"><label class="field"><span>Valor de serviço</span><input data-add-field="valor_servico" type="number" min="0" step="0.01" value="'+(a.valor_servico||0)+'"></label><label class="field"><span>Valor de material</span><input data-add-field="valor_material" type="number" min="0" step="0.01" value="'+(a.valor_material||0)+'"></label></div><details class="additional-materials"><summary>📦 Materiais cadastrados <span class="composition-count">'+Object.keys(a.materials||{}).length+'</span></summary>'+materialPickerHtml(a.materials||{},'add'+i)+'<div class="material-picker-foot"><span>Total selecionado: <b>'+money(materialCatalogTotal(a.materials||{}))+'</b></span><button type="button" class="btn secondary" data-use-add-material="'+i+'">Usar no valor de material</button></div></details></article>').join('')||'<div class="composition-empty">Nenhum valor adicional. Use “+ Adicionar valor” quando surgir algo além do orçamento principal.</div>';
     addList.querySelectorAll('[data-add-index]').forEach(card=>{
       const i=+card.dataset.addIndex,a=form._additionalDrafts[i];
+      const details=card.querySelector('details');
+      if(details&&openIndexes.includes(i))details.open=true;
       card.querySelectorAll('[data-add-field]').forEach(inp=>inp.oninput=()=>{a[inp.dataset.addField]=inp.dataset.addField==='descricao'?inp.value:(+inp.value||0)});
-      bindPicker(card,a.materials,renderAdds);
+      bindPicker(card,a.materials,null);
     });
     addList.querySelectorAll('[data-remove-add]').forEach(b=>b.onclick=()=>{form._additionalDrafts.splice(+b.dataset.removeAdd,1);renderAdds()});
     addList.querySelectorAll('[data-use-add-material]').forEach(b=>b.onclick=()=>{
       const i=+b.dataset.useAddMaterial,a=form._additionalDrafts[i];
       a.valor_material=materialCatalogTotal(a.materials||{});
-      renderAdds();toast('Valor dos materiais aplicado ao adicional');
+      const card=addList.querySelector('[data-add-index="'+i+'"]');
+      const input=card?.querySelector('[data-add-field="valor_material"]');
+      if(input)input.value=a.valor_material.toFixed(2);
+      toast('Valor dos materiais aplicado ao adicional');
     });
   };
 
