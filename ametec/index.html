@@ -1216,11 +1216,21 @@ function financeiro(){
             <div><span>Total AMETEC</span><b>${money(vals.total)}</b></div>
           </div>
 
-          <div class="material-mode">📦 ${esc(materialInfo)} ${infoTip(mode==='Cliente compra'?'O material é adquirido pelo próprio cliente e não compõe o valor a receber da AMETEC.':mode==='Estoque AMETEC'?'O material já pertence à AMETEC e é tratado como venda de material da empresa.':'A AMETEC compra o material para executar o serviço e o valor é tratado como material a recuperar do cliente.')}</div>
+          <div class="material-mode">📦 ${esc(materialInfo)} ${infoTip(
+            (mode==='Cliente compra'
+              ?'O material é adquirido pelo próprio cliente e não compõe o valor a receber da AMETEC.'
+              :mode==='Estoque AMETEC'
+                ?'O material já pertence à AMETEC e é tratado como venda de material da empresa.'
+                :'A AMETEC compra o material para executar o serviço e o valor é tratado como material a recuperar do cliente.'
+            )+
+            (p.legacyReceived>0
+              ?'\n\nPagamento antigo sem categoria: '+money(p.legacyReceived)+'. Para manter o histórico, esse valor é abatido primeiro do saldo de materiais e depois do saldo de serviços.'
+              :'')
+          )}</div>
 
           ${(+x.valor_adicional||0)>0?`<div class="pending-line"><span>Adicional • ${esc(x.descricao_valor_adicional||'Sem descrição')} • ${esc(x.tipo_valor_adicional||'Serviço')}</span><b>+${money(x.valor_adicional)}</b></div>`:''}
 
-          ${p.legacyReceived>0?`<div class="finance-legacy-note">⚠ ${money(p.legacyReceived)} em pagamentos antigos sem categoria. Para cálculo do saldo, o sistema abate esse valor primeiro de materiais e depois de serviços.</div>`:''}
+          
 
           <div class="finance-history">
             <div class="finance-history-title">PAGAMENTOS</div>
