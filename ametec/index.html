@@ -528,7 +528,7 @@ function pendingCard(x){
           ${['Não iniciado','Em elaboração','Enviado','Aguardando resposta','Aprovado','Recusado','Expirado'].map(v=>`<option ${v===(x.orcamento_status||'Não iniciado')?'selected':''}>${v}</option>`).join('')}
         </select>
       </div>
-      ${data.adicionais.filter(a=>a.servico_id===x.id).map(a=>`<div class="pending-line"><span>➕ ${esc(a.descricao||'Valor adicional')}</span><b>S ${money(a.valor_servico)} • M ${money(a.valor_material)}</b></div>`).join('')}
+      ${data.adicionais.filter(a=>a.servico_id===x.id).map(a=>`<div class="pending-line"><span>➕ ${esc(a.descricao||'Valor adicional')}</span><b>Serviço ${money(a.valor_servico)} • Material ${money(a.valor_material)}</b></div>`).join('')}
       <div class="pending-fin">
         <div class="pending-fin-sub"><span>Serviço a receber</span><b>${money(p.serviceBalance)}</b></div>
         <div class="pending-fin-sub"><span>Material a receber</span><b>${money(p.materialBalance)}</b></div>
@@ -945,7 +945,7 @@ window.openClientServices=id=>{
         <div class="client-context-main"><b>${esc(s.titulo)}</b><small>${esc(s.tipo||'Serviço')} • ${esc(s.atendimento_status||s.status||'—')}${eq?' • ⚙️ '+esc(eq.nome):''}</small></div>
         <div class="client-context-cell"><span>Prioridade</span><b>${esc(s.prioridade||'—')}</b></div>
         <div class="client-context-cell"><span>Entrega</span><b>${date(s.previsao_entrega||s.data_agendada)}</b></div>
-        <div class="client-context-cell"><span>A receber</span><b>S ${money(p.serviceBalance)}<br>M ${money(p.materialBalance)}</b></div>
+        <div class="client-context-cell"><span>A receber</span><b>Serviço ${money(p.serviceBalance)}<br>Material ${money(p.materialBalance)}</b></div>
       </article>`
     }).join('')||'<div class="empty">Nenhum serviço deste cliente.</div>';
     bindServiceDetailLinks();
@@ -1133,7 +1133,7 @@ function servicos(){
           <div class="service-row-title"><b>${esc(x.titulo)}</b><small>🏭 ${esc(c?.nome_fantasia||'Sem cliente')} • ${esc(x.atendimento_status||x.status||'—')}</small></div>
           <div class="service-row-cell"><span>Prioridade</span><b>${esc(x.prioridade||'—')}</b></div>
           <div class="service-row-cell"><span>Entrega</span><b>${date(x.previsao_entrega||x.data_agendada)}</b></div>
-          <div class="service-row-cell"><span>A receber</span><b>S ${money(p.serviceBalance)}<br>M ${money(p.materialBalance)}</b></div>
+          <div class="service-row-cell"><span>A receber</span><b>Serviço ${money(p.serviceBalance)}<br>Material ${money(p.materialBalance)}</b></div>
         </article>`
       }).join('')||'<div class="empty">Nenhum serviço encontrado nesta pasta.</div>';
       bindServiceDetailLinks();
