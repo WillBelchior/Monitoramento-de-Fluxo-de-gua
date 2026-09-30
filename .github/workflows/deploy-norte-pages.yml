@@ -1,4 +1,5 @@
 name: Deploy Norte to GitHub Pages
+# GitHub + Supabase deployment for Norte
 
 on:
   push:
