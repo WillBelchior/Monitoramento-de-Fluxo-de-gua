@@ -1061,6 +1061,15 @@ function serviceFolderBack(){serviceDetailId=null;render()}
 function bindServiceDetailLinks(){
   document.querySelectorAll('[data-open-service-detail]').forEach(el=>el.onclick=e=>{if(e.target.closest('button'))return;openServiceDetailPage(el.dataset.openServiceDetail)});
 }
+function liquidProgressBar(value,label='Progresso do serviço'){
+  const p=Math.max(0,Math.min(100,+value||0));
+  return `<div class="liquid-progress-wrap">
+    <div class="liquid-progress-head"><span>${esc(label)}</span><b>${p}%</b></div>
+    <div class="liquid-progress" style="--percent:${p}">
+      <div class="liquid-progress-fill"><span>${p}%</span></div>
+    </div>
+  </div>`;
+}
 function renderServiceDetail(id){
   const x=data.servicos.find(s=>s.id===id);if(!x){serviceDetailId=null;return servicos()}
   const c=data.clientes.find(a=>a.id===x.cliente_id);
@@ -1094,6 +1103,7 @@ function renderServiceDetail(id){
           <div class="service-detail-metric"><span>Serviço a receber</span><b>${money(p.serviceBalance)}</b></div>
           <div class="service-detail-metric"><span>Material a receber</span><b>${money(p.materialBalance)}</b></div>
         </div>
+        <div style="margin-top:14px">${liquidProgressBar(x.progresso||0)}</div>
       </section>
 
       <div class="service-detail-columns">
@@ -1103,7 +1113,6 @@ function renderServiceDetail(id){
             <div class="service-detail-lines">
               ${detailLine('Responsável',esc(x.responsavel||'—'))}
               ${detailLine('Próxima ação',esc(x.proxima_acao||'—'))}
-              ${detailLine('Progresso',(x.progresso||0)+'%')}
               ${detailLine('Situação do orçamento',esc(x.orcamento_status||'—'))}
               ${detailLine('Equipamento',esc(eq?equipmentLabel(eq):'Sem equipamento vinculado'))}
             </div>
@@ -2759,6 +2768,96 @@ supabase.auth.onAuthStateChange(async(_,s)=>{session=s;if(session){showApp();awa
     min-height:220px!important;
     font-size:16px!important;
   }
+}
+</style>
+<style id="liquid-progress-v1">
+.liquid-progress-wrap{
+  display:grid;
+  gap:8px;
+}
+.liquid-progress-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  font-size:12px;
+  color:#a9c3d0;
+}
+.liquid-progress-head b{
+  color:#ffffff;
+  font-size:14px;
+}
+.liquid-progress{
+  --percent:0;
+  position:relative;
+  width:100%;
+  height:24px;
+  border-radius:999px;
+  overflow:hidden;
+  background:#041018;
+  border:1px solid #1c4357;
+  box-shadow:inset 0 0 12px rgba(0,0,0,.35);
+}
+.liquid-progress-fill{
+  position:absolute;
+  inset:0 auto 0 0;
+  width:calc(var(--percent) * 1%);
+  min-width:0;
+  border-radius:999px;
+  overflow:hidden;
+  background:linear-gradient(90deg,#139fd9 0%,#20bcea 48%,#37d79b 100%);
+  box-shadow:0 0 16px rgba(32,188,234,.28);
+  transition:width .55s ease;
+}
+.liquid-progress-fill::before,
+.liquid-progress-fill::after{
+  content:"";
+  position:absolute;
+  border-radius:42%;
+  background:rgba(255,255,255,.16);
+  pointer-events:none;
+}
+.liquid-progress-fill::before{
+  width:46px;
+  height:46px;
+  right:-12px;
+  top:-19px;
+  animation:liquidWave 3.2s linear infinite;
+}
+.liquid-progress-fill::after{
+  width:34px;
+  height:34px;
+  right:5px;
+  top:-11px;
+  opacity:.55;
+  animation:liquidWave 2.5s linear infinite reverse;
+}
+.liquid-progress-fill span{
+  position:absolute;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:0 8px;
+  white-space:nowrap;
+  font-size:11px;
+  font-weight:900;
+  color:#ffffff;
+  text-shadow:0 1px 2px rgba(0,0,0,.4);
+}
+@keyframes liquidWave{
+  from{transform:rotate(0deg)}
+  to{transform:rotate(360deg)}
+}
+@media(prefers-reduced-motion:reduce){
+  .liquid-progress-fill{transition:none}
+  .liquid-progress-fill::before,
+  .liquid-progress-fill::after{animation:none}
+}
+@media(max-width:700px){
+  .liquid-progress{height:26px}
+  .liquid-progress-head{font-size:12px}
+  .liquid-progress-head b{font-size:13px}
 }
 </style>
 </body>
