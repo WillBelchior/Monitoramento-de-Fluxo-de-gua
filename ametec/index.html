@@ -293,7 +293,7 @@ const money=v=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).
 const date=v=>v?new Date(v+'T12:00:00').toLocaleDateString('pt-BR'):'—';
 const esc=s=>String(s??'').replace(/[&<>'"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[m]));
 function sanitizeServicePayload(v){
-  const dateFields=['orcamento_data_envio','orcamento_validade','data_agendada','vencimento_pagamento','proxima_acao_data','data_conclusao'];
+  const dateFields=['orcamento_data_envio','orcamento_validade','data_agendada','vencimento_pagamento','proxima_acao_data','data_conclusao','data_inicio_execucao','previsao_entrega'];
   const nullableText=['responsavel','proxima_acao','descricao','descricao_valor_adicional','tipo_valor_adicional'];
   dateFields.forEach(k=>{if(k in v&&(v[k]===''||v[k]===undefined))v[k]=null});
   nullableText.forEach(k=>{if(k in v&&typeof v[k]==='string'&&!v[k].trim())v[k]=null});
@@ -592,8 +592,8 @@ function serviceCard(x){
         ${x.responsavel?`<span class="service-chip">👷 ${esc(x.responsavel)}</span>`:''}
       </div>
       <div class="service-mini-info">
-        <div><span>Agenda</span><b>${date(x.data_agendada)}</b></div>
-        <div><span>Progresso</span><b>${x.progresso||0}%</b></div>
+        <div><span>Início</span><b>${date(x.data_inicio_execucao||x.data_agendada)}</b></div>
+        <div><span>Entrega</span><b>${date(x.previsao_entrega)}</b></div>
         <div><span>Valor</span><b>${money(serviceValues(x).total)}</b></div>
         <div><span>A receber</span><b>${money(p.balance)}</b></div>
       </div>
@@ -1289,6 +1289,7 @@ function editService(id){
         <option value="">Selecione uma informação...</option>
         <option value="budget_dates">📅 Datas do orçamento</option>
         <option value="schedule">🗓️ Agendamento</option>
+        <option value="execution_period">⏱️ Prazo de execução</option>
         <option value="responsible">👤 Responsável</option>
         <option value="progress">📊 Progresso</option>
         <option value="values">💰 Valores</option><option value="additional_value">➕ Valor adicional</option>
@@ -1306,6 +1307,7 @@ function editService(id){
   const blocks={
     budget_dates:{title:'📅 Datas do orçamento',html:`<label class="field"><span>Data de envio</span><input name="orcamento_data_envio" type="date" value="${esc(x.orcamento_data_envio||'')}"></label><label class="field"><span>Validade</span><input name="orcamento_validade" type="date" value="${esc(x.orcamento_validade||'')}"></label>`},
     schedule:{title:'🗓️ Agendamento',html:`<label class="field"><span>Data agendada</span><input name="data_agendada" type="date" value="${esc(x.data_agendada||'')}"></label><label class="field"><span>Horário</span><input name="horario_agendado" type="time" value="${esc(x.horario_agendado||'')}"></label>`},
+    execution_period:{title:'⏱️ Prazo de execução',html:`<label class="field"><span>Data de início do serviço</span><input name="data_inicio_execucao" type="date" value="${esc(x.data_inicio_execucao||'')}"></label><label class="field"><span>Previsão de entrega</span><input name="previsao_entrega" type="date" value="${esc(x.previsao_entrega||'')}"></label>`},
     responsible:{title:'👤 Responsável',html:`<label class="field full"><span>Responsável</span><input name="responsavel" type="text" value="${esc(x.responsavel||'')}" placeholder="Ex.: Técnico responsável"></label>`},
     progress:{title:'📊 Progresso',html:`<label class="field full"><span>Progresso (%)</span><input name="progresso" type="number" min="0" max="100" step="5" value="${+x.progresso||0}"></label>`},
     values:{title:'💰 Valores',html:`<label class="field"><span>Valor do serviço</span><input name="valor_servico" type="number" min="0" step="0.01" value="${+x.valor_servico||0}"></label><label class="field"><span>Valor de material</span><input name="valor_material" type="number" min="0" step="0.01" value="${+x.valor_material||0}"></label>`},
@@ -1329,6 +1331,7 @@ function editService(id){
 
   if(has('orcamento_data_envio','orcamento_validade'))addBlock('budget_dates');
   if(has('data_agendada','horario_agendado'))addBlock('schedule');
+  if(has('data_inicio_execucao','previsao_entrega'))addBlock('execution_period');
   if(has('responsavel'))addBlock('responsible');
   if((+x.progresso||0)>0)addBlock('progress');
   if((+x.valor_servico||0)>0||(+x.valor_material||0)>0)addBlock('values');
@@ -1345,7 +1348,7 @@ function editService(id){
     try{
       const v=Object.fromEntries(new FormData(form));
       v.equipamento_id=v.equipamento_id||null;
-      const optionalKeys=['orcamento_data_envio','orcamento_validade','data_agendada','horario_agendado','responsavel','progresso','valor_servico','valor_material','material_fornecimento','valor_adicional','descricao_valor_adicional','tipo_valor_adicional','vencimento_pagamento','proxima_acao','proxima_acao_data','descricao'];
+      const optionalKeys=['orcamento_data_envio','orcamento_validade','data_agendada','horario_agendado','data_inicio_execucao','previsao_entrega','responsavel','progresso','valor_servico','valor_material','material_fornecimento','valor_adicional','descricao_valor_adicional','tipo_valor_adicional','vencimento_pagamento','proxima_acao','proxima_acao_data','descricao'];
       for(const k of optionalKeys)if(!(k in v))v[k]=null;
       for(const k of ['progresso','valor_servico','valor_material','valor_adicional'])v[k]=v[k]===null?0:(+v[k]||0);
 
@@ -1393,6 +1396,7 @@ function newService(){
           <option value="">Selecione uma informação...</option>
           <option value="budget_dates">📅 Datas do orçamento</option>
           <option value="schedule">🗓️ Agendamento</option>
+          <option value="execution_period">⏱️ Prazo de execução</option>
           <option value="responsible">👤 Responsável</option>
           <option value="progress">📊 Progresso</option>
           <option value="values">💰 Valores</option>
@@ -1417,6 +1421,10 @@ function newService(){
     schedule:{
       title:'🗓️ Agendamento',
       html:`<label class="field"><span>Data agendada</span><input name="data_agendada" type="date"></label><label class="field"><span>Horário</span><input name="horario_agendado" type="time"></label>`
+    },
+    execution_period:{
+      title:'⏱️ Prazo de execução',
+      html:`<label class="field"><span>Data de início do serviço</span><input name="data_inicio_execucao" type="date"></label><label class="field"><span>Previsão de entrega</span><input name="previsao_entrega" type="date"></label>`
     },
     responsible:{
       title:'👤 Responsável',
@@ -1515,6 +1523,8 @@ function agenda(){
     const c=data.clientes.find(a=>a.id===s.cliente_id);
     const base={service:s,client:c};
     if(s.data_agendada)agendaEvents.push({...base,date:s.data_agendada,time:s.horario_agendado||'',type:'schedule',label:'Serviço agendado',icon:'🔧'});
+    if(s.data_inicio_execucao)agendaEvents.push({...base,date:s.data_inicio_execucao,time:'',type:'execution-start',label:'Início da execução',icon:'▶️'});
+    if(s.previsao_entrega)agendaEvents.push({...base,date:s.previsao_entrega,time:'',type:'execution-delivery',label:'Previsão de entrega',icon:'🎯'});
     if(s.orcamento_data_envio)agendaEvents.push({...base,date:s.orcamento_data_envio,time:'',type:'budget-sent',label:'Orçamento enviado',icon:'📤'});
     if(s.orcamento_validade)agendaEvents.push({...base,date:s.orcamento_validade,time:'',type:'budget-validity',label:'Validade do orçamento',icon:'⏳'});
     if(s.vencimento_pagamento)agendaEvents.push({...base,date:s.vencimento_pagamento,time:'',type:'payment',label:'Vencimento financeiro',icon:'💰'});
@@ -1748,7 +1758,7 @@ supabase.auth.onAuthStateChange(async(_,s)=>{session=s;if(session){showApp();awa
 .statement-toolbar,.calendar-toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.statement-toolbar input,.statement-toolbar select,.calendar-toolbar select{background:#071720;border:1px solid #17384b;color:#eefaff;border-radius:9px;padding:9px}
 .statement-list{display:grid;gap:8px}.statement-row{display:grid;grid-template-columns:110px 1fr auto auto;gap:10px;align-items:center;background:#081821;border:1px solid #17384b;border-radius:10px;padding:10px}.statement-row.entry{border-left:4px solid #38d996}.statement-row.exit{border-left:4px solid #ff6b6b}.statement-row small{color:#8da8b8}.statement-row b{white-space:nowrap}.statement-balance{font-size:12px;color:#b7cbd6}
 .calendar-shell{display:grid;gap:12px}.calendar-head{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}.calendar-nav{display:flex;gap:9px;align-items:center}.calendar-nav button{height:36px}.calendar-nav #calPrev,.calendar-nav #calNext{width:36px;padding:0}.calendar-nav #calToday{min-width:74px;padding:0 14px;white-space:nowrap}
-.calendar-month{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}.calendar-weekday{font-size:10px;text-transform:uppercase;color:#819cac;padding:5px 3px;text-align:center}.calendar-day{min-height:108px;background:#081821;border:1px solid #17384b;border-radius:10px;padding:7px;display:grid;align-content:start;gap:5px}.calendar-day.muted{opacity:.35}.calendar-day.today{border-color:#2d93bd;box-shadow:0 0 0 1px rgba(45,147,189,.2)}.calendar-date{font-size:11px;font-weight:900;color:#dff6ff}.calendar-event{border-radius:7px;padding:6px 7px;font-size:10px;line-height:1.25;background:#0d3043;border-left:3px solid #35b9f0;color:#dff5ff}.calendar-event.done{background:#0d2c22;border-left-color:#38d996}.calendar-event.past{background:#252016;border-left-color:#d0a64b}.calendar-event.now{background:#102e43;border-left-color:#20c8ff}.calendar-event.smalltype{font-size:9px}.calendar-event.type-schedule{border-left-color:#35b9f0}.calendar-event.type-budget-sent{border-left-color:#8f7cff}.calendar-event.type-budget-validity{border-left-color:#b884ff}.calendar-event.type-payment{border-left-color:#ffb347}.calendar-event.type-next-action{border-left-color:#ffd65a}.calendar-event.type-completion{border-left-color:#38d996}.calendar-event small{display:block;color:#9bb6c7;margin-top:2px;font-size:9px}
+.calendar-month{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}.calendar-weekday{font-size:10px;text-transform:uppercase;color:#819cac;padding:5px 3px;text-align:center}.calendar-day{min-height:108px;background:#081821;border:1px solid #17384b;border-radius:10px;padding:7px;display:grid;align-content:start;gap:5px}.calendar-day.muted{opacity:.35}.calendar-day.today{border-color:#2d93bd;box-shadow:0 0 0 1px rgba(45,147,189,.2)}.calendar-date{font-size:11px;font-weight:900;color:#dff6ff}.calendar-event{border-radius:7px;padding:6px 7px;font-size:10px;line-height:1.25;background:#0d3043;border-left:3px solid #35b9f0;color:#dff5ff}.calendar-event.done{background:#0d2c22;border-left-color:#38d996}.calendar-event.past{background:#252016;border-left-color:#d0a64b}.calendar-event.now{background:#102e43;border-left-color:#20c8ff}.calendar-event.smalltype{font-size:9px}.calendar-event.type-schedule{border-left-color:#35b9f0}.calendar-event.type-execution-start{border-left-color:#44d48a}.calendar-event.type-execution-delivery{border-left-color:#ff8f45}.calendar-event.type-budget-sent{border-left-color:#8f7cff}.calendar-event.type-budget-validity{border-left-color:#b884ff}.calendar-event.type-payment{border-left-color:#ffb347}.calendar-event.type-next-action{border-left-color:#ffd65a}.calendar-event.type-completion{border-left-color:#38d996}.calendar-event small{display:block;color:#9bb6c7;margin-top:2px;font-size:9px}
 .calendar-week{display:grid;grid-template-columns:repeat(7,minmax(150px,1fr));gap:8px;overflow-x:auto;padding-bottom:8px}.calendar-week-col{background:#081821;border:1px solid #17384b;border-radius:10px;padding:8px;min-height:250px}.calendar-week-col h4{margin:0 0 8px;font-size:11px;color:#b9d3e2}
 .calendar-day-view{display:grid;gap:8px}.calendar-day-card{background:#081821;border:1px solid #17384b;border-radius:10px;padding:11px}.calendar-day-card.done{border-left:4px solid #38d996}.calendar-day-card.past{border-left:4px solid #d0a64b}.calendar-day-card.future{border-left:4px solid #35b9f0}
 @media(max-width:700px){.statement-row{grid-template-columns:1fr auto}.statement-row .statement-date,.statement-row .statement-balance{grid-column:1/-1}.calendar-month{grid-template-columns:repeat(7,minmax(92px,1fr));overflow-x:auto}.calendar-day{min-height:96px}.calendar-shell{overflow:hidden}}
