@@ -303,7 +303,7 @@ let data={perfil:null,clientes:[],clienteContatos:[],servicos:[],equipamentos:[]
 const pages=[['dashboard','Centro','⚡'],['pendencias','Pendências','📋'],['clientes','Clientes','🏭'],['servicos','Serviços','🔧'],['agenda','Agenda','📅'],['equipamentos','Equipamentos','⚙️'],['materiais','Materiais','📦'],['colaboradores','Colaboradores','👷'],['financeiro','Financeiro','💰'],['relatorios','Relatórios','📊']];
 const status=s=>{const c=['Concluído','Operacional','Ativo'].includes(s)?'done':['Em execução','Em manutenção','Planejado'].includes(s)?'run':['Emergencial','Alta'].includes(s)?'high':'';return '<span class="status '+c+'">'+esc(s||'—')+'</span>'};
 const card=(l,v,s='')=>'<div class="metric"><span>'+l+'</span><b>'+v+'</b><small>'+s+'</small></div>';
-const infoTip=(t,alert=false)=>'<span class="info-wrap"><button type="button" class="info-btn '+(alert?'legacy-info':'')+'" data-info-btn aria-label="Mais informações">ⓘ</button><span class="info-popover">'+esc(t)+'</span></span>';
+const infoTip=t=>'<span class="info-wrap"><button type="button" class="info-btn" data-info-btn aria-label="Mais informações">ⓘ</button><span class="info-popover">'+esc(t)+'</span></span>';
 function priorityRank(p){return ({'Emergencial':0,'Alta':1,'Média':2,'Baixa':3})[p]??9}
 function sortByPriority(rows){
   return [...rows].sort((a,b)=>{
@@ -1227,26 +1227,16 @@ function financeiro(){
               :mode==='Estoque AMETEC'
                 ?'O material já pertence à AMETEC e é tratado como venda de material da empresa.'
                 :'A AMETEC compra o material para executar o serviço e o valor é tratado como material a recuperar do cliente.'
-            )+
-            (p.legacyReceived>0
-              ?'\n\nPagamento antigo sem categoria: '+money(p.legacyReceived)+'. Para manter o histórico, esse valor é abatido primeiro do saldo de materiais e depois do saldo de serviços.'
-              :''),
-            p.legacyReceived>0
+            )
           )}</div>
 
           ${(+x.valor_adicional||0)>0?`<div class="pending-line"><span>Adicional • ${esc(x.descricao_valor_adicional||'Sem descrição')} • ${esc(x.tipo_valor_adicional||'Serviço')}</span><b>+${money(x.valor_adicional)}</b></div>`:''}
 
           
 
-          ${p.legacyReceived>0?`<div class="legacy-fin-warning">
-            <span style="font-size:17px">⚠</span>
-            <div><strong>Pagamento antigo sem categoria</strong><small>Este atendimento possui histórico financeiro legado. Toque no ⓘ acima para ver como o sistema está distribuindo esse valor.</small></div>
-            <span class="legacy-amount">${money(p.legacyReceived)}</span>
-          </div>`:''}
-
           <div class="finance-history">
-            <div class="finance-history-title">PAGAMENTOS</div>
-            ${pays.length?pays.slice(0,4).map(pg=>`<div class="finance-history-row"><span>${date(pg.data_pagamento)} • ${esc(pg.forma_pagamento||'Não informado')} • ${esc(pg.categoria||'Geral')}</span><b>${money(pg.valor)}</b></div>`).join(''):'<small style="color:#82909f">Nenhum pagamento registrado.</small>'}
+            <div class="finance-history-title">MOVIMENTAÇÕES</div>
+            ${pays.length?pays.slice(0,4).map(pg=>`<div class="finance-history-row"><span>🟢 Entrada • ${date(pg.data_pagamento)} • ${esc(pg.forma_pagamento||'Não informado')}${pg.categoria&&pg.categoria!=='Geral'?' • '+esc(pg.categoria):''}</span><b>+${money(pg.valor)}</b></div>`).join(''):'<small style="color:#82909f">Nenhuma movimentação registrada.</small>'}
           </div>
 
           <div class="actions"><button class="btn primary" data-fin-pay="${x.id}">+ Registrar pagamento</button><button class="btn secondary icon-btn" data-fin-edit="${x.id}" title="Editar serviço">✏️</button></div>
