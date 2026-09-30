@@ -2126,25 +2126,47 @@ supabase.auth.onAuthStateChange(async(_,s)=>{session=s;if(session){showApp();awa
 @media(max-width:700px){.service-folders{grid-template-columns:1fr}.service-row{grid-template-columns:1fr 1fr}.service-row-title{grid-column:1/-1}.service-detail-grid{grid-template-columns:1fr 1fr}.service-detail-title h2{font-size:19px}}
 </style>
 <style id="service-folder-readability">
-.service-folder{padding:18px!important;gap:14px!important}
-.service-folder-icon{font-size:32px!important}
-.service-folder-title b,.service-folder>div>b{font-size:17px!important;line-height:1.25!important}
-.service-folder-count{min-width:30px!important;height:30px!important;font-size:12px!important}
-.service-folder-meta{gap:9px!important}
-.service-folder-meta div{padding:10px 11px!important;border-radius:10px!important}
-.service-folder-meta span{font-size:10px!important;letter-spacing:.02em!important;line-height:1.2!important}
-.service-folder-meta b{font-size:15px!important;margin-top:4px!important;line-height:1.2!important}
+.service-folder{padding:20px!important;gap:16px!important}
+.service-folder-icon{font-size:36px!important}
+.service-folder-title b,.service-folder>div>b{
+  font-size:20px!important;
+  line-height:1.3!important;
+  color:#ffffff!important;
+}
+.service-folder-count{
+  min-width:34px!important;
+  height:34px!important;
+  font-size:14px!important;
+  font-weight:900!important;
+}
+.service-folder-meta{gap:10px!important}
+.service-folder-meta div{
+  padding:12px 13px!important;
+  border-radius:11px!important;
+}
+.service-folder-meta span{
+  font-size:13px!important;
+  letter-spacing:.02em!important;
+  line-height:1.25!important;
+  color:#9fc2d2!important;
+}
+.service-folder-meta b{
+  font-size:20px!important;
+  margin-top:5px!important;
+  line-height:1.2!important;
+  color:#ffffff!important;
+}
 @media(min-width:901px){
-  .service-folder{min-height:150px}
-  .service-folder-title b,.service-folder>div>b{font-size:18px!important}
-  .service-folder-meta span{font-size:11px!important}
-  .service-folder-meta b{font-size:16px!important}
+  .service-folder{min-height:175px}
+  .service-folder-title b,.service-folder>div>b{font-size:21px!important}
+  .service-folder-meta span{font-size:13px!important}
+  .service-folder-meta b{font-size:21px!important}
 }
 @media(max-width:700px){
-  .service-folder{padding:15px!important}
-  .service-folder-title b,.service-folder>div>b{font-size:16px!important}
-  .service-folder-meta span{font-size:10px!important}
-  .service-folder-meta b{font-size:14px!important}
+  .service-folder{padding:17px!important}
+  .service-folder-title b,.service-folder>div>b{font-size:18px!important}
+  .service-folder-meta span{font-size:12px!important}
+  .service-folder-meta b{font-size:18px!important}
 }
 </style>
 </body>
