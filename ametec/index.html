@@ -299,7 +299,7 @@ function sanitizeServicePayload(v){
   nullableText.forEach(k=>{if(k in v&&typeof v[k]==='string'&&!v[k].trim())v[k]=null});
   return v;
 }
-let data={perfil:null,clientes:[],clienteContatos:[],servicos:[],equipamentos:[],materiais:[],colaboradores:[],registros:[],pagamentos:[],movimentacoes:[],orcamentos:[],orcamentoItens:[],lembretes:[],adicionais:[],servicoMateriais:[]},page='dashboard',session=null,channel=null;
+let data={perfil:null,clientes:[],clienteContatos:[],servicos:[],equipamentos:[],materiais:[],colaboradores:[],registros:[],pagamentos:[],movimentacoes:[],orcamentos:[],orcamentoItens:[],lembretes:[],adicionais:[],servicoMateriais:[]},page='dashboard',session=null,channel=null,serviceFolderType=null,serviceDetailId=null;
 const pages=[['dashboard','Centro','⚡'],['pendencias','Pendências','📋'],['clientes','Clientes','🏭'],['servicos','Serviços','🔧'],['agenda','Agenda','📅'],['equipamentos','Equipamentos','⚙️'],['materiais','Materiais','📦'],['colaboradores','Colaboradores','👷'],['financeiro','Financeiro','💰'],['relatorios','Relatórios','📊']];
 const status=s=>{const c=['Concluído','Operacional','Ativo'].includes(s)?'done':['Em execução','Em manutenção','Planejado'].includes(s)?'run':['Emergencial','Alta'].includes(s)?'high':'';return '<span class="status '+c+'">'+esc(s||'—')+'</span>'};
 const card=(l,v,s='')=>'<div class="metric"><span>'+l+'</span><b>'+v+'</b><small>'+s+'</small></div>';
@@ -361,7 +361,7 @@ function initNav(){
   n.innerHTML=pages.map(([k,l,i])=>'<button data-p="'+k+'">'+i+' '+l+'</button>').join('')+'<button id="logout">🚪 Sair</button>';
   const mobile=['dashboard','pendencias','servicos','agenda','clientes'].map(k=>pages.find(x=>x[0]===k));
   b.innerHTML=mobile.map(([k,l,i])=>'<button data-p="'+k+'">'+i+'<br>'+l+'</button>').join('');
-  document.querySelectorAll('[data-p]').forEach(x=>x.onclick=()=>{page=x.dataset.p;document.querySelector('#side').classList.remove('open');render()});
+  document.querySelectorAll('[data-p]').forEach(x=>x.onclick=()=>{const next=x.dataset.p;if(next==='servicos'&&page!=='servicos'){serviceFolderType=null;serviceDetailId=null}page=next;document.querySelector('#side').classList.remove('open');render()});
   document.querySelector('#menu').onclick=()=>document.querySelector('#side').classList.toggle('open');
   document.querySelector('#logout').onclick=()=>supabase.auth.signOut();
   const refreshBtn=document.querySelector('#refreshPage');
@@ -558,7 +558,7 @@ function dashboardTypeCard(x){
   const eq=data.equipamentos.find(e=>e.id===x.equipamento_id);
   const p=paySummary(x);
   const priClass=x.prioridade==='Emergencial'?'priority-emergency':x.prioridade==='Alta'?'priority-high':x.prioridade==='Média'?'priority-medium':'priority-low';
-  return `<article class="dashboard-service-card ${priClass}">
+  return `<article class="dashboard-service-card ${priClass}" data-open-service-detail="${x.id}" style="cursor:pointer">
     <div class="dashboard-service-title">
       <div><b>${esc(x.titulo)}</b><small>🏭 ${esc(c?.nome_fantasia||'Sem cliente')}</small></div>
       ${status(x.status)}
@@ -597,7 +597,7 @@ function dashboard(){
       <section class="panel"><div class="panel-head"><div><h3>Evolução operacional</h3><small>média dos serviços</small></div></div><div class="donut" style="--p:${avg}"><b>${avg}%</b></div></section>
     </div>
     <section class="panel">
-      <div class="panel-head"><div><h3>Serviços por área</h3><small>Kanban organizado pelo tipo de atendimento</small><div class="dashboard-kanban-note">Role horizontalmente para visualizar todas as áreas.</div></div><button class="btn secondary" data-go="servicos">Ver todos</button></div>
+      <div class="panel-head"><div><h3>Serviços por área</h3><div class="dashboard-kanban-note">Role horizontalmente para visualizar todas as áreas.</div></div><button class="btn secondary" data-go="servicos">Ver todos</button></div>
       <div class="dashboard-type-board">
         ${serviceTypes.length?serviceTypes.map(type=>{
           const rows=sortByPriority(data.servicos.filter(x=>(x.tipo||'Outros')===type));
@@ -605,7 +605,8 @@ function dashboard(){
         }).join(''):'<div class="empty">Nenhum serviço cadastrado.</div>'}
       </div>
     </section>`;
-  bindCommon()
+  bindCommon();
+  bindServiceDetailLinks();
 }
 function serviceCard(x,showTotalReceivable=false){
   const c=data.clientes.find(a=>a.id===x.cliente_id);
@@ -925,55 +926,173 @@ function contactForm(clienteId,contactId=null){
   },x)
 }
 window.openClientServices=id=>{page='servicos';render();setTimeout(()=>{const s=document.querySelector('#search');if(s){const c=data.clientes.find(x=>x.id===id);s.value=c?.nome_fantasia||'';s.dispatchEvent(new Event('input'))}},0)}
-function servicos(){
-  const active=data.servicos.filter(x=>x.status==='Em execução').length;
-  const planned=data.servicos.filter(x=>x.status==='Planejado'||x.status==='Novo').length;
-  const completed=data.servicos.filter(x=>x.status==='Concluído').length;
-  const reminders=data.lembretes.filter(x=>!x.concluido).length;
+function serviceAreaIcon(type){
+  const map={'Automação':'🤖','Máquina de padaria':'🥖','Instalação elétrica':'⚡','Comando elétrico':'🎛️','Preventiva':'🛠️','Contrato':'📋','Emergência':'🚨'};
+  return map[type]||'📁';
+}
+function openServiceFolder(type){serviceFolderType=type;serviceDetailId=null;page='servicos';render()}
+function openServiceDetailPage(id){const s=data.servicos.find(x=>x.id===id);if(!s)return;serviceFolderType=s.tipo||'Outros';serviceDetailId=id;page='servicos';render()}
+function serviceFolderHome(){serviceFolderType=null;serviceDetailId=null;render()}
+function serviceFolderBack(){serviceDetailId=null;render()}
+function bindServiceDetailLinks(){
+  document.querySelectorAll('[data-open-service-detail]').forEach(el=>el.onclick=e=>{if(e.target.closest('button'))return;openServiceDetailPage(el.dataset.openServiceDetail)});
+}
+function renderServiceDetail(id){
+  const x=data.servicos.find(s=>s.id===id);if(!x){serviceDetailId=null;return servicos()}
+  const c=data.clientes.find(a=>a.id===x.cliente_id);
+  const eq=data.equipamentos.find(e=>e.id===x.equipamento_id);
+  const p=paySummary(x),vals=serviceValues(x);
+  const adds=data.adicionais.filter(a=>a.servico_id===x.id);
+  const links=data.servicoMateriais.filter(l=>l.servico_id===x.id);
+  const baseLinks=links.filter(l=>!l.adicional_id);
+  const reminders=data.lembretes.filter(r=>r.servico_id===x.id).sort((a,b)=>(+a.concluido)-(+b.concluido)||(b.created_at||'').localeCompare(a.created_at||''));
+  const proposal=data.orcamentos.find(o=>o.servico_id===x.id);
+  const materialName=id=>data.materiais.find(m=>m.id===id)?.descricao||'Material';
+  const detailLine=(label,value)=>'<div class="service-detail-line"><span>'+label+'</span><b>'+value+'</b></div>';
+
   document.querySelector('#app').innerHTML=`
-    <section class="hero"><div class="hero-grid"><div><div class="eyebrow">OPERAÇÕES</div><h2>Serviços</h2><p>Visão compacta dos atendimentos, próxima ação, valores e lembretes operacionais.</p></div><button class="btn primary" id="add">+ Serviço</button></div></section>
-    <div class="services-summary">
-      ${card('Em execução',active)}
-      ${card('Planejados',planned)}
-      ${card('Concluídos',completed)}
-      ${card('Lembretes abertos',reminders)}
-    </div>
+    <div class="service-breadcrumb"><button id="backFolders">Serviços</button><span>›</span><button id="backFolder">${esc(x.tipo||'Outros')}</button><span>›</span><b>${esc(x.titulo)}</b></div>
+    <div class="service-detail-page">
+      <section class="service-detail-hero">
+        <div class="service-detail-title">
+          <div><div class="eyebrow">PÁGINA DO SERVIÇO</div><h2>${esc(x.titulo)}</h2><p>🏭 ${esc(c?.nome_fantasia||'Sem cliente')} • ${esc(x.tipo||'Serviço')}${eq?' • ⚙️ '+esc(eq.nome):''}</p></div>
+          <div class="service-detail-actions">
+            <button class="btn secondary" id="detailEdit">✏️ Editar</button>
+            <button class="btn secondary" id="detailReminder">📝 Lembretes</button>
+            <button class="btn secondary" id="detailProposal">💼 Proposta</button>
+            <button class="btn primary" id="detailPayment">💰 Pagamento</button>
+          </div>
+        </div>
+        <div class="service-detail-grid">
+          <div class="service-detail-metric"><span>Status</span><b>${esc(x.atendimento_status||x.status||'—')}</b></div>
+          <div class="service-detail-metric"><span>Prioridade</span><b>${esc(x.prioridade||'—')}</b></div>
+          <div class="service-detail-metric"><span>Serviço a receber</span><b>${money(p.serviceBalance)}</b></div>
+          <div class="service-detail-metric"><span>Material a receber</span><b>${money(p.materialBalance)}</b></div>
+        </div>
+      </section>
+
+      <div class="service-detail-columns">
+        <div style="display:grid;gap:12px">
+          <section class="service-detail-section"><h3>Descrição e operação</h3>
+            <div class="service-detail-text">${esc(x.descricao||'Nenhuma descrição cadastrada.')}</div>
+            <div class="service-detail-lines">
+              ${detailLine('Responsável',esc(x.responsavel||'—'))}
+              ${detailLine('Próxima ação',esc(x.proxima_acao||'—'))}
+              ${detailLine('Progresso',(x.progresso||0)+'%')}
+              ${detailLine('Situação do orçamento',esc(x.orcamento_status||'—'))}
+              ${detailLine('Equipamento',esc(eq?equipmentLabel(eq):'Sem equipamento vinculado'))}
+            </div>
+          </section>
+
+          <section class="service-detail-section"><h3>Valores do serviço</h3>
+            <div class="service-detail-lines">
+              ${detailLine('Serviço contratado',money(vals.service))}
+              ${detailLine('Material cobrado',money(vals.material))}
+              ${detailLine('Serviço recebido',money(p.serviceReceived))}
+              ${detailLine('Material recebido',money(p.materialReceived))}
+              ${detailLine('Situação financeira',esc(p.state))}
+            </div>
+          </section>
+
+          <section class="service-detail-section"><h3>Valores adicionais</h3>
+            ${adds.length?adds.map(a=>`<div class="detail-addition"><div class="detail-addition-head"><b>${esc(a.descricao||'Valor adicional')}</b></div><div class="detail-addition-values"><span>Serviço: <b>${money(a.valor_servico)}</b></span><span>Material: <b>${money(a.valor_material)}</b></span></div>${links.filter(l=>l.adicional_id===a.id).map(l=>`<div class="detail-material">📦 ${esc(materialName(l.material_id))} • ${l.quantidade} × ${money(l.valor_unitario)}</div>`).join('')}</div>`).join(''):'<div class="empty">Nenhum valor adicional.</div>'}
+          </section>
+
+          <section class="service-detail-section"><h3>Materiais do serviço</h3>
+            ${baseLinks.length?baseLinks.map(l=>`<div class="detail-material">📦 ${esc(materialName(l.material_id))} • ${l.quantidade} × ${money(l.valor_unitario)} • <b>${money((+l.quantidade||0)*(+l.valor_unitario||0))}</b></div>`).join(''):'<div class="empty">Nenhum material vinculado diretamente ao serviço.</div>'}
+          </section>
+        </div>
+
+        <div style="display:grid;gap:12px;align-content:start">
+          <section class="service-detail-section"><h3>Datas</h3><div class="service-detail-lines">
+            ${detailLine('Abertura',date(x.data_abertura))}
+            ${detailLine('Orçamento enviado',date(x.orcamento_data_envio))}
+            ${detailLine('Validade do orçamento',date(x.orcamento_validade))}
+            ${detailLine('Agendamento',date(x.data_agendada)+(x.horario_agendado?' • '+x.horario_agendado.slice(0,5):''))}
+            ${detailLine('Início da execução',date(x.data_inicio_execucao))}
+            ${detailLine('Previsão de entrega',date(x.previsao_entrega))}
+            ${detailLine('Prazo da próxima ação',date(x.proxima_acao_data))}
+            ${detailLine('Vencimento financeiro',date(x.vencimento_pagamento))}
+            ${detailLine('Conclusão',date(x.data_conclusao))}
+          </div></section>
+
+          <section class="service-detail-section"><h3>Lembretes</h3>
+            ${reminders.length?reminders.map(r=>`<div class="detail-reminder ${r.concluido?'done':''}"><span>${r.concluido?'✓':'○'}</span><span>${esc(r.texto)}</span></div>`).join(''):'<div class="empty">Nenhum lembrete.</div>'}
+            <button class="btn secondary" id="detailReminder2">Gerenciar lembretes</button>
+          </section>
+
+          <section class="service-detail-section"><h3>Proposta</h3>
+            <div class="service-detail-text">${proposal?'Proposta estruturada disponível para este serviço.':'Ainda não existe proposta estruturada para este serviço.'}</div>
+            <button class="btn secondary" id="detailProposal2">${proposal?'Abrir proposta':'Criar proposta'}</button>
+          </section>
+        </div>
+      </div>
+    </div>`;
+
+  document.querySelector('#backFolders').onclick=serviceFolderHome;
+  document.querySelector('#backFolder').onclick=serviceFolderBack;
+  document.querySelector('#detailEdit').onclick=()=>editService(id);
+  document.querySelector('#detailReminder').onclick=()=>openServiceReminders(id,()=>load());
+  document.querySelector('#detailReminder2').onclick=()=>openServiceReminders(id,()=>load());
+  document.querySelector('#detailProposal').onclick=()=>openProposal(id);
+  document.querySelector('#detailProposal2').onclick=()=>openProposal(id);
+  document.querySelector('#detailPayment').onclick=()=>openPaymentForm(x);
+}
+function servicos(){
+  if(serviceDetailId)return renderServiceDetail(serviceDetailId);
+
+  if(serviceFolderType){
+    const rows=sortByPriority(data.servicos.filter(x=>(x.tipo||'Outros')===serviceFolderType));
+    document.querySelector('#app').innerHTML=`
+      <div class="service-breadcrumb"><button id="folderHome">Serviços</button><span>›</span><b>${esc(serviceFolderType)}</b></div>
+      <section class="hero"><div class="hero-grid"><div><div class="eyebrow">PASTA DE SERVIÇOS</div><h2>${serviceAreaIcon(serviceFolderType)} ${esc(serviceFolderType)}</h2><p>${rows.length} atendimento(s) nesta área.</p></div><button class="btn primary" id="add">+ Serviço</button></div></section>
+      <section class="panel">
+        <div class="toolbar"><input id="folderSearch" placeholder="🔎 Buscar nesta pasta"></div>
+        <div id="folderRows" class="service-list-rows"></div>
+      </section>`;
+    const draw=()=>{
+      const q=document.querySelector('#folderSearch').value.trim().toLowerCase();
+      const filtered=rows.filter(x=>{
+        const c=data.clientes.find(a=>a.id===x.cliente_id),eq=data.equipamentos.find(e=>e.id===x.equipamento_id);
+        return !q||[x.titulo,x.descricao,x.responsavel,c?.nome_fantasia,eq?.nome].filter(Boolean).join(' ').toLowerCase().includes(q)
+      });
+      document.querySelector('#folderRows').innerHTML=filtered.map(x=>{
+        const c=data.clientes.find(a=>a.id===x.cliente_id),p=paySummary(x);
+        return `<article class="service-row" data-open-service-detail="${x.id}">
+          <div class="service-row-title"><b>${esc(x.titulo)}</b><small>🏭 ${esc(c?.nome_fantasia||'Sem cliente')} • ${esc(x.atendimento_status||x.status||'—')}</small></div>
+          <div class="service-row-cell"><span>Prioridade</span><b>${esc(x.prioridade||'—')}</b></div>
+          <div class="service-row-cell"><span>Entrega</span><b>${date(x.previsao_entrega||x.data_agendada)}</b></div>
+          <div class="service-row-cell"><span>A receber</span><b>S ${money(p.serviceBalance)}<br>M ${money(p.materialBalance)}</b></div>
+        </article>`
+      }).join('')||'<div class="empty">Nenhum serviço encontrado nesta pasta.</div>';
+      bindServiceDetailLinks();
+    };
+    document.querySelector('#folderHome').onclick=serviceFolderHome;
+    document.querySelector('#folderSearch').oninput=draw;
+    document.querySelector('#add').onclick=newService;
+    draw();return;
+  }
+
+  const types=[...new Set(data.servicos.map(x=>x.tipo||'Outros'))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
+  document.querySelector('#app').innerHTML=`
+    <section class="hero"><div class="hero-grid"><div><div class="eyebrow">ARQUIVO TÉCNICO</div><h2>Serviços</h2><p>Escolha uma área para acessar os atendimentos e abra cada serviço em sua página completa.</p></div><button class="btn primary" id="add">+ Serviço</button></div></section>
     <section class="panel">
-      <div class="toolbar"><input id="search" placeholder="🔎 Buscar serviço, cliente, descrição ou responsável"><select id="filter"><option>Todos</option><option>Novo</option><option>Planejado</option><option>Em execução</option><option>Pausado</option><option>Concluído</option></select></div>
-      <div id="list" class="service-grid-compact"></div>
+      <div class="panel-head"><div><h3>Áreas de serviço</h3><small>Organizadas como pastas</small></div></div>
+      <div class="service-folders">
+        ${types.map(type=>{
+          const rows=data.servicos.filter(x=>(x.tipo||'Outros')===type);
+          const active=rows.filter(x=>x.status==='Em execução').length;
+          const done=rows.filter(x=>x.status==='Concluído').length;
+          return `<button class="service-folder" data-service-folder="${esc(type)}">
+            <div class="service-folder-title"><span class="service-folder-icon">${serviceAreaIcon(type)}</span><span class="service-folder-count">${rows.length}</span></div>
+            <div><b>${esc(type)}</b></div>
+            <div class="service-folder-meta"><div><span>Em execução</span><b>${active}</b></div><div><span>Concluídos</span><b>${done}</b></div></div>
+          </button>`
+        }).join('')||'<div class="empty">Nenhum serviço cadastrado.</div>'}
+      </div>
     </section>`;
-
-  const draw=()=>{
-    const q=document.querySelector('#search').value.toLowerCase(),f=document.querySelector('#filter').value;
-    const rows=sortByPriority(data.servicos.filter(x=>{
-      const c=data.clientes.find(a=>a.id===x.cliente_id);
-      const reminderText=data.lembretes.filter(r=>r.servico_id===x.id).map(r=>r.texto).join(' ');
-      const eq=data.equipamentos.find(e=>e.id===x.equipamento_id);
-      return(!q||[x.titulo,x.tipo,x.responsavel,x.descricao,x.proxima_acao,c?.nome_fantasia,eq?.nome,eq?.fabricante,eq?.modelo,reminderText].filter(Boolean).join(' ').toLowerCase().includes(q))&&(f==='Todos'||x.status===f)
-    }));
-    document.querySelector('#list').innerHTML=rows.map(serviceCard).join('')||'<div class="empty">Nenhum serviço encontrado.</div>';
-    bindServices();
-  };
-
-  const bindServices=()=>{
-    document.querySelectorAll('[data-edit-service-list]').forEach(b=>b.onclick=()=>editService(b.dataset.editServiceList));
-    document.querySelectorAll('[data-duplicate-service-list]').forEach(b=>b.onclick=()=>duplicateService(b.dataset.duplicateServiceList));
-    document.querySelectorAll('[data-proposal-service-list]').forEach(b=>b.onclick=()=>openProposal(b.dataset.proposalServiceList));
-    document.querySelectorAll('[data-reminders-service]').forEach(b=>b.onclick=()=>openServiceReminders(b.dataset.remindersService,draw));
-    document.querySelectorAll('[data-delete-service-list]').forEach(b=>b.onclick=async()=>{
-      const id=b.dataset.deleteServiceList,x=data.servicos.find(s=>s.id===id);if(!x)return;
-      const c=data.clientes.find(a=>a.id===x.cliente_id);
-      if(!confirm('Excluir o serviço "'+x.titulo+'" de '+(c?.nome_fantasia||'cliente')+'?\n\nPagamentos, materiais, registros e lembretes vinculados também serão removidos.'))return;
-      const {error}=await supabase.from('ametec_servicos').delete().eq('id',id);
-      if(error)return toast(error.message,true);
-      data.servicos=data.servicos.filter(s=>s.id!==id);data.lembretes=data.lembretes.filter(r=>r.servico_id!==id);draw();renderFinanceAlert();toast('Serviço excluído');
-    });
-  };
-
-  document.querySelector('#search').oninput=draw;
-  document.querySelector('#filter').onchange=draw;
-  draw();
-  document.querySelector('#add').onclick=newService
+  document.querySelectorAll('[data-service-folder]').forEach(b=>b.onclick=()=>openServiceFolder(b.dataset.serviceFolder));
+  document.querySelector('#add').onclick=newService;
 }
 
 async function openServiceReminders(id,afterChange){
@@ -1996,6 +2115,15 @@ supabase.auth.onAuthStateChange(async(_,s)=>{session=s;if(session){showApp();awa
 .dashboard-service-foot{display:grid;grid-template-columns:1fr 1fr;gap:6px}.dashboard-service-foot div{background:#06151d;border-radius:8px;padding:6px}.dashboard-service-foot span{display:block;font-size:7px;text-transform:uppercase;color:#6f8d9d}.dashboard-service-foot b{display:block;font-size:10px;color:#eaf8ff;margin-top:2px}
 .dashboard-kanban-note{font-size:10px;color:#829dab;margin-top:5px}
 @media(max-width:700px){.dashboard-type-col{flex-basis:84vw;min-width:84vw}.dashboard-type-board{scroll-snap-type:x mandatory}}
+</style>
+<style id="service-pages-v2">
+.service-folders{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.service-folder{border:1px solid #17384b;background:#081923;border-radius:15px;padding:16px;cursor:pointer;display:grid;gap:12px;text-align:left;color:#eaf8ff;transition:.15s}.service-folder:hover{border-color:#2f7695;transform:translateY(-1px)}.service-folder-icon{font-size:28px}.service-folder-title{display:flex;justify-content:space-between;gap:8px;align-items:center}.service-folder-title b{font-size:15px}.service-folder-count{background:#103247;color:#bfeeff;border-radius:999px;min-width:28px;height:28px;padding:0 7px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900}.service-folder-meta{display:grid;grid-template-columns:1fr 1fr;gap:7px}.service-folder-meta div{background:#06151d;border-radius:9px;padding:8px}.service-folder-meta span{display:block;font-size:8px;color:#7895a5;text-transform:uppercase}.service-folder-meta b{font-size:11px}
+.service-breadcrumb{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin-bottom:12px}.service-breadcrumb button{border:0;background:transparent;color:#80cbea;font-weight:800;cursor:pointer;padding:4px 0}.service-list-rows{display:grid;gap:8px}.service-row{background:#081923;border:1px solid #17384b;border-radius:12px;padding:11px;display:grid;grid-template-columns:minmax(0,1.5fr) minmax(110px,.7fr) minmax(110px,.7fr) auto;gap:10px;align-items:center;cursor:pointer}.service-row:hover{border-color:#2d6f8d}.service-row-title b{display:block;font-size:13px;color:#eefaff}.service-row-title small{display:block;font-size:9px;color:#86a3b3;margin-top:3px}.service-row-cell span{display:block;font-size:8px;text-transform:uppercase;color:#7894a4}.service-row-cell b{display:block;font-size:11px;color:#e8f7ff;margin-top:2px}
+.service-detail-page{display:grid;gap:14px}.service-detail-hero{background:linear-gradient(135deg,#071b27,#0b3041);border:1px solid #1a485e;border-radius:18px;padding:18px;display:grid;gap:12px}.service-detail-title{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}.service-detail-title h2{margin:0;font-size:24px}.service-detail-title p{margin:5px 0 0;color:#91aebb;font-size:12px}.service-detail-actions{display:flex;gap:7px;flex-wrap:wrap}
+.service-detail-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}.service-detail-metric{background:#06151d;border:1px solid #17384b;border-radius:10px;padding:10px}.service-detail-metric span{display:block;font-size:8px;text-transform:uppercase;color:#7794a4}.service-detail-metric b{display:block;font-size:12px;color:#eefaff;margin-top:3px}
+.service-detail-columns{display:grid;grid-template-columns:1.15fr .85fr;gap:12px}.service-detail-section{background:#081923;border:1px solid #17384b;border-radius:14px;padding:13px;display:grid;gap:10px}.service-detail-section h3{font-size:13px;margin:0;color:#eefaff}.service-detail-text{font-size:11px;line-height:1.55;color:#b9d0dc;white-space:pre-wrap}.service-detail-lines{display:grid;gap:7px}.service-detail-line{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;padding:7px 0;border-bottom:1px solid #122d3b;font-size:10px}.service-detail-line:last-child{border-bottom:0}.service-detail-line span{color:#849fac}.service-detail-line b{color:#eaf8ff;text-align:right}.detail-addition{border:1px solid #1d4053;background:#06151d;border-radius:9px;padding:9px;display:grid;gap:6px}.detail-addition-head{display:flex;justify-content:space-between;gap:8px}.detail-addition-head b{font-size:11px}.detail-addition-values{display:flex;gap:10px;flex-wrap:wrap;font-size:9px;color:#9fb9c7}.detail-material{font-size:10px;color:#b7d1dd;padding:5px 0;border-bottom:1px solid #122d3b}.detail-material:last-child{border-bottom:0}.detail-reminder{display:grid;grid-template-columns:auto 1fr;gap:7px;font-size:10px;color:#c5dce7;padding:6px 0}.detail-reminder.done{opacity:.5;text-decoration:line-through}
+@media(max-width:1050px){.service-folders{grid-template-columns:repeat(2,minmax(0,1fr))}.service-detail-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.service-detail-columns{grid-template-columns:1fr}}
+@media(max-width:700px){.service-folders{grid-template-columns:1fr}.service-row{grid-template-columns:1fr 1fr}.service-row-title{grid-column:1/-1}.service-detail-grid{grid-template-columns:1fr 1fr}.service-detail-title h2{font-size:19px}}
 </style>
 </body>
 </html>
