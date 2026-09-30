@@ -202,9 +202,9 @@
         directionCard('month','Este mês',3),
         directionCard('semester','Este semestre',3)
       ].join('');
-      $('[data-direction]').forEach(card=>card.onclick=()=>{
+      document.querySelectorAll('[data-direction]').forEach(card=>card.onclick=()=>{
         currentHorizon=card.dataset.direction;
-        $('#horizonNav button').forEach(x=>x.classList.toggle('active',x.dataset.h===currentHorizon));
+        document.querySelectorAll('#horizonNav button').forEach(x=>x.classList.toggle('active',x.dataset.h===currentHorizon));
         render();
         document.querySelector('.summary').scrollIntoView({behavior:'smooth',block:'start'});
       });
