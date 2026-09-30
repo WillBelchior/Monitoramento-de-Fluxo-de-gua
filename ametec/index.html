@@ -299,7 +299,7 @@ function sanitizeServicePayload(v){
   nullableText.forEach(k=>{if(k in v&&typeof v[k]==='string'&&!v[k].trim())v[k]=null});
   return v;
 }
-let data={perfil:null,clientes:[],clienteContatos:[],servicos:[],equipamentos:[],materiais:[],colaboradores:[],registros:[],pagamentos:[],movimentacoes:[]},page='dashboard',session=null,channel=null;
+let data={perfil:null,clientes:[],clienteContatos:[],servicos:[],equipamentos:[],materiais:[],colaboradores:[],registros:[],pagamentos:[],movimentacoes:[],orcamentos:[],orcamentoItens:[]},page='dashboard',session=null,channel=null;
 const pages=[['dashboard','Centro','⚡'],['pendencias','Pendências','📋'],['clientes','Clientes','🏭'],['servicos','Serviços','🔧'],['agenda','Agenda','📅'],['equipamentos','Equipamentos','⚙️'],['materiais','Materiais','📦'],['colaboradores','Colaboradores','👷'],['financeiro','Financeiro','💰'],['relatorios','Relatórios','📊']];
 const status=s=>{const c=['Concluído','Operacional','Ativo'].includes(s)?'done':['Em execução','Em manutenção','Planejado'].includes(s)?'run':['Emergencial','Alta'].includes(s)?'high':'';return '<span class="status '+c+'">'+esc(s||'—')+'</span>'};
 const card=(l,v,s='')=>'<div class="metric"><span>'+l+'</span><b>'+v+'</b><small>'+s+'</small></div>';
@@ -333,22 +333,24 @@ async function load(){
     supabase.from('ametec_colaboradores').select('*').order('created_at',{ascending:false}),
     supabase.from('ametec_registros').select('*').order('created_at',{ascending:false}),
     supabase.from('ametec_pagamentos').select('*').order('data_pagamento',{ascending:false}),
-    supabase.from('ametec_movimentacoes').select('*').order('data_movimentacao',{ascending:false})
+    supabase.from('ametec_movimentacoes').select('*').order('data_movimentacao',{ascending:false}),
+    supabase.from('ametec_orcamentos').select('*').order('created_at',{ascending:false}),
+    supabase.from('ametec_orcamento_itens').select('*').order('ordem',{ascending:true}).order('created_at',{ascending:true})
   ]);
   if(qs.some(x=>x.error))return toast('Não foi possível carregar todos os dados.',true);
-  let [perfil,clientes,clienteContatos,servicos,equipamentos,materiais,colaboradores,registros,pagamentos,movimentacoes]=qs.map(x=>x.data??null);
+  let [perfil,clientes,clienteContatos,servicos,equipamentos,materiais,colaboradores,registros,pagamentos,movimentacoes,orcamentos,orcamentoItens]=qs.map(x=>x.data??null);
   if(!perfil){
     const fallback=(session?.user?.user_metadata?.full_name||session?.user?.email?.split('@')[0]||'Usuário').replace(/[._-]+/g,' ');
     const {data:p}=await supabase.from('ametec_usuarios').upsert({user_id:session.user.id,nome:fallback,funcao:'Administrador'}).select().single();
     perfil=p;
   }
-  data={perfil,clientes:clientes||[],clienteContatos:clienteContatos||[],servicos:servicos||[],equipamentos:equipamentos||[],materiais:materiais||[],colaboradores:colaboradores||[],registros:registros||[],pagamentos:pagamentos||[],movimentacoes:movimentacoes||[]};
+  data={perfil,clientes:clientes||[],clienteContatos:clienteContatos||[],servicos:servicos||[],equipamentos:equipamentos||[],materiais:materiais||[],colaboradores:colaboradores||[],registros:registros||[],pagamentos:pagamentos||[],movimentacoes:movimentacoes||[],orcamentos:orcamentos||[],orcamentoItens:orcamentoItens||[]};
   render()
 }
 function subscribe(){
   if(channel)supabase.removeChannel(channel);
   channel=supabase.channel('ametec-live');
-  ['ametec_usuarios','ametec_clientes','ametec_cliente_contatos','ametec_servicos','ametec_equipamentos','ametec_materiais','ametec_colaboradores','ametec_registros','ametec_pagamentos','ametec_movimentacoes'].forEach(t=>channel.on('postgres_changes',{event:'*',schema:'public',table:t},()=>load()));
+  ['ametec_usuarios','ametec_clientes','ametec_cliente_contatos','ametec_servicos','ametec_equipamentos','ametec_materiais','ametec_colaboradores','ametec_registros','ametec_pagamentos','ametec_movimentacoes','ametec_orcamentos','ametec_orcamento_itens'].forEach(t=>channel.on('postgres_changes',{event:'*',schema:'public',table:t},()=>load()));
   channel.subscribe()
 }
 function initNav(){
@@ -542,6 +544,7 @@ function pendingCard(x){
         <div class="icon-actions" style="grid-column:1/-1">
           <button class="btn secondary icon-btn" data-edit-service="${x.id}" title="Editar serviço" aria-label="Editar serviço">✏️</button>
           <button class="btn secondary icon-btn" data-duplicate-service="${x.id}" title="Duplicar serviço" aria-label="Duplicar serviço">📄</button>
+          <button class="btn secondary icon-btn" data-proposal-service="${x.id}" title="Proposta de orçamento" aria-label="Proposta de orçamento">🧾</button>
           <span class="delete-zone"><button class="btn danger icon-btn" data-delete-service="${x.id}" title="Excluir serviço" aria-label="Excluir serviço">🗑️</button></span>
         </div>
         <button class="btn secondary" data-action="${x.id}">✅ Próxima ação</button>
@@ -569,7 +572,7 @@ function dashboard(){
     <section class="panel"><div class="panel-head"><div><h3>Operações recentes</h3><small>últimos serviços cadastrados</small></div><button class="btn secondary" data-go="servicos">Ver todos</button></div><div class="cards">${data.servicos.slice(0,5).map(serviceCard).join('')||'<div class="empty">Nenhum serviço cadastrado.</div>'}</div></section>`;
   bindCommon()
 }
-function serviceCard(x){const c=data.clientes.find(a=>a.id===x.cliente_id);return `<article class="entity"><div class="entity-head"><div><b>${esc(x.titulo)}</b><small>${esc(c?.nome_fantasia||'Sem cliente')} • ${esc(x.tipo||'Serviço')}</small></div>${status(x.status)}</div><div class="entity-body"><div><div style="display:flex;justify-content:space-between;font-size:9px;color:#748397;margin-bottom:5px"><span>EVOLUÇÃO</span><b>${x.progresso||0}%</b></div><div class="progress"><i style="width:${x.progresso||0}%"></i></div></div><div class="entity-grid"><div><span>Prioridade</span><b>${esc(x.prioridade)}</b></div><div><span>Agenda</span><b>${date(x.data_agendada)}</b></div><div><span>Responsável</span><b>${esc(x.responsavel||'—')}</b></div></div><div class="actions icon-actions"><button class="btn secondary icon-btn" data-edit-service-list="${x.id}" title="Editar serviço" aria-label="Editar serviço">✏️</button><button class="btn secondary icon-btn" data-duplicate-service-list="${x.id}" title="Duplicar serviço" aria-label="Duplicar serviço">📄</button><span class="delete-zone"><button class="btn danger icon-btn" data-delete-service-list="${x.id}" title="Excluir serviço" aria-label="Excluir serviço">🗑️</button></span></div></div></article>`}
+function serviceCard(x){const c=data.clientes.find(a=>a.id===x.cliente_id);return `<article class="entity"><div class="entity-head"><div><b>${esc(x.titulo)}</b><small>${esc(c?.nome_fantasia||'Sem cliente')} • ${esc(x.tipo||'Serviço')}</small></div>${status(x.status)}</div><div class="entity-body"><div><div style="display:flex;justify-content:space-between;font-size:9px;color:#748397;margin-bottom:5px"><span>EVOLUÇÃO</span><b>${x.progresso||0}%</b></div><div class="progress"><i style="width:${x.progresso||0}%"></i></div></div><div class="entity-grid"><div><span>Prioridade</span><b>${esc(x.prioridade)}</b></div><div><span>Agenda</span><b>${date(x.data_agendada)}</b></div><div><span>Responsável</span><b>${esc(x.responsavel||'—')}</b></div></div><div class="actions icon-actions"><button class="btn secondary icon-btn" data-edit-service-list="${x.id}" title="Editar serviço" aria-label="Editar serviço">✏️</button><button class="btn secondary icon-btn" data-duplicate-service-list="${x.id}" title="Duplicar serviço" aria-label="Duplicar serviço">📄</button><button class="btn secondary icon-btn" data-proposal-service-list="${x.id}" title="Proposta de orçamento" aria-label="Proposta de orçamento">🧾</button><span class="delete-zone"><button class="btn danger icon-btn" data-delete-service-list="${x.id}" title="Excluir serviço" aria-label="Excluir serviço">🗑️</button></span></div></div></article>`}
 function pendencias(){
   const stages=['Elaborando orçamento','Aguardando aprovação','Orçamento aprovado','Em andamento','Pausada','Concluída'];
   document.querySelector('#app').innerHTML=`
@@ -638,6 +641,7 @@ function pendencias(){
   const bindPending=()=>{
     document.querySelectorAll('[data-edit-service]').forEach(b=>b.onclick=()=>editService(b.dataset.editService));
     document.querySelectorAll('[data-duplicate-service]').forEach(b=>b.onclick=()=>duplicateService(b.dataset.duplicateService));
+    document.querySelectorAll('[data-proposal-service]').forEach(b=>b.onclick=()=>openProposal(b.dataset.proposalService));
     document.querySelectorAll('[data-atendimento]').forEach(s=>s.onchange=async e=>{
       const id=e.target.dataset.atendimento,st=e.target.value;
       const item=data.servicos.find(x=>x.id===id);
@@ -852,6 +856,7 @@ function servicos(){
   const bindServiceDeletes=()=>{
     document.querySelectorAll('[data-edit-service-list]').forEach(b=>b.onclick=()=>editService(b.dataset.editServiceList));
     document.querySelectorAll('[data-duplicate-service-list]').forEach(b=>b.onclick=()=>duplicateService(b.dataset.duplicateServiceList));
+    document.querySelectorAll('[data-proposal-service-list]').forEach(b=>b.onclick=()=>openProposal(b.dataset.proposalServiceList));
     document.querySelectorAll('[data-delete-service-list]').forEach(b=>b.onclick=async()=>{
     const id=b.dataset.deleteServiceList,x=data.servicos.find(s=>s.id===id);if(!x)return;
     const c=data.clientes.find(a=>a.id===x.cliente_id);
@@ -863,6 +868,110 @@ function servicos(){
   };
   document.querySelector('#search').oninput=draw;document.querySelector('#filter').onchange=draw;draw();document.querySelector('#add').onclick=newService
 }
+async function openProposal(id){
+  const s=data.servicos.find(x=>x.id===id);if(!s)return;
+  const c=data.clientes.find(x=>x.id===s.cliente_id);
+  let o=data.orcamentos.find(x=>x.servico_id===id);
+
+  if(!o){
+    const defaults={
+      servico_id:id,
+      objetivo:'Descreva o objetivo principal do serviço.',
+      escopo:'Desmontagem e avaliação geral\nRevisão dos principais componentes\nExecução dos ajustes e substituições necessárias\nMontagem final\nTestes de funcionamento e segurança',
+      prazo_estimado:'A definir conforme disponibilidade dos materiais e escopo final.',
+      garantia:'Garantia sobre os serviços executados. Componentes novos seguem as condições do fabricante.',
+      observacoes:'Qualquer serviço ou material não previsto será informado ao cliente antes da execução.',
+      condicao_inicio:(+s.valor_material||0)>0?money(s.valor_material)+' referente aos materiais para iniciar.':'A definir.',
+      condicao_conclusao:(+s.valor_servico||0)>0?money(s.valor_servico)+' referente à mão de obra na conclusão.':'A definir.'
+    };
+    const {data:newO,error}=await supabase.from('ametec_orcamentos').insert(defaults).select().single();
+    if(error)return toast(error.message,true);
+    o=newO;data.orcamentos.unshift(newO);
+  }
+
+  const modal=document.querySelector('#modal'),form=document.querySelector('#modalForm');
+  document.querySelector('#modalTitle').textContent='Proposta — '+s.titulo;
+  form.innerHTML=`
+    <div class="proposal-shell" style="grid-column:1/-1">
+      <div class="service-form-intro"><b>${esc(c?.nome_fantasia||'Sem cliente')}</b> • ${esc(s.tipo||'Serviço')}<br>Monte a proposta em blocos e mantenha os valores organizados.</div>
+
+      <section class="proposal-section">
+        <h4>Objetivo do serviço</h4>
+        <textarea name="objetivo" rows="3">${esc(o.objetivo||'')}</textarea>
+      </section>
+
+      <section class="proposal-section">
+        <h4>Escopo</h4>
+        <textarea name="escopo" rows="8" placeholder="Um item por linha">${esc(o.escopo||'')}</textarea>
+      </section>
+
+      <section class="proposal-section">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><h4>Itens e valores</h4><button type="button" class="btn secondary" id="addProposalItem">+ Item</button></div>
+        <div class="proposal-items" id="proposalItems"></div>
+        <div class="proposal-total"><span>Total da proposta</span><b id="proposalTotal">${money(0)}</b></div>
+      </section>
+
+      <section class="proposal-section">
+        <h4>Condições de pagamento</h4>
+        <div class="proposal-grid">
+          <label class="field"><span>Para iniciar</span><textarea name="condicao_inicio" rows="3">${esc(o.condicao_inicio||'')}</textarea></label>
+          <label class="field"><span>Na conclusão</span><textarea name="condicao_conclusao" rows="3">${esc(o.condicao_conclusao||'')}</textarea></label>
+        </div>
+      </section>
+
+      <section class="proposal-section">
+        <h4>Prazo, garantia e observações</h4>
+        <div class="proposal-grid">
+          <label class="field"><span>Prazo estimado</span><textarea name="prazo_estimado" rows="3">${esc(o.prazo_estimado||'')}</textarea></label>
+          <label class="field"><span>Garantia</span><textarea name="garantia" rows="3">${esc(o.garantia||'')}</textarea></label>
+        </div>
+        <label class="field full"><span>Observações</span><textarea name="observacoes" rows="4">${esc(o.observacoes||'')}</textarea></label>
+      </section>
+
+      <button class="btn primary">Salvar proposta</button>
+    </div>`;
+
+  let items=data.orcamentoItens.filter(x=>x.orcamento_id===o.id).map(x=>({...x}));
+  const list=form.querySelector('#proposalItems');
+  const calc=()=>{
+    const total=items.reduce((sum,x)=>sum+(+x.quantidade||0)*(+x.valor_unitario||0),0);
+    form.querySelector('#proposalTotal').textContent=money(total);
+  };
+  const drawItems=()=>{
+    list.innerHTML=items.map((x,i)=>`<div class="proposal-item" data-proposal-row="${i}">
+      <select data-pi="categoria"><option ${x.categoria==='Material'?'selected':''}>Material</option><option ${x.categoria==='Serviço'?'selected':''}>Serviço</option><option ${x.categoria==='Outro'?'selected':''}>Outro</option></select>
+      <input class="proposal-desc" data-pi="descricao" value="${esc(x.descricao||'')}" placeholder="Descrição">
+      <input data-pi="quantidade" type="number" min="0.01" step="0.01" value="${+x.quantidade||1}">
+      <input data-pi="valor_unitario" type="number" min="0" step="0.01" value="${+x.valor_unitario||0}">
+      <button type="button" class="btn danger icon-btn" data-remove-pi="${i}">×</button>
+    </div>`).join('')||'<div class="empty">Nenhum item adicionado.</div>';
+    list.querySelectorAll('[data-proposal-row]').forEach(row=>{
+      const i=+row.dataset.proposalRow;
+      row.querySelectorAll('[data-pi]').forEach(inp=>inp.oninput=()=>{items[i][inp.dataset.pi]=inp.dataset.pi==='quantidade'||inp.dataset.pi==='valor_unitario'?+inp.value||0:inp.value;calc()});
+    });
+    list.querySelectorAll('[data-remove-pi]').forEach(b=>b.onclick=()=>{items.splice(+b.dataset.removePi,1);drawItems();calc()});
+    calc();
+  };
+  form.querySelector('#addProposalItem').onclick=()=>{items.push({categoria:'Material',descricao:'',quantidade:1,valor_unitario:0});drawItems()};
+  drawItems();
+
+  form.onsubmit=async e=>{
+    e.preventDefault();
+    try{
+      const vals=Object.fromEntries(new FormData(form));
+      vals.updated_at=new Date().toISOString();
+      const {error}=await supabase.from('ametec_orcamentos').update(vals).eq('id',o.id);if(error)throw error;
+
+      const {error:delErr}=await supabase.from('ametec_orcamento_itens').delete().eq('orcamento_id',o.id);if(delErr)throw delErr;
+      const clean=items.filter(x=>String(x.descricao||'').trim()).map((x,i)=>({orcamento_id:o.id,categoria:x.categoria||'Material',descricao:String(x.descricao).trim(),quantidade:+x.quantidade||1,valor_unitario:+x.valor_unitario||0,ordem:i+1}));
+      if(clean.length){const {error:insErr}=await supabase.from('ametec_orcamento_itens').insert(clean);if(insErr)throw insErr}
+
+      closeModal();await load();toast('Proposta salva');
+    }catch(err){toast(err.message||String(err),true)}
+  };
+  modal.classList.add('open');
+}
+
 async function duplicateService(id){
   const x=data.servicos.find(s=>s.id===id);if(!x)return;
   try{
@@ -1384,6 +1493,11 @@ supabase.auth.onAuthStateChange(async(_,s)=>{session=s;if(session){showApp();awa
 .calendar-week{display:grid;grid-template-columns:repeat(7,minmax(150px,1fr));gap:8px;overflow-x:auto;padding-bottom:8px}.calendar-week-col{background:#081821;border:1px solid #17384b;border-radius:10px;padding:8px;min-height:250px}.calendar-week-col h4{margin:0 0 8px;font-size:11px;color:#b9d3e2}
 .calendar-day-view{display:grid;gap:8px}.calendar-day-card{background:#081821;border:1px solid #17384b;border-radius:10px;padding:11px}.calendar-day-card.done{border-left:4px solid #38d996}.calendar-day-card.past{border-left:4px solid #d0a64b}.calendar-day-card.future{border-left:4px solid #35b9f0}
 @media(max-width:700px){.statement-row{grid-template-columns:1fr auto}.statement-row .statement-date,.statement-row .statement-balance{grid-column:1/-1}.calendar-month{grid-template-columns:repeat(7,minmax(92px,1fr));overflow-x:auto}.calendar-day{min-height:96px}.calendar-shell{overflow:hidden}}
+</style>
+
+<style id="ametec-proposal">
+.proposal-shell{display:grid;gap:12px}.proposal-section{border:1px solid #17384b;border-radius:12px;background:#081923;padding:12px;display:grid;gap:9px}.proposal-section h4{margin:0;color:#eefaff;font-size:13px}.proposal-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.proposal-items{display:grid;gap:7px}.proposal-item{display:grid;grid-template-columns:120px 1fr 80px 120px 34px;gap:7px;align-items:center}.proposal-item input,.proposal-item select,.proposal-section textarea,.proposal-section input{width:100%;box-sizing:border-box;background:#06141d;border:1px solid #1c4257;color:#eefaff;border-radius:8px;padding:9px}.proposal-item button{width:32px;height:32px}.proposal-total{display:flex;justify-content:space-between;align-items:center;padding:10px;border-radius:9px;background:#0b2736;border:1px solid #245c76}.proposal-total b{font-size:18px}.proposal-preview{white-space:pre-wrap;font-size:12px;line-height:1.55;color:#cfe7f4}
+@media(max-width:700px){.proposal-grid{grid-template-columns:1fr}.proposal-item{grid-template-columns:1fr 1fr}.proposal-item .proposal-desc{grid-column:1/-1}.proposal-item button{grid-column:2;justify-self:end}}
 </style>
 </body>
 </html>
