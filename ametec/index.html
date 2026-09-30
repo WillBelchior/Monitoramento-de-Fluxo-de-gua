@@ -2169,5 +2169,94 @@ supabase.auth.onAuthStateChange(async(_,s)=>{session=s;if(session){showApp();awa
   .service-folder-meta b{font-size:16px!important}
 }
 </style>
+<style id="service-list-readability-v2">
+.service-row{
+  background:#081923!important;
+  border:1px solid #17384b!important;
+  border-radius:12px!important;
+  padding:14px 16px!important;
+  display:grid!important;
+  grid-template-columns:minmax(0,2.3fr) minmax(110px,.7fr) minmax(110px,.7fr) minmax(190px,1fr)!important;
+  gap:12px!important;
+  align-items:center!important;
+  cursor:pointer;
+}
+.service-row:hover{border-color:#2f7695!important}
+.service-row-title{padding-right:8px!important}
+.service-row-title b{
+  display:block!important;
+  font-size:16px!important;
+  line-height:1.35!important;
+  color:#f4fbff!important;
+  font-weight:800!important;
+}
+.service-row-title small{
+  display:block!important;
+  margin-top:4px!important;
+  font-size:12px!important;
+  line-height:1.35!important;
+  color:#9db8c7!important;
+}
+.service-row-cell{padding:8px 10px!important}
+.service-row-cell span{
+  display:block!important;
+  font-size:11px!important;
+  line-height:1.2!important;
+  color:#8fb0c0!important;
+  text-transform:uppercase!important;
+  letter-spacing:.02em!important;
+  margin-bottom:4px!important;
+}
+.service-row-cell b{
+  display:block!important;
+  font-size:14px!important;
+  line-height:1.35!important;
+  color:#ffffff!important;
+  font-weight:800!important;
+}
+.service-row-cell:last-child{
+  padding:10px 14px!important;
+}
+.service-row-cell:last-child span{
+  font-size:11px!important;
+}
+.service-row-cell:last-child b{
+  font-size:14px!important;
+  line-height:1.45!important;
+}
+@media(max-width:900px){
+  .service-row{
+    grid-template-columns:minmax(0,1.8fr) minmax(95px,.7fr) minmax(95px,.7fr) minmax(150px,1fr)!important;
+  }
+}
+@media(max-width:700px){
+  .service-row{
+    grid-template-columns:1fr 1fr!important;
+    padding:13px 14px!important;
+  }
+  .service-row-title{
+    grid-column:1/-1!important;
+  }
+  .service-row-title b{
+    font-size:15px!important;
+  }
+  .service-row-title small{
+    font-size:11px!important;
+  }
+  .service-row-cell{
+    padding:8px 10px!important;
+  }
+  .service-row-cell span{
+    font-size:10px!important;
+  }
+  .service-row-cell b{
+    font-size:13px!important;
+  }
+  .service-row-cell:last-child{
+    grid-column:1/-1!important;
+    padding:10px 12px!important;
+  }
+}
+</style>
 </body>
 </html>
