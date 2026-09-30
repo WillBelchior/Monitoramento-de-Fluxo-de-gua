@@ -451,7 +451,7 @@ function openPaymentForm(x){
   document.querySelector('#modalTitle').textContent='Registrar pagamento — '+x.titulo;
   const p=paySummary(x);
   form.innerHTML=`
-    <div class="service-form-intro">Saldo atual: <b>${money(p.balance)}</b> • Serviço: ${money(p.serviceBalance)} • Material: ${money(p.materialBalance)}</div>
+    <div class="service-form-intro">Serviço a receber: <b>${money(p.serviceBalance)}</b> • Material a receber: <b>${money(p.materialBalance)}</b></div>
     <label class="field"><span>Data do pagamento</span><input name="data_pagamento" type="date" value="${today}" required></label>
     <label class="field"><span>Referente a</span><select name="categoria" id="paymentCategory"><option>Serviço</option><option>Material</option><option>Ambos</option></select></label>
     <label class="field" id="paymentSingle"><span>Valor recebido</span><input name="valor" id="paymentValue" type="number" min="0.01" step="0.01" placeholder="0,00"></label>
@@ -512,7 +512,7 @@ function pendingCard(x){
       ${x.atendimento_status==='Concluída'?
         `<div class="fin-alert-banner ${closure.key==='closed'?'closed':closure.key==='overdue'?'overdue':'pending'}">
           <span>${closure.key==='closed'?'✓ Serviço encerrado':closure.key==='overdue'?'🔴 Serviço concluído • pagamento vencido':'⚠ Serviço concluído • pagamento pendente'}</span>
-          <b>${closure.key==='closed'?'QUITADO':money(p.balance)}</b>
+          <b>${closure.key==='closed'?'QUITADO':'Serviço '+money(p.serviceBalance)+' • Material '+money(p.materialBalance)}</b>
         </div>`:''}
       <div><span style="display:block;font-size:8px;color:#7b8998;text-transform:uppercase;margin-bottom:4px">Atendimento</span>
         <select data-atendimento="${x.id}">
@@ -526,13 +526,9 @@ function pendingCard(x){
       </div>
       ${(+x.valor_adicional||0)>0?`<div class="pending-line"><span>${esc(x.descricao_valor_adicional||'Valor adicional')} • ${esc(x.tipo_valor_adicional||'Serviço')}</span><b>+${money(x.valor_adicional)}</b></div>`:''}
       <div class="pending-fin">
-        <div class="pending-fin-main">
-          <span>A receber total ${infoTip('Valor que ainda falta entrar neste atendimento. É a soma do saldo de serviço e do saldo de material que realmente está sendo cobrado pela AMETEC.')}</span>
-          <b>${money(p.balance)}</b>
-        </div>
-        <div class="pending-fin-sub"><span>Serviço</span><b>${money(p.serviceBalance)}</b></div>
-        <div class="pending-fin-sub"><span>Material</span><b>${money(p.materialBalance)}</b></div>
-        <div class="pending-fin-sub"><span>Recebido</span><b>${money(p.received)}</b></div>
+        <div class="pending-fin-sub"><span>Serviço a receber</span><b>${money(p.serviceBalance)}</b></div>
+        <div class="pending-fin-sub"><span>Material a receber</span><b>${money(p.materialBalance)}</b></div>
+        <div class="pending-fin-sub" style="grid-column:1/-1"><span>Recebido</span><b>${money(p.received)}</b></div>
         <div class="pending-fin-status"><span style="font-size:10px;color:#829dad">Situação financeira</span><span class="status ${payClass}">${p.state}</span></div>
       </div>
       <div class="pending-line"><span>Orçamento enviado</span><b>${date(x.orcamento_data_envio)}</b></div>
@@ -558,21 +554,22 @@ function dashboard(){
   const technicalDone=data.servicos.filter(x=>x.atendimento_status==='Concluída'||x.status==='Concluído').length;
   const closed=data.servicos.filter(x=>closureState(x).key==='closed').length;
   const finAlerts=financialAlerts();
+  const totalReceivable=data.servicos.reduce((s,x)=>s+paySummary(x).balance,0);
   const revenue=data.servicos.reduce((s,x)=>s+serviceValues(x).total,0);
   const avg=data.servicos.length?Math.round(data.servicos.reduce((s,x)=>s+(+x.progresso||0),0)/data.servicos.length):0;
   const byType={};data.servicos.forEach(x=>byType[x.tipo||'Outros']=(byType[x.tipo||'Outros']||0)+1);const arr=Object.entries(byType).slice(0,5),max=Math.max(...arr.map(x=>x[1]),1);
   document.querySelector('#app').innerHTML=`
     <section class="hero"><div class="hero-grid"><div><div class="eyebrow">AMETEC • CENTRO DE OPERAÇÕES</div><h2>Tecnologia para manter a indústria em movimento.</h2><p>Clientes, chamados, equipamentos, agenda e custos em uma única central.</p></div><div class="hero-actions"><button class="btn primary" data-new="servico">+ Serviço</button><button class="btn ghost" data-go="agenda">Abrir agenda</button></div></div></section>
-    <div class="metrics">${card('Em execução',active,'serviços ativos')}${card('Pendência financeira',finAlerts.length,'concluídos aguardando pagamento')}${card('Encerrados',closed,technicalDone+' concluído(s) tecnicamente')}${card('Carteira registrada',money(revenue),'serviços + materiais')}</div>
+    <div class="metrics">${card('Em execução',active,'serviços ativos')}${card('A receber total',money(totalReceivable),finAlerts.length+' pendência(s) financeira(s)')}${card('Encerrados',closed,technicalDone+' concluído(s) tecnicamente')}${card('Carteira registrada',money(revenue),'serviços + materiais')}</div>
     <div class="quick"><button data-go="clientes"><strong>🏭</strong><b>Clientes</b><small>cadastros e histórico</small></button><button data-new="servico"><strong>⚡</strong><b>Novo chamado</b><small>registre rapidamente</small></button><button data-go="equipamentos"><strong>⚙️</strong><b>Equipamentos</b><small>ativos dos clientes</small></button><button data-go="pendencias"><strong>📋</strong><b>Pendências</b><small>orçamentos e recebimentos</small></button></div>
     <div class="two">
       <section class="panel"><div class="panel-head"><div><h3>Distribuição dos serviços</h3><small>por tipo de atendimento</small></div></div><div class="bars">${arr.length?arr.map(([n,v])=>`<div class="bar-wrap"><b>${v}</b><div class="bar" style="height:${Math.max(8,Math.round(v/max*130))}px"></div><small>${esc(n)}</small></div>`).join(''):'<div class="empty">Sem serviços ainda.</div>'}</div></section>
       <section class="panel"><div class="panel-head"><div><h3>Evolução operacional</h3><small>média dos serviços</small></div></div><div class="donut" style="--p:${avg}"><b>${avg}%</b></div></section>
     </div>
-    <section class="panel"><div class="panel-head"><div><h3>Operações recentes</h3><small>últimos serviços cadastrados</small></div><button class="btn secondary" data-go="servicos">Ver todos</button></div><div class="cards">${data.servicos.slice(0,5).map(serviceCard).join('')||'<div class="empty">Nenhum serviço cadastrado.</div>'}</div></section>`;
+    <section class="panel"><div class="panel-head"><div><h3>Operações recentes</h3><small>últimos serviços cadastrados</small></div><button class="btn secondary" data-go="servicos">Ver todos</button></div><div class="cards">${data.servicos.slice(0,5).map(x=>serviceCard(x,true)).join('')||'<div class="empty">Nenhum serviço cadastrado.</div>'}</div></section>`;
   bindCommon()
 }
-function serviceCard(x){
+function serviceCard(x,showTotalReceivable=false){
   const c=data.clientes.find(a=>a.id===x.cliente_id);
   const p=paySummary(x);
   const eq=data.equipamentos.find(e=>e.id===x.equipamento_id);
@@ -594,8 +591,9 @@ function serviceCard(x){
       <div class="service-mini-info">
         <div><span>Início</span><b>${date(x.data_inicio_execucao||x.data_agendada)}</b></div>
         <div><span>Entrega</span><b>${date(x.previsao_entrega)}</b></div>
-        <div><span>Valor</span><b>${money(serviceValues(x).total)}</b></div>
-        <div><span>A receber</span><b>${money(p.balance)}</b></div>
+        ${showTotalReceivable
+          ?`<div><span>A receber total</span><b>${money(p.balance)}</b></div><div><span>Recebido</span><b>${money(p.received)}</b></div>`
+          :`<div><span>Serviço a receber</span><b>${money(p.serviceBalance)}</b></div><div><span>Material a receber</span><b>${money(p.materialBalance)}</b></div>`}
       </div>
       <div class="service-mini-action">
         <div class="service-next" title="${esc(x.proxima_acao||'')}">Próxima: <b>${esc(x.proxima_acao||'Definir próxima ação')}</b></div>
@@ -618,7 +616,8 @@ function pendencias(){
       ${card('Elaborando orçamento',data.servicos.filter(x=>x.atendimento_status==='Elaborando orçamento').length)}
       ${card('Aguardando aprovação',data.servicos.filter(x=>x.atendimento_status==='Aguardando aprovação').length)}
       ${card('Orçamentos aprovados',data.servicos.filter(x=>x.atendimento_status==='Orçamento aprovado').length)}
-      ${card('A receber',money(data.servicos.reduce((s,x)=>s+paySummary(x).balance,0)))}
+      ${card('Serviços a receber',money(data.servicos.reduce((s,x)=>s+paySummary(x).serviceBalance,0)))}
+      ${card('Materiais a receber',money(data.servicos.reduce((s,x)=>s+paySummary(x).materialBalance,0)))}
     </div>
     <div id="financeManagementAlerts"></div>
     <section class="panel">
@@ -632,8 +631,8 @@ function pendencias(){
   const alertBox=document.querySelector('#financeManagementAlerts');
   if(alertBox){
     alertBox.innerHTML=
-      (overdueAlerts.length?`<div class="management-alert danger"><span style="font-size:22px">🔴</span><div><strong>${overdueAlerts.length} pagamento(s) vencido(s)</strong><small>Total vencido: ${money(overdueAlerts.reduce((s,x)=>s+x.payment.balance,0))}</small></div><button class="btn secondary" data-finance-filter="overdue">Ver</button></div>`:'')+
-      (pendingAlerts.length?`<div class="management-alert warn"><span style="font-size:22px">⚠</span><div><strong>${pendingAlerts.length} serviço(s) concluído(s) aguardando pagamento</strong><small>Saldo pendente: ${money(pendingAlerts.reduce((s,x)=>s+x.payment.balance,0))}</small></div><button class="btn secondary" data-finance-filter="pending">Ver</button></div>`:'');
+      (overdueAlerts.length?`<div class="management-alert danger"><span style="font-size:22px">🔴</span><div><strong>${overdueAlerts.length} pagamento(s) vencido(s)</strong><small>Serviços: ${money(overdueAlerts.reduce((s,x)=>s+x.payment.serviceBalance,0))} • Materiais: ${money(overdueAlerts.reduce((s,x)=>s+x.payment.materialBalance,0))}</small></div><button class="btn secondary" data-finance-filter="overdue">Ver</button></div>`:'')+
+      (pendingAlerts.length?`<div class="management-alert warn"><span style="font-size:22px">⚠</span><div><strong>${pendingAlerts.length} serviço(s) concluído(s) aguardando pagamento</strong><small>Serviços: ${money(pendingAlerts.reduce((s,x)=>s+x.payment.serviceBalance,0))} • Materiais: ${money(pendingAlerts.reduce((s,x)=>s+x.payment.materialBalance,0))}</small></div><button class="btn secondary" data-finance-filter="pending">Ver</button></div>`:'');
   }
   const draw=(query='')=>{
     const q=query.trim().toLowerCase();
@@ -659,11 +658,12 @@ function pendencias(){
   };
   const refreshPendingMetrics=()=>{
     const metrics=document.querySelectorAll('.metrics .metric b');
-    if(metrics.length>=4){
-      metrics[0].textContent=data.servicos.filter(x=>x.atendimento_status==='Aguardando aprovação').length;
-      metrics[1].textContent=data.servicos.filter(x=>x.atendimento_status==='Orçamento aprovado').length;
-      metrics[2].textContent=data.servicos.filter(x=>x.atendimento_status==='Em andamento').length;
-      metrics[3].textContent=money(data.servicos.reduce((s,x)=>s+paySummary(x).balance,0));
+    if(metrics.length>=5){
+      metrics[0].textContent=data.servicos.filter(x=>x.atendimento_status==='Elaborando orçamento').length;
+      metrics[1].textContent=data.servicos.filter(x=>x.atendimento_status==='Aguardando aprovação').length;
+      metrics[2].textContent=data.servicos.filter(x=>x.atendimento_status==='Orçamento aprovado').length;
+      metrics[3].textContent=money(data.servicos.reduce((s,x)=>s+paySummary(x).serviceBalance,0));
+      metrics[4].textContent=money(data.servicos.reduce((s,x)=>s+paySummary(x).materialBalance,0));
     }
     renderFinanceAlert();
   };
@@ -1800,13 +1800,6 @@ supabase.auth.onAuthStateChange(async(_,s)=>{session=s;if(session){showApp();awa
   grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;
   gap:0!important;
 }
-.pending-fin .pending-fin-main{
-  grid-column:auto!important;
-  border-right:1px solid #1b4356!important;
-  border-bottom:1px solid #1b4356!important;
-  border-radius:0!important;
-  box-shadow:none!important;
-}
 .pending-fin .pending-fin-sub{
   display:flex!important;
   flex-direction:column!important;
@@ -1814,16 +1807,11 @@ supabase.auth.onAuthStateChange(async(_,s)=>{session=s;if(session){showApp();awa
   min-height:52px;
   padding:7px 8px!important;
   border-radius:0!important;
+  background:#081821!important;
 }
-.pending-fin .pending-fin-sub:nth-of-type(2){
-  border-bottom:1px solid #1b4356!important;
-}
-.pending-fin .pending-fin-sub:nth-of-type(3){
-  border-right:1px solid #1b4356!important;
-}
-.pending-fin .pending-fin-sub:nth-of-type(4){
-  border-right:0!important;
-}
+.pending-fin .pending-fin-sub:nth-child(1){border-right:1px solid #1b4356!important;border-bottom:1px solid #1b4356!important}
+.pending-fin .pending-fin-sub:nth-child(2){border-bottom:1px solid #1b4356!important}
+.pending-fin .pending-fin-sub:nth-child(3){border-bottom:1px solid #1b4356!important;border-right:0!important}
 .pending-fin .pending-fin-status{
   grid-column:1 / -1!important;
   display:flex!important;
@@ -1832,7 +1820,7 @@ supabase.auth.onAuthStateChange(async(_,s)=>{session=s;if(session){showApp();awa
   gap:10px!important;
   min-height:44px;
   padding:7px 8px!important;
-  border-top:1px solid #1b4356!important;
+  border-top:0!important;
   border-right:0!important;
 }
 </style>
