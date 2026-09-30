@@ -2125,5 +2125,27 @@ supabase.auth.onAuthStateChange(async(_,s)=>{session=s;if(session){showApp();awa
 @media(max-width:1050px){.service-folders{grid-template-columns:repeat(2,minmax(0,1fr))}.service-detail-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.service-detail-columns{grid-template-columns:1fr}}
 @media(max-width:700px){.service-folders{grid-template-columns:1fr}.service-row{grid-template-columns:1fr 1fr}.service-row-title{grid-column:1/-1}.service-detail-grid{grid-template-columns:1fr 1fr}.service-detail-title h2{font-size:19px}}
 </style>
+<style id="service-folder-readability">
+.service-folder{padding:18px!important;gap:14px!important}
+.service-folder-icon{font-size:32px!important}
+.service-folder-title b,.service-folder>div>b{font-size:17px!important;line-height:1.25!important}
+.service-folder-count{min-width:30px!important;height:30px!important;font-size:12px!important}
+.service-folder-meta{gap:9px!important}
+.service-folder-meta div{padding:10px 11px!important;border-radius:10px!important}
+.service-folder-meta span{font-size:10px!important;letter-spacing:.02em!important;line-height:1.2!important}
+.service-folder-meta b{font-size:15px!important;margin-top:4px!important;line-height:1.2!important}
+@media(min-width:901px){
+  .service-folder{min-height:150px}
+  .service-folder-title b,.service-folder>div>b{font-size:18px!important}
+  .service-folder-meta span{font-size:11px!important}
+  .service-folder-meta b{font-size:16px!important}
+}
+@media(max-width:700px){
+  .service-folder{padding:15px!important}
+  .service-folder-title b,.service-folder>div>b{font-size:16px!important}
+  .service-folder-meta span{font-size:10px!important}
+  .service-folder-meta b{font-size:14px!important}
+}
+</style>
 </body>
 </html>
