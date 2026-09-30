@@ -522,10 +522,15 @@ function pendingCard(x){
       </div>
       ${(+x.valor_adicional||0)>0?`<div class="pending-line"><span>${esc(x.descricao_valor_adicional||'Valor adicional')} • ${esc(x.tipo_valor_adicional||'Serviço')}</span><b>+${money(x.valor_adicional)}</b></div>`:''}
       <div class="pending-fin">
-        <div><span>Total</span><b>${money(p.total)}</b></div>
-        <div><span>Recebido</span><b>${money(p.received)}</b></div>
-        <div><span>Saldo</span><b>${money(p.balance)}</b></div>
-        <div><span>Financeiro</span><b><span class="status ${payClass}">${p.state}</span></b></div>
+        <div class="pending-fin-main">
+          <span>A receber total ${infoTip('Valor que ainda falta entrar neste atendimento. É a soma do saldo de serviço e do saldo de material que realmente está sendo cobrado pela AMETEC.')}</span>
+          <b>${money(p.balance)}</b>
+        </div>
+        <div class="pending-fin-sub"><span>Serviço a receber</span><b>${money(p.serviceBalance)}</b></div>
+        <div class="pending-fin-sub"><span>Material a receber</span><b>${money(p.materialBalance)}</b></div>
+        <div class="pending-fin-sub"><span>Recebido</span><b>${money(p.received)}</b></div>
+        <div class="pending-fin-sub"><span>Total contratado</span><b>${money(p.total)}</b></div>
+        <div class="pending-fin-status"><span style="font-size:10px;color:#829dad">Situação financeira</span><span class="status ${payClass}">${p.state}</span></div>
       </div>
       <div class="pending-line"><span>Orçamento enviado</span><b>${date(x.orcamento_data_envio)}</b></div>
       <div class="pending-line"><span>Validade</span><b>${date(x.orcamento_validade)}</b></div>
