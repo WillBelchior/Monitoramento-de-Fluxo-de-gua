@@ -49,3 +49,20 @@ O app assina alterações de `public.priorities` por `postgres_changes`, filtran
 - captura rápida pelo celular.
 
 > O app foi pensado para continuar leve: poucas decisões, leitura rápida e foco nas próximas ações.
+
+
+## Deploy na Vercel
+
+O projeto pode ser importado diretamente do GitHub usando estas configurações:
+
+- Repository: `WillBelchior/Aplicacoes-Ametec`
+- Production Branch: `main`
+- Root Directory: `norte`
+- Framework Preset: `Other`
+- Build Command: deixar vazio
+- Output Directory: deixar vazio
+- Install Command: deixar vazio
+
+O arquivo `vercel.json` nesta pasta mantém a configuração específica do Norte isolada das demais aplicações do repositório.
+
+> Importante: não configure a raiz do repositório como projeto Vercel. Cada aplicação deve ter seu próprio projeto e seu próprio Root Directory.
