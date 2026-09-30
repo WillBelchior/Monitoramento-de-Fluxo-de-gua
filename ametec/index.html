@@ -521,18 +521,9 @@ function pendingCard(x){
         </select>
       </div>
       ${(+x.valor_adicional||0)>0?`<div class="pending-line"><span>${esc(x.descricao_valor_adicional||'Valor adicional')} • ${esc(x.tipo_valor_adicional||'Serviço')}</span><b>+${money(x.valor_adicional)}</b></div>`:''}
-      ${p.legacyReceived>0?`<div class="legacy-fin-warning">
-        <span style="font-size:16px">⚠</span>
-        <div><strong>Pagamento antigo sem categoria</strong><small>Este atendimento possui histórico financeiro legado.</small></div>
-        <span class="legacy-amount">${money(p.legacyReceived)}</span>
-      </div>`:''}
       <div class="pending-fin">
         <div class="pending-fin-main">
-          <span>A receber total ${infoTip(
-            'Valor que ainda falta entrar neste atendimento. É a soma do saldo de serviço e do saldo de material que realmente está sendo cobrado pela AMETEC.'+
-            (p.legacyReceived>0?'\n\nAtenção: existe '+money(p.legacyReceived)+' em pagamentos antigos sem categoria. Para manter o cálculo do saldo, esse valor é abatido primeiro do material e depois do serviço.':''),
-            p.legacyReceived>0
-          )}</span>
+          <span>A receber total ${infoTip('Valor que ainda falta entrar neste atendimento. É a soma do saldo de serviço e do saldo de material que realmente está sendo cobrado pela AMETEC.')}</span>
           <b>${money(p.balance)}</b>
         </div>
         <div class="pending-fin-sub"><span>Serviço a receber</span><b>${money(p.serviceBalance)}</b></div>
@@ -1246,6 +1237,12 @@ function financeiro(){
           ${(+x.valor_adicional||0)>0?`<div class="pending-line"><span>Adicional • ${esc(x.descricao_valor_adicional||'Sem descrição')} • ${esc(x.tipo_valor_adicional||'Serviço')}</span><b>+${money(x.valor_adicional)}</b></div>`:''}
 
           
+
+          ${p.legacyReceived>0?`<div class="legacy-fin-warning">
+            <span style="font-size:17px">⚠</span>
+            <div><strong>Pagamento antigo sem categoria</strong><small>Este atendimento possui histórico financeiro legado. Toque no ⓘ acima para ver como o sistema está distribuindo esse valor.</small></div>
+            <span class="legacy-amount">${money(p.legacyReceived)}</span>
+          </div>`:''}
 
           <div class="finance-history">
             <div class="finance-history-title">PAGAMENTOS</div>
