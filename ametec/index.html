@@ -2333,5 +2333,105 @@ supabase.auth.onAuthStateChange(async(_,s)=>{session=s;if(session){showApp();awa
 .client-context-head{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:12px}.client-context-head button{border:0;background:transparent;color:#75c9ed;font-weight:800;cursor:pointer;padding:4px 0}.client-context-head span{color:#628392}.client-context-list{display:grid;gap:9px}.client-context-row{background:#081923;border:1px solid #17384b;border-radius:12px;padding:12px;display:grid;grid-template-columns:minmax(0,1.6fr) minmax(120px,.7fr) minmax(120px,.7fr) auto;gap:12px;align-items:center}.client-context-row.clickable{cursor:pointer}.client-context-row.clickable:hover{border-color:#2e7696}.client-context-main b{display:block;font-size:14px;color:#eefaff}.client-context-main small{display:block;font-size:10px;color:#8eabba;margin-top:3px}.client-context-cell span{display:block;font-size:9px;color:#7896a6;text-transform:uppercase}.client-context-cell b{display:block;font-size:12px;color:#f0fbff;margin-top:3px}.client-material-card{background:#081923;border:1px solid #17384b;border-radius:12px;padding:12px;display:grid;gap:8px}.client-material-card b{font-size:13px;color:#eefaff}.client-material-card small{font-size:10px;color:#8ea9b8}.client-material-meta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}.client-material-meta div{background:#06151d;border-radius:8px;padding:8px}.client-material-meta span{display:block;font-size:8px;color:#7896a6;text-transform:uppercase}.client-material-meta b{font-size:11px;margin-top:2px}
 @media(max-width:700px){.client-context-row{grid-template-columns:1fr 1fr}.client-context-main{grid-column:1/-1}.client-material-meta{grid-template-columns:1fr 1fr}}
 </style>
+<style id="service-detail-readability-v2">
+.service-detail-hero{padding:20px!important;gap:15px!important}
+.service-detail-title h2{font-size:25px!important;line-height:1.25!important}
+.service-detail-title p{font-size:14px!important;line-height:1.4!important}
+.service-detail-grid{gap:11px!important}
+.service-detail-metric{padding:13px 14px!important}
+.service-detail-metric span{
+  font-size:10px!important;
+  line-height:1.2!important;
+  color:#8fb0c0!important;
+}
+.service-detail-metric b{
+  font-size:15px!important;
+  line-height:1.3!important;
+  margin-top:5px!important;
+}
+.service-detail-columns{gap:14px!important}
+.service-detail-section{
+  padding:16px!important;
+  gap:12px!important;
+}
+.service-detail-section h3{
+  font-size:16px!important;
+  line-height:1.3!important;
+}
+.service-detail-text{
+  font-size:13px!important;
+  line-height:1.6!important;
+  color:#c7dce6!important;
+}
+.service-detail-lines{gap:0!important}
+.service-detail-line{
+  padding:10px 0!important;
+  gap:16px!important;
+  font-size:13px!important;
+  line-height:1.4!important;
+}
+.service-detail-line span{
+  font-size:13px!important;
+  color:#93afbd!important;
+}
+.service-detail-line b{
+  font-size:13px!important;
+  color:#ffffff!important;
+  max-width:60%;
+  line-height:1.4!important;
+}
+.detail-addition{
+  padding:12px!important;
+  gap:8px!important;
+}
+.detail-addition-head b{
+  font-size:14px!important;
+  line-height:1.35!important;
+}
+.detail-addition-values{
+  font-size:12px!important;
+  gap:14px!important;
+  line-height:1.4!important;
+}
+.detail-material{
+  font-size:12px!important;
+  line-height:1.45!important;
+  padding:8px 0!important;
+}
+.detail-reminder{
+  font-size:12px!important;
+  line-height:1.5!important;
+  gap:9px!important;
+  padding:8px 0!important;
+}
+.service-detail-section .empty{
+  font-size:12px!important;
+  padding:18px!important;
+}
+.service-detail-actions .btn{
+  font-size:13px!important;
+}
+@media(min-width:901px){
+  .service-detail-section h3{font-size:17px!important}
+  .service-detail-line,
+  .service-detail-line span,
+  .service-detail-line b{font-size:14px!important}
+  .service-detail-text{font-size:14px!important}
+  .detail-addition-head b{font-size:15px!important}
+  .detail-addition-values,.detail-material,.detail-reminder{font-size:13px!important}
+}
+@media(max-width:700px){
+  .service-detail-title h2{font-size:21px!important}
+  .service-detail-title p{font-size:12px!important}
+  .service-detail-metric span{font-size:9px!important}
+  .service-detail-metric b{font-size:13px!important}
+  .service-detail-section{padding:13px!important}
+  .service-detail-section h3{font-size:15px!important}
+  .service-detail-line,
+  .service-detail-line span,
+  .service-detail-line b{font-size:12px!important}
+  .service-detail-line b{max-width:55%}
+}
+</style>
 </body>
 </html>
