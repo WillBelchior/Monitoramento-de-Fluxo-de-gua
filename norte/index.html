@@ -42,6 +42,7 @@
       <input id="email" type="email" placeholder="Seu e-mail" />
       <input id="password" type="password" placeholder="Sua senha" />
       <button class="btn primary" id="loginBtn">Entrar</button>
+      <button class="btn" id="signupBtn">Criar minha conta</button>
       <div id="loginMsg" class="notice"></div>
     </div>
   </section>
@@ -145,6 +146,15 @@
       const {error}=await supabase.auth.signInWithPassword({email:$('#email').value.trim(),password:$('#password').value});
       $('#loginMsg').textContent=error?error.message:'';
     }
+
+    async function signup(){
+      const email=$('#email').value.trim(), password=$('#password').value;
+      if(!email || password.length<6) return $('#loginMsg').textContent='Informe um e-mail válido e uma senha com pelo menos 6 caracteres.';
+      $('#loginMsg').textContent='Criando conta...';
+      const {data,error}=await supabase.auth.signUp({email,password});
+      if(error) return $('#loginMsg').textContent=error.message;
+      $('#loginMsg').textContent=data.session?'Conta criada. Você já entrou.':'Conta criada. Confirme o e-mail para entrar.';
+    }
     function showApp(){ $('#login').classList.add('hidden'); $('#app').classList.remove('hidden'); }
 
     async function loadTasks(){
@@ -243,7 +253,7 @@
       alert(msg);
     }
 
-    $('#loginBtn').onclick=login; $('#logoutBtn').onclick=()=>supabase.auth.signOut();
+    $('#loginBtn').onclick=login; $('#signupBtn').onclick=signup; $('#logoutBtn').onclick=()=>supabase.auth.signOut();
     $('#newBtn').onclick=()=>openModal(); $('#cancelBtn').onclick=closeModal; $('#saveBtn').onclick=saveTask; $('#reviewBtn').onclick=quickReview;
     $('#taskModal').onclick=e=>{if(e.target.id==='taskModal')closeModal()};
     $('#horizonNav').onclick=e=>{const b=e.target.closest('button[data-h]');if(!b)return;currentHorizon=b.dataset.h;$$('#horizonNav button').forEach(x=>x.classList.toggle('active',x===b));render();}
