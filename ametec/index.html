@@ -553,6 +553,28 @@ function pendingCard(x){
     </div>
   </article>`;
 }
+function dashboardTypeCard(x){
+  const c=data.clientes.find(a=>a.id===x.cliente_id);
+  const eq=data.equipamentos.find(e=>e.id===x.equipamento_id);
+  const p=paySummary(x);
+  const priClass=x.prioridade==='Emergencial'?'priority-emergency':x.prioridade==='Alta'?'priority-high':x.prioridade==='Média'?'priority-medium':'priority-low';
+  return `<article class="dashboard-service-card ${priClass}">
+    <div class="dashboard-service-title">
+      <div><b>${esc(x.titulo)}</b><small>🏭 ${esc(c?.nome_fantasia||'Sem cliente')}</small></div>
+      ${status(x.status)}
+    </div>
+    <div class="dashboard-service-meta">
+      <span>⚡ ${esc(x.prioridade||'—')}</span>
+      ${eq?`<span>⚙️ ${esc(eq.nome||'Equipamento')}</span>`:''}
+      ${x.responsavel?`<span>👷 ${esc(x.responsavel)}</span>`:''}
+    </div>
+    <div class="dashboard-service-next">Próxima ação: <b>${esc(x.proxima_acao||'Definir próxima ação')}</b></div>
+    <div class="dashboard-service-foot">
+      <div><span>Entrega</span><b>${date(x.previsao_entrega||x.data_agendada)}</b></div>
+      <div><span>A receber total</span><b>${money(p.balance)}</b></div>
+    </div>
+  </article>`;
+}
 function dashboard(){
   const active=data.servicos.filter(x=>x.status==='Em execução').length,urgent=data.servicos.filter(x=>x.prioridade==='Emergencial'&&x.status!=='Concluído').length;
   const technicalDone=data.servicos.filter(x=>x.atendimento_status==='Concluída'||x.status==='Concluído').length;
@@ -561,7 +583,11 @@ function dashboard(){
   const totalReceivable=data.servicos.reduce((s,x)=>s+paySummary(x).balance,0);
   const revenue=data.servicos.reduce((s,x)=>s+serviceValues(x).total,0);
   const avg=data.servicos.length?Math.round(data.servicos.reduce((s,x)=>s+(+x.progresso||0),0)/data.servicos.length):0;
-  const byType={};data.servicos.forEach(x=>byType[x.tipo||'Outros']=(byType[x.tipo||'Outros']||0)+1);const arr=Object.entries(byType).slice(0,5),max=Math.max(...arr.map(x=>x[1]),1);
+  const byType={};data.servicos.forEach(x=>byType[x.tipo||'Outros']=(byType[x.tipo||'Outros']||0)+1);
+  const arr=Object.entries(byType).slice(0,5),max=Math.max(...arr.map(x=>x[1]),1);
+  const preferredTypes=['Automação','Máquina de padaria','Instalação elétrica','Comando elétrico','Preventiva','Contrato','Emergência','Outro','Outros'];
+  const existingTypes=[...new Set(data.servicos.map(x=>x.tipo||'Outros'))];
+  const serviceTypes=[...preferredTypes.filter(t=>existingTypes.includes(t)),...existingTypes.filter(t=>!preferredTypes.includes(t)).sort((a,b)=>a.localeCompare(b,'pt-BR'))];
   document.querySelector('#app').innerHTML=`
     <section class="hero"><div class="hero-grid"><div><div class="eyebrow">AMETEC • CENTRO DE OPERAÇÕES</div><h2>Tecnologia para manter a indústria em movimento.</h2><p>Clientes, chamados, equipamentos, agenda e custos em uma única central.</p></div><div class="hero-actions"><button class="btn primary" data-new="servico">+ Serviço</button><button class="btn ghost" data-go="agenda">Abrir agenda</button></div></div></section>
     <div class="metrics">${card('Em execução',active,'serviços ativos')}${card('A receber total',money(totalReceivable),finAlerts.length+' pendência(s) financeira(s)')}${card('Encerrados',closed,technicalDone+' concluído(s) tecnicamente')}${card('Carteira registrada',money(revenue),'serviços + materiais')}</div>
@@ -570,7 +596,15 @@ function dashboard(){
       <section class="panel"><div class="panel-head"><div><h3>Distribuição dos serviços</h3><small>por tipo de atendimento</small></div></div><div class="bars">${arr.length?arr.map(([n,v])=>`<div class="bar-wrap"><b>${v}</b><div class="bar" style="height:${Math.max(8,Math.round(v/max*130))}px"></div><small>${esc(n)}</small></div>`).join(''):'<div class="empty">Sem serviços ainda.</div>'}</div></section>
       <section class="panel"><div class="panel-head"><div><h3>Evolução operacional</h3><small>média dos serviços</small></div></div><div class="donut" style="--p:${avg}"><b>${avg}%</b></div></section>
     </div>
-    <section class="panel"><div class="panel-head"><div><h3>Operações recentes</h3><small>últimos serviços cadastrados</small></div><button class="btn secondary" data-go="servicos">Ver todos</button></div><div class="cards">${data.servicos.slice(0,5).map(x=>serviceCard(x,true)).join('')||'<div class="empty">Nenhum serviço cadastrado.</div>'}</div></section>`;
+    <section class="panel">
+      <div class="panel-head"><div><h3>Serviços por área</h3><small>Kanban organizado pelo tipo de atendimento</small><div class="dashboard-kanban-note">Role horizontalmente para visualizar todas as áreas.</div></div><button class="btn secondary" data-go="servicos">Ver todos</button></div>
+      <div class="dashboard-type-board">
+        ${serviceTypes.length?serviceTypes.map(type=>{
+          const rows=sortByPriority(data.servicos.filter(x=>(x.tipo||'Outros')===type));
+          return `<section class="dashboard-type-col"><div class="dashboard-type-head"><b>${esc(type)}</b><span class="dashboard-type-count">${rows.length}</span></div><div class="dashboard-type-list">${rows.map(dashboardTypeCard).join('')||'<div class="empty">Sem serviços</div>'}</div></section>`;
+        }).join(''):'<div class="empty">Nenhum serviço cadastrado.</div>'}
+      </div>
+    </section>`;
   bindCommon()
 }
 function serviceCard(x,showTotalReceivable=false){
@@ -1948,6 +1982,20 @@ supabase.auth.onAuthStateChange(async(_,s)=>{session=s;if(session){showApp();awa
 </style>
 <style id="ametec-composition-v2">
 .service-composition{grid-column:1/-1;border:1px solid #234b60;border-radius:12px;background:#071922;padding:11px;display:grid;gap:10px}.service-composition-head{display:flex;justify-content:space-between;align-items:center;gap:10px}.service-composition-head b{font-size:12px;color:#eefaff}.service-composition-head small{display:block;font-size:9px;color:#829cab;margin-top:2px}.additional-values-list{display:grid;gap:9px}.additional-value-card{border:1px solid #1d4053;border-radius:10px;background:#091d28;padding:10px;display:grid;gap:8px}.additional-value-head{display:flex;justify-content:space-between;align-items:center}.additional-money-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.material-pick-list{display:grid;gap:6px;padding-top:8px}.material-pick-row{display:grid;grid-template-columns:auto 1fr 75px;gap:8px;align-items:center;background:#06151d;border:1px solid #173546;border-radius:8px;padding:7px}.material-pick-row span b{display:block;font-size:10px;color:#e8f8ff}.material-pick-row span small{display:block;font-size:9px;color:#82a0b0;margin-top:2px}.material-pick-row input[type=number]{width:100%;background:#081c27;border:1px solid #23495d;color:#eefaff;border-radius:7px;padding:7px}.material-picker-foot{display:flex;justify-content:space-between;align-items:center;gap:8px;padding-top:8px;font-size:10px;color:#a8bfcc}.composition-count{display:inline-flex;min-width:18px;height:18px;align-items:center;justify-content:center;padding:0 5px;border-radius:999px;background:#12364a;color:#bfeeff;font-size:9px;margin-left:4px}.composition-empty{font-size:10px;color:#829dac;padding:8px;background:#06151d;border-radius:8px}.service-composition details,.additional-materials{border:1px solid #17384b;border-radius:9px;padding:8px;background:#06151d}.service-composition summary,.additional-materials summary{cursor:pointer;font-size:10px;font-weight:800;color:#cde7f3}@media(max-width:700px){.additional-money-grid{grid-template-columns:1fr}.material-pick-row{grid-template-columns:auto 1fr}.material-pick-row input[type=number]{grid-column:2}}
+</style>
+<style id="dashboard-type-kanban">
+.dashboard-type-board{display:flex;gap:12px;overflow-x:auto;overflow-y:hidden;padding:4px 2px 14px;scroll-snap-type:x proximity;scrollbar-width:auto;scrollbar-color:#2d6680 #071722}
+.dashboard-type-board::-webkit-scrollbar{height:10px}.dashboard-type-board::-webkit-scrollbar-track{background:#071722;border-radius:999px}.dashboard-type-board::-webkit-scrollbar-thumb{background:#2d6680;border-radius:999px}
+.dashboard-type-col{flex:0 0 285px;min-width:285px;background:#071923;border:1px solid #17384b;border-radius:14px;padding:10px;scroll-snap-align:start}
+.dashboard-type-head{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:3px 3px 10px}.dashboard-type-head b{font-size:12px;color:#eefaff}.dashboard-type-count{min-width:24px;height:24px;border-radius:999px;display:flex;align-items:center;justify-content:center;background:#103247;color:#bfeeff;font-size:10px;font-weight:900}
+.dashboard-type-list{display:grid;gap:8px}.dashboard-service-card{background:#091d28;border:1px solid #1b4054;border-radius:11px;padding:10px;display:grid;gap:8px}
+.dashboard-service-card.priority-emergency{border-left:4px solid #ff6b6b}.dashboard-service-card.priority-high{border-left:4px solid #ffb347}.dashboard-service-card.priority-medium{border-left:4px solid #5dc6f3}.dashboard-service-card.priority-low{border-left:4px solid #78909c}
+.dashboard-service-title{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}.dashboard-service-title b{font-size:12px;color:#f1fbff;line-height:1.3}.dashboard-service-title small{display:block;font-size:9px;color:#86a3b3;margin-top:3px}
+.dashboard-service-meta{display:flex;gap:5px;flex-wrap:wrap}.dashboard-service-meta span{font-size:8px;border:1px solid #244a5d;border-radius:999px;padding:4px 6px;color:#aec8d5;background:#0a2634}
+.dashboard-service-next{font-size:9px;line-height:1.4;color:#9cb7c5;background:#06151d;border-radius:8px;padding:7px}.dashboard-service-next b{color:#e5f5fc}
+.dashboard-service-foot{display:grid;grid-template-columns:1fr 1fr;gap:6px}.dashboard-service-foot div{background:#06151d;border-radius:8px;padding:6px}.dashboard-service-foot span{display:block;font-size:7px;text-transform:uppercase;color:#6f8d9d}.dashboard-service-foot b{display:block;font-size:10px;color:#eaf8ff;margin-top:2px}
+.dashboard-kanban-note{font-size:10px;color:#829dab;margin-top:5px}
+@media(max-width:700px){.dashboard-type-col{flex-basis:84vw;min-width:84vw}.dashboard-type-board{scroll-snap-type:x mandatory}}
 </style>
 </body>
 </html>
