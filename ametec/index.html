@@ -893,7 +893,7 @@ function openClientDetail(id){
           <span style="display:block;font-size:10px;text-transform:uppercase;color:#7f9aab;margin-bottom:5px">Observações da empresa</span>
           <div style="color:#b9cfdd;font-size:14px;line-height:1.5">${esc(x.observacoes||'Sem observações.')}</div>
         </div>
-        <div class="actions" style="margin-top:14px"><button class="btn secondary" onclick="openClientServices('${x.id}')">Ver serviços</button><button class="btn secondary" data-go-equip="${x.id}">Equipamentos</button></div>
+        <div class="actions" style="margin-top:14px"><button class="btn secondary" onclick="openClientServices('${x.id}')">Ver serviços</button><button class="btn secondary" onclick="openClientEquipment('${x.id}')">Equipamentos</button><button class="btn secondary" onclick="openClientMaterials('${x.id}')">Materiais</button></div>
       </section>
     </div>`;
   document.querySelector('#backClients').onclick=()=>{page='clientes';render()};
@@ -905,7 +905,6 @@ function openClientDetail(id){
     const {error}=await supabase.from('ametec_cliente_contatos').delete().eq('id',b.dataset.deleteContact);
     if(error)return toast(error.message,true);await load();openClientDetail(id);toast('Contato removido')
   });
-  document.querySelector('[data-go-equip]')?.addEventListener('click',()=>{page='equipamentos';render()});
 }
 function contactForm(clienteId,contactId=null){
   const x=contactId?data.clienteContatos.find(p=>p.id===contactId):null;
@@ -925,7 +924,79 @@ function contactForm(clienteId,contactId=null){
     setTimeout(()=>openClientDetail(clienteId),50)
   },x)
 }
-window.openClientServices=id=>{page='servicos';render();setTimeout(()=>{const s=document.querySelector('#search');if(s){const c=data.clientes.find(x=>x.id===id);s.value=c?.nome_fantasia||'';s.dispatchEvent(new Event('input'))}},0)}
+window.openClientServices=id=>{
+  const c=data.clientes.find(x=>x.id===id);if(!c)return;
+  const rows=sortByPriority(data.servicos.filter(s=>s.cliente_id===id));
+  page='clientes';
+  document.querySelector('#app').innerHTML=`
+    <div class="client-context-head"><button id="ctxBackClient">Clientes</button><span>›</span><button id="ctxBackDetail">${esc(c.nome_fantasia)}</button><span>›</span><b>Serviços</b></div>
+    <section class="hero"><div class="hero-grid"><div><div class="eyebrow">SERVIÇOS DO CLIENTE</div><h2>${esc(c.nome_fantasia)}</h2><p>Somente os atendimentos vinculados a este cliente.</p></div><button class="btn primary" id="ctxNewService">+ Serviço</button></div></section>
+    <section class="panel">
+      <div class="panel-head"><div><h3>Serviços</h3><small>${rows.length} atendimento(s)</small></div></div>
+      <div class="toolbar"><input id="ctxServiceSearch" placeholder="🔎 Buscar serviço deste cliente"></div>
+      <div id="ctxServiceRows" class="client-context-list" style="margin-top:12px"></div>
+    </section>`;
+  const draw=()=>{
+    const q=document.querySelector('#ctxServiceSearch').value.trim().toLowerCase();
+    const filtered=rows.filter(s=>!q||[s.titulo,s.tipo,s.descricao,s.responsavel,s.atendimento_status].filter(Boolean).join(' ').toLowerCase().includes(q));
+    document.querySelector('#ctxServiceRows').innerHTML=filtered.map(s=>{
+      const p=paySummary(s),eq=data.equipamentos.find(e=>e.id===s.equipamento_id);
+      return `<article class="client-context-row clickable" data-open-service-detail="${s.id}">
+        <div class="client-context-main"><b>${esc(s.titulo)}</b><small>${esc(s.tipo||'Serviço')} • ${esc(s.atendimento_status||s.status||'—')}${eq?' • ⚙️ '+esc(eq.nome):''}</small></div>
+        <div class="client-context-cell"><span>Prioridade</span><b>${esc(s.prioridade||'—')}</b></div>
+        <div class="client-context-cell"><span>Entrega</span><b>${date(s.previsao_entrega||s.data_agendada)}</b></div>
+        <div class="client-context-cell"><span>A receber</span><b>S ${money(p.serviceBalance)}<br>M ${money(p.materialBalance)}</b></div>
+      </article>`
+    }).join('')||'<div class="empty">Nenhum serviço deste cliente.</div>';
+    bindServiceDetailLinks();
+  };
+  document.querySelector('#ctxBackClient').onclick=()=>{page='clientes';render()};
+  document.querySelector('#ctxBackDetail').onclick=()=>openClientDetail(id);
+  document.querySelector('#ctxNewService').onclick=()=>newService();
+  document.querySelector('#ctxServiceSearch').oninput=draw;
+  draw();
+};
+
+window.openClientEquipment=id=>{
+  const c=data.clientes.find(x=>x.id===id);if(!c)return;
+  const rows=data.equipamentos.filter(e=>e.cliente_id===id);
+  page='clientes';
+  document.querySelector('#app').innerHTML=`
+    <div class="client-context-head"><button id="ctxBackClient">Clientes</button><span>›</span><button id="ctxBackDetail">${esc(c.nome_fantasia)}</button><span>›</span><b>Equipamentos</b></div>
+    <section class="hero"><div class="hero-grid"><div><div class="eyebrow">EQUIPAMENTOS DO CLIENTE</div><h2>${esc(c.nome_fantasia)}</h2><p>Somente os equipamentos cadastrados para este cliente.</p></div></div></section>
+    <section class="panel"><div class="panel-head"><div><h3>Equipamentos</h3><small>${rows.length} equipamento(s)</small></div></div>
+      <div class="client-context-list">${rows.map(e=>`<article class="client-context-row">
+        <div class="client-context-main"><b>⚙️ ${esc(e.nome||'Equipamento')}</b><small>${esc([e.fabricante,e.modelo].filter(Boolean).join(' • ')||'Sem fabricante/modelo')}</small></div>
+        <div class="client-context-cell"><span>Setor</span><b>${esc(e.setor||'—')}</b></div>
+        <div class="client-context-cell"><span>Status</span><b>${esc(e.status||'—')}</b></div>
+        <div class="client-context-cell"><span>Serviços vinculados</span><b>${data.servicos.filter(s=>s.equipamento_id===e.id).length}</b></div>
+      </article>`).join('')||'<div class="empty">Nenhum equipamento cadastrado para este cliente.</div>'}</div>
+    </section>`;
+  document.querySelector('#ctxBackClient').onclick=()=>{page='clientes';render()};
+  document.querySelector('#ctxBackDetail').onclick=()=>openClientDetail(id);
+};
+
+window.openClientMaterials=id=>{
+  const c=data.clientes.find(x=>x.id===id);if(!c)return;
+  const serviceIds=new Set(data.servicos.filter(s=>s.cliente_id===id).map(s=>s.id));
+  const links=data.servicoMateriais.filter(l=>serviceIds.has(l.servico_id));
+  const grouped=new Map();
+  links.forEach(l=>{
+    const m=data.materiais.find(x=>x.id===l.material_id);if(!m)return;
+    const g=grouped.get(m.id)||{material:m,qty:0,total:0,uses:0};
+    g.qty+=+l.quantidade||0;g.total+=(+l.quantidade||0)*(+l.valor_unitario||0);g.uses++;grouped.set(m.id,g);
+  });
+  const rows=[...grouped.values()].sort((a,b)=>a.material.descricao.localeCompare(b.material.descricao,'pt-BR'));
+  page='clientes';
+  document.querySelector('#app').innerHTML=`
+    <div class="client-context-head"><button id="ctxBackClient">Clientes</button><span>›</span><button id="ctxBackDetail">${esc(c.nome_fantasia)}</button><span>›</span><b>Materiais</b></div>
+    <section class="hero"><div class="hero-grid"><div><div class="eyebrow">MATERIAIS DO CLIENTE</div><h2>${esc(c.nome_fantasia)}</h2><p>Materiais vinculados aos serviços deste cliente.</p></div></div></section>
+    <section class="panel"><div class="panel-head"><div><h3>Materiais utilizados / vinculados</h3><small>${rows.length} item(ns) diferente(s)</small></div></div>
+      <div class="cards">${rows.map(r=>`<article class="client-material-card"><div><b>📦 ${esc(r.material.descricao)}</b><small>${esc(r.material.fornecedor||'Sem fornecedor')}</small></div><div class="client-material-meta"><div><span>Quantidade acumulada</span><b>${r.qty} ${esc(r.material.unidade||'un.')}</b></div><div><span>Utilizações</span><b>${r.uses}</b></div><div><span>Valor vinculado</span><b>${money(r.total)}</b></div></div></article>`).join('')||'<div class="empty">Nenhum material vinculado aos serviços deste cliente.</div>'}</div>
+    </section>`;
+  document.querySelector('#ctxBackClient').onclick=()=>{page='clientes';render()};
+  document.querySelector('#ctxBackDetail').onclick=()=>openClientDetail(id);
+};
 function serviceAreaIcon(type){
   const map={'Automação':'🤖','Máquina de padaria':'🥖','Instalação elétrica':'⚡','Comando elétrico':'🎛️','Preventiva':'🛠️','Contrato':'📋','Emergência':'🚨'};
   return map[type]||'📁';
@@ -2257,6 +2328,10 @@ supabase.auth.onAuthStateChange(async(_,s)=>{session=s;if(session){showApp();awa
     padding:10px 12px!important;
   }
 }
+</style>
+<style id="client-scoped-pages">
+.client-context-head{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:12px}.client-context-head button{border:0;background:transparent;color:#75c9ed;font-weight:800;cursor:pointer;padding:4px 0}.client-context-head span{color:#628392}.client-context-list{display:grid;gap:9px}.client-context-row{background:#081923;border:1px solid #17384b;border-radius:12px;padding:12px;display:grid;grid-template-columns:minmax(0,1.6fr) minmax(120px,.7fr) minmax(120px,.7fr) auto;gap:12px;align-items:center}.client-context-row.clickable{cursor:pointer}.client-context-row.clickable:hover{border-color:#2e7696}.client-context-main b{display:block;font-size:14px;color:#eefaff}.client-context-main small{display:block;font-size:10px;color:#8eabba;margin-top:3px}.client-context-cell span{display:block;font-size:9px;color:#7896a6;text-transform:uppercase}.client-context-cell b{display:block;font-size:12px;color:#f0fbff;margin-top:3px}.client-material-card{background:#081923;border:1px solid #17384b;border-radius:12px;padding:12px;display:grid;gap:8px}.client-material-card b{font-size:13px;color:#eefaff}.client-material-card small{font-size:10px;color:#8ea9b8}.client-material-meta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}.client-material-meta div{background:#06151d;border-radius:8px;padding:8px}.client-material-meta span{display:block;font-size:8px;color:#7896a6;text-transform:uppercase}.client-material-meta b{font-size:11px;margin-top:2px}
+@media(max-width:700px){.client-context-row{grid-template-columns:1fr 1fr}.client-context-main{grid-column:1/-1}.client-material-meta{grid-template-columns:1fr 1fr}}
 </style>
 </body>
 </html>
