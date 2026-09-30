@@ -299,7 +299,7 @@ function sanitizeServicePayload(v){
   nullableText.forEach(k=>{if(k in v&&typeof v[k]==='string'&&!v[k].trim())v[k]=null});
   return v;
 }
-let data={perfil:null,clientes:[],clienteContatos:[],servicos:[],equipamentos:[],materiais:[],colaboradores:[],registros:[],pagamentos:[]},page='dashboard',session=null,channel=null;
+let data={perfil:null,clientes:[],clienteContatos:[],servicos:[],equipamentos:[],materiais:[],colaboradores:[],registros:[],pagamentos:[],movimentacoes:[]},page='dashboard',session=null,channel=null;
 const pages=[['dashboard','Centro','⚡'],['pendencias','Pendências','📋'],['clientes','Clientes','🏭'],['servicos','Serviços','🔧'],['agenda','Agenda','📅'],['equipamentos','Equipamentos','⚙️'],['materiais','Materiais','📦'],['colaboradores','Colaboradores','👷'],['financeiro','Financeiro','💰'],['relatorios','Relatórios','📊']];
 const status=s=>{const c=['Concluído','Operacional','Ativo'].includes(s)?'done':['Em execução','Em manutenção','Planejado'].includes(s)?'run':['Emergencial','Alta'].includes(s)?'high':'';return '<span class="status '+c+'">'+esc(s||'—')+'</span>'};
 const card=(l,v,s='')=>'<div class="metric"><span>'+l+'</span><b>'+v+'</b><small>'+s+'</small></div>';
@@ -332,22 +332,23 @@ async function load(){
     supabase.from('ametec_materiais').select('*').order('created_at',{ascending:false}),
     supabase.from('ametec_colaboradores').select('*').order('created_at',{ascending:false}),
     supabase.from('ametec_registros').select('*').order('created_at',{ascending:false}),
-    supabase.from('ametec_pagamentos').select('*').order('data_pagamento',{ascending:false})
+    supabase.from('ametec_pagamentos').select('*').order('data_pagamento',{ascending:false}),
+    supabase.from('ametec_movimentacoes').select('*').order('data_movimentacao',{ascending:false})
   ]);
   if(qs.some(x=>x.error))return toast('Não foi possível carregar todos os dados.',true);
-  let [perfil,clientes,clienteContatos,servicos,equipamentos,materiais,colaboradores,registros,pagamentos]=qs.map(x=>x.data??null);
+  let [perfil,clientes,clienteContatos,servicos,equipamentos,materiais,colaboradores,registros,pagamentos,movimentacoes]=qs.map(x=>x.data??null);
   if(!perfil){
     const fallback=(session?.user?.user_metadata?.full_name||session?.user?.email?.split('@')[0]||'Usuário').replace(/[._-]+/g,' ');
     const {data:p}=await supabase.from('ametec_usuarios').upsert({user_id:session.user.id,nome:fallback,funcao:'Administrador'}).select().single();
     perfil=p;
   }
-  data={perfil,clientes:clientes||[],clienteContatos:clienteContatos||[],servicos:servicos||[],equipamentos:equipamentos||[],materiais:materiais||[],colaboradores:colaboradores||[],registros:registros||[],pagamentos:pagamentos||[]};
+  data={perfil,clientes:clientes||[],clienteContatos:clienteContatos||[],servicos:servicos||[],equipamentos:equipamentos||[],materiais:materiais||[],colaboradores:colaboradores||[],registros:registros||[],pagamentos:pagamentos||[],movimentacoes:movimentacoes||[]};
   render()
 }
 function subscribe(){
   if(channel)supabase.removeChannel(channel);
   channel=supabase.channel('ametec-live');
-  ['ametec_usuarios','ametec_clientes','ametec_cliente_contatos','ametec_servicos','ametec_equipamentos','ametec_materiais','ametec_colaboradores','ametec_registros','ametec_pagamentos'].forEach(t=>channel.on('postgres_changes',{event:'*',schema:'public',table:t},()=>load()));
+  ['ametec_usuarios','ametec_clientes','ametec_cliente_contatos','ametec_servicos','ametec_equipamentos','ametec_materiais','ametec_colaboradores','ametec_registros','ametec_pagamentos','ametec_movimentacoes'].forEach(t=>channel.on('postgres_changes',{event:'*',schema:'public',table:t},()=>load()));
   channel.subscribe()
 }
 function initNav(){
@@ -885,6 +886,7 @@ async function duplicateService(id){
       orcamento_data_envio:null,
       orcamento_validade:null,
       data_agendada:null,
+      horario_agendado:null,
       vencimento_pagamento:null,
       proxima_acao:null,
       proxima_acao_data:null,
@@ -941,7 +943,7 @@ function editService(id){
 
   const blocks={
     budget_dates:{title:'📅 Datas do orçamento',html:`<label class="field"><span>Data de envio</span><input name="orcamento_data_envio" type="date" value="${esc(x.orcamento_data_envio||'')}"></label><label class="field"><span>Validade</span><input name="orcamento_validade" type="date" value="${esc(x.orcamento_validade||'')}"></label>`},
-    schedule:{title:'🗓️ Agendamento',html:`<label class="field full"><span>Data agendada</span><input name="data_agendada" type="date" value="${esc(x.data_agendada||'')}"></label>`},
+    schedule:{title:'🗓️ Agendamento',html:`<label class="field"><span>Data agendada</span><input name="data_agendada" type="date" value="${esc(x.data_agendada||'')}"></label><label class="field"><span>Horário</span><input name="horario_agendado" type="time" value="${esc(x.horario_agendado||'')}"></label>`},
     responsible:{title:'👤 Responsável',html:`<label class="field full"><span>Responsável</span><input name="responsavel" type="text" value="${esc(x.responsavel||'')}" placeholder="Ex.: Técnico responsável"></label>`},
     progress:{title:'📊 Progresso',html:`<label class="field full"><span>Progresso (%)</span><input name="progresso" type="number" min="0" max="100" step="5" value="${+x.progresso||0}"></label>`},
     values:{title:'💰 Valores',html:`<label class="field"><span>Valor do serviço</span><input name="valor_servico" type="number" min="0" step="0.01" value="${+x.valor_servico||0}"></label><label class="field"><span>Valor de material</span><input name="valor_material" type="number" min="0" step="0.01" value="${+x.valor_material||0}"></label>`},
@@ -964,7 +966,7 @@ function editService(id){
   };
 
   if(has('orcamento_data_envio','orcamento_validade'))addBlock('budget_dates');
-  if(has('data_agendada'))addBlock('schedule');
+  if(has('data_agendada','horario_agendado'))addBlock('schedule');
   if(has('responsavel'))addBlock('responsible');
   if((+x.progresso||0)>0)addBlock('progress');
   if((+x.valor_servico||0)>0||(+x.valor_material||0)>0)addBlock('values');
@@ -980,7 +982,7 @@ function editService(id){
     e.preventDefault();
     try{
       const v=Object.fromEntries(new FormData(form));
-      const optionalKeys=['orcamento_data_envio','orcamento_validade','data_agendada','responsavel','progresso','valor_servico','valor_material','material_fornecimento','valor_adicional','descricao_valor_adicional','tipo_valor_adicional','vencimento_pagamento','proxima_acao','proxima_acao_data','descricao'];
+      const optionalKeys=['orcamento_data_envio','orcamento_validade','data_agendada','horario_agendado','responsavel','progresso','valor_servico','valor_material','material_fornecimento','valor_adicional','descricao_valor_adicional','tipo_valor_adicional','vencimento_pagamento','proxima_acao','proxima_acao_data','descricao'];
       for(const k of optionalKeys)if(!(k in v))v[k]=null;
       for(const k of ['progresso','valor_servico','valor_material','valor_adicional'])v[k]=v[k]===null?0:(+v[k]||0);
 
@@ -1047,7 +1049,7 @@ function newService(){
     },
     schedule:{
       title:'🗓️ Agendamento',
-      html:`<label class="field"><span>Data agendada</span><input name="data_agendada" type="date"></label>`
+      html:`<label class="field"><span>Data agendada</span><input name="data_agendada" type="date"></label><label class="field"><span>Horário</span><input name="horario_agendado" type="time"></label>`
     },
     responsible:{
       title:'👤 Responsável',
@@ -1134,16 +1136,54 @@ function newService(){
   modal.classList.add('open');
 }
 function agenda(){
-  const rows=[...data.servicos].sort((a,b)=>{
-    const da=a.data_agendada||'9999',db=b.data_agendada||'9999';
-    if(da!==db)return da.localeCompare(db);
-    return priorityRank(a.prioridade)-priorityRank(b.prioridade);
-  });
-  document.querySelector('#app').innerHTML=`<section class="hero"><div class="hero-grid"><div><div class="eyebrow">PLANEJAMENTO</div><h2>Agenda operacional</h2><p>Visualize prioridades, datas e evolução dos atendimentos.</p></div><button class="btn primary" id="add">+ Serviço</button></div></section><section class="panel"><div class="cards">${rows.map(x=>{const c=data.clientes.find(a=>a.id===x.cliente_id);return `<article class="entity"><div class="entity-head"><div><b>${date(x.data_agendada)} • ${esc(x.titulo)}</b><small>${esc(c?.nome_fantasia||'Sem cliente')} • ${esc(x.responsavel||'Sem responsável')}</small></div>${status(x.prioridade)}</div><div class="entity-body"><div><div style="display:flex;justify-content:space-between;font-size:9px;color:#748397;margin-bottom:5px"><span>EVOLUÇÃO</span><b data-label="${x.id}">${x.progresso||0}%</b></div><input type="range" min="0" max="100" step="5" value="${x.progresso||0}" data-progress="${x.id}" style="width:100%;accent-color:#0075c9"></div><div class="actions"><button class="btn secondary" data-set="${x.id}" data-v="25">25%</button><button class="btn secondary" data-set="${x.id}" data-v="50">50%</button><button class="btn secondary" data-set="${x.id}" data-v="75">75%</button><button class="btn primary" data-set="${x.id}" data-v="100">Concluir</button></div></div></article>`}).join('')||'<div class="empty">Nenhum serviço agendado.</div>'}</div></section>`;
+  let view=localStorage.getItem('ametecAgendaView')||'mensal';
+  let cursor=new Date(today+'T12:00:00');
+  const fmtISO=d=>{const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0');return y+'-'+m+'-'+day};
+  const addDays=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x};
+  const startWeek=d=>{const x=new Date(d);const dow=(x.getDay()+6)%7;x.setDate(x.getDate()-dow);return x};
+  const serviceState=x=>{
+    if(x.status==='Concluído'||x.atendimento_status==='Concluída')return 'done';
+    if(x.data_agendada<today)return 'past';
+    if(x.data_agendada===today)return 'now';
+    return 'future';
+  };
+  const eventHtml=x=>{const c=data.clientes.find(a=>a.id===x.cliente_id);return '<div class="calendar-event '+serviceState(x)+'"><b>'+esc((x.horario_agendado?x.horario_agendado.slice(0,5)+' • ':'')+x.titulo)+'</b><small>'+esc(c?.nome_fantasia||'Sem cliente')+' • '+esc(x.prioridade||'')+'</small></div>'};
+
+  document.querySelector('#app').innerHTML=`
+    <section class="hero"><div class="hero-grid"><div><div class="eyebrow">PLANEJAMENTO</div><h2>Agenda operacional</h2><p>Veja os serviços já prestados, os de hoje e os próximos agendamentos.</p></div><button class="btn primary" id="add">+ Serviço</button></div></section>
+    <section class="panel calendar-shell">
+      <div class="calendar-head">
+        <div class="subtabs"><button data-ag-view="diaria">Diária</button><button data-ag-view="semanal">Semanal</button><button data-ag-view="mensal">Mensal</button></div>
+        <div class="calendar-nav"><button class="btn secondary" id="calPrev">‹</button><button class="btn secondary" id="calToday">Hoje</button><button class="btn secondary" id="calNext">›</button></div>
+      </div>
+      <div id="calendarTitle" style="font-weight:900;font-size:17px"></div>
+      <div id="calendarBody"></div>
+    </section>`;
+
+  const renderCalendar=()=>{
+    document.querySelectorAll('[data-ag-view]').forEach(b=>b.classList.toggle('active',b.dataset.agView===view));
+    const body=document.querySelector('#calendarBody'),title=document.querySelector('#calendarTitle');
+    if(view==='diaria'){
+      const iso=fmtISO(cursor),rows=sortByPriority(data.servicos.filter(x=>x.data_agendada===iso)).sort((a,b)=>(a.horario_agendado||'99:99').localeCompare(b.horario_agendado||'99:99')||priorityRank(a.prioridade)-priorityRank(b.prioridade));
+      title.textContent=cursor.toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
+      body.innerHTML='<div class="calendar-day-view">'+(rows.map(x=>{const c=data.clientes.find(a=>a.id===x.cliente_id);return '<article class="calendar-day-card '+serviceState(x)+'"><b>'+esc((x.horario_agendado?x.horario_agendado.slice(0,5)+' • ':'')+x.titulo)+'</b><small style="display:block;margin-top:4px;color:#91adbd">'+esc(c?.nome_fantasia||'Sem cliente')+' • '+esc(x.responsavel||'Sem responsável')+' • '+esc(x.prioridade||'')+'</small></article>'}).join('')||'<div class="empty">Nenhum serviço agendado neste dia.</div>')+'</div>';
+    }else if(view==='semanal'){
+      const st=startWeek(cursor);title.textContent='Semana de '+st.toLocaleDateString('pt-BR')+' a '+addDays(st,6).toLocaleDateString('pt-BR');
+      body.innerHTML='<div class="calendar-week">'+Array.from({length:7},(_,i)=>{const d=addDays(st,i),iso=fmtISO(d),rows=data.servicos.filter(x=>x.data_agendada===iso).sort((a,b)=>(a.horario_agendado||'99:99').localeCompare(b.horario_agendado||'99:99')||priorityRank(a.prioridade)-priorityRank(b.prioridade));return '<div class="calendar-week-col"><h4>'+d.toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit'})+'</h4>'+rows.map(eventHtml).join('')+(rows.length?'':'<small style="color:#708b9a">Sem serviços</small>')+'</div>'}).join('')+'</div>';
+    }else{
+      const y=cursor.getFullYear(),m=cursor.getMonth(),first=new Date(y,m,1),gridStart=startWeek(first);
+      title.textContent=cursor.toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+      const heads=['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'].map(x=>'<div class="calendar-weekday">'+x+'</div>').join('');
+      const days=Array.from({length:42},(_,i)=>{const d=addDays(gridStart,i),iso=fmtISO(d),rows=data.servicos.filter(x=>x.data_agendada===iso).sort((a,b)=>priorityRank(a.prioridade)-priorityRank(b.prioridade));return '<div class="calendar-day '+(d.getMonth()!==m?'muted ':'')+(iso===today?'today':'')+'"><div class="calendar-date">'+d.getDate()+'</div>'+rows.slice(0,3).map(eventHtml).join('')+(rows.length>3?'<small style="color:#8aa7b8">+'+(rows.length-3)+' serviço(s)</small>':'')+'</div>'}).join('');
+      body.innerHTML='<div class="calendar-month">'+heads+days+'</div>';
+    }
+  };
+  document.querySelectorAll('[data-ag-view]').forEach(b=>b.onclick=()=>{view=b.dataset.agView;localStorage.setItem('ametecAgendaView',view);renderCalendar()});
+  document.querySelector('#calPrev').onclick=()=>{cursor=view==='diaria'?addDays(cursor,-1):view==='semanal'?addDays(cursor,-7):new Date(cursor.getFullYear(),cursor.getMonth()-1,1);renderCalendar()};
+  document.querySelector('#calNext').onclick=()=>{cursor=view==='diaria'?addDays(cursor,1):view==='semanal'?addDays(cursor,7):new Date(cursor.getFullYear(),cursor.getMonth()+1,1);renderCalendar()};
+  document.querySelector('#calToday').onclick=()=>{cursor=new Date(today+'T12:00:00');renderCalendar()};
   document.querySelector('#add').onclick=newService;
-  const save=async(id,v)=>{const patch={progresso:+v,status:+v===100?'Concluído':(+v>0?'Em execução':'Planejado')};const {error}=await supabase.from('ametec_servicos').update(patch).eq('id',id);if(error)toast(error.message,true);else toast('Evolução atualizada')};
-  document.querySelectorAll('[data-progress]').forEach(r=>{r.oninput=e=>document.querySelector('[data-label="'+e.target.dataset.progress+'"]').textContent=e.target.value+'%';r.onchange=e=>save(e.target.dataset.progress,e.target.value)});
-  document.querySelectorAll('[data-set]').forEach(b=>b.onclick=()=>save(b.dataset.set,b.dataset.v))
+  renderCalendar();
 }
 function equipamentos(){
   document.querySelector('#app').innerHTML=`<section class="hero"><div class="hero-grid"><div><div class="eyebrow">ATIVOS TÉCNICOS</div><h2>Equipamentos dos clientes</h2><p>Histórico de máquinas, quadros e sistemas atendidos.</p></div><button class="btn primary" id="add">+ Equipamento</button></div></section><section class="panel"><div class="cards">${data.equipamentos.map(x=>{const c=data.clientes.find(a=>a.id===x.cliente_id);return `<article class="entity"><div class="entity-head"><div><b>⚙️ ${esc(x.nome)}</b><small>${esc(c?.nome_fantasia||'Sem cliente')} • ${esc(x.fabricante||'')} ${esc(x.modelo||'')}</small></div>${status(x.status)}</div><div class="entity-body"><div class="entity-grid"><div><span>Setor</span><b>${esc(x.setor||'—')}</b></div><div><span>Série</span><b>${esc(x.numero_serie||'—')}</b></div><div><span>Status</span><b>${esc(x.status)}</b></div></div></div></article>`}).join('')||'<div class="empty">Nenhum equipamento cadastrado.</div>'}</div></section>`;
@@ -1159,97 +1199,72 @@ function colaboradores(){
   document.querySelector('#add').onclick=()=>openForm('Novo colaborador',[['nome','Nome','text'],['funcao','Função','text'],['telefone','Telefone','text'],['tipo_pagamento','Pagamento','select',['diária','hora','mensal','valor fechado']],['valor_base','Valor base','number'],['ativo','Ativo?','select',[{value:'true',label:'Sim'},{value:'false',label:'Não'}]]],async v=>{v.valor_base=+v.valor_base||0;v.ativo=v.ativo==='true';const {error}=await supabase.from('ametec_colaboradores').insert(v);if(error)throw error})
 }
 function financeiro(){
+  let tab=localStorage.getItem('ametecFinanceTab')||'atendimentos';
   const summaries=data.servicos.map(x=>({x,p:paySummary(x),c:data.clientes.find(a=>a.id===x.cliente_id)}));
   const totalBalance=summaries.reduce((s,r)=>s+r.p.balance,0);
   const serviceBalance=summaries.reduce((s,r)=>s+r.p.serviceBalance,0);
   const materialBalance=summaries.reduce((s,r)=>s+r.p.materialBalance,0);
   const received=data.pagamentos.reduce((s,x)=>s+(+x.valor||0),0);
+  const manualEntries=data.movimentacoes.filter(x=>x.tipo==='Entrada').reduce((s,x)=>s+(+x.valor||0),0);
+  const manualExits=data.movimentacoes.filter(x=>x.tipo==='Saída').reduce((s,x)=>s+(+x.valor||0),0);
   const overdue=summaries.reduce((s,r)=>s+(r.p.state==='Vencido'?r.p.balance:0),0);
 
   document.querySelector('#app').innerHTML=`
-    <section class="hero"><div class="hero-grid"><div><div class="eyebrow">CONTROLE FINANCEIRO</div><h2>Recebimentos AMETEC</h2><p>Veja claramente o que falta receber de serviço, material e cada atendimento.</p></div></div></section>
+    <section class="hero"><div class="hero-grid"><div><div class="eyebrow">CONTROLE FINANCEIRO</div><h2>Financeiro AMETEC</h2><p>Recebimentos por atendimento e extrato completo de entradas e saídas.</p></div></div></section>
+    <div class="subtabs"><button data-fin-tab="atendimentos">Atendimentos</button><button data-fin-tab="extrato">Extrato</button></div>
+    <div id="financeContent"></div>`;
 
-    <div class="finance-summary">
-      <div class="finance-kpi primary"><div class="finance-label-row"><span>A receber total</span>${infoTip('Soma de tudo que ainda falta entrar na AMETEC, considerando serviço e materiais cobrados do cliente.')}</div><b>${money(totalBalance)}</b><small>Saldo financeiro geral</small></div>
-      <div class="finance-kpi"><div class="finance-label-row"><span>A receber • serviços</span>${infoTip('Valor pendente referente à mão de obra, instalação, manutenção, automação e adicionais classificados como serviço.')}</div><b>${money(serviceBalance)}</b><small>Receita de serviço ainda não recebida</small></div>
-      <div class="finance-kpi"><div class="finance-label-row"><span>A receber • materiais</span>${infoTip('Valor pendente de materiais fornecidos pela AMETEC. Material comprado diretamente pelo cliente não entra neste saldo.')}</div><b>${money(materialBalance)}</b><small>Materiais fornecidos pela AMETEC</small></div>
-      <div class="finance-kpi"><div class="finance-label-row"><span>Recebido</span>${infoTip('Total de pagamentos já registrados no sistema, independentemente de serem referentes a serviço ou material.')}</div><b>${money(received)}</b><small>${overdue>0?'Vencido: '+money(overdue):'Nenhum valor vencido'}</small></div>
-    </div>
-
-    <section class="panel">
-      <div class="panel-head"><div><h3>Histórico financeiro por atendimento</h3><small>Cada cartão mostra a composição real da cobrança e os pagamentos.</small></div></div>
-      <div class="finance-tools"><input id="financeSearch" placeholder="🔎 Buscar serviço ou cliente"></div>
-      <div id="financeCards" class="finance-grid" style="margin-top:12px"></div>
-    </section>`;
-
-  const draw=(q='')=>{
-    q=q.trim().toLowerCase();
-    const rows=summaries.filter(r=>!q||[r.x.titulo,r.c?.nome_fantasia,r.x.tipo].filter(Boolean).join(' ').toLowerCase().includes(q))
-      .sort((a,b)=>{
-        const ao=a.p.state==='Vencido'?0:a.p.balance>0?1:2,bo=b.p.state==='Vencido'?0:b.p.balance>0?1:2;
-        if(ao!==bo)return ao-bo;
-        return b.p.balance-a.p.balance;
-      });
-
-    document.querySelector('#financeCards').innerHTML=rows.map(({x,p,c})=>{
-      const vals=p.values;
-      const pays=data.pagamentos.filter(a=>a.servico_id===x.id).sort((a,b)=>(b.data_pagamento||'').localeCompare(a.data_pagamento||''));
-      const pc=p.state==='Pago'?'done':p.state==='Vencido'?'late':p.state==='Parcial'?'run':'';
-      const mode=vals.materialMode||'Sem material';
-      const materialInfo=mode==='Cliente compra'
-        ?'Cliente compra • '+money(vals.materialQuoted)+' não entra no A receber'
-        :mode==='Estoque AMETEC'
-          ?'Estoque AMETEC • venda de material'
-          :mode==='AMETEC compra para o serviço'
-            ?'AMETEC compra • valor a recuperar'
-            :'Sem fornecimento de material';
-      return `<article class="finance-card">
-        <div class="finance-card-head">
-          <div><b>${esc(x.titulo)}</b><small>${esc(c?.nome_fantasia||'Sem cliente')} • ${esc(x.tipo||'Serviço')}</small></div>
-          <span class="status ${pc}">${p.state}</span>
+  const renderTab=()=>{
+    document.querySelectorAll('[data-fin-tab]').forEach(b=>b.classList.toggle('active',b.dataset.finTab===tab));
+    const root=document.querySelector('#financeContent');
+    if(tab==='extrato'){
+      const paymentRows=data.pagamentos.map(pg=>{const s=data.servicos.find(x=>x.id===pg.servico_id),c=data.clientes.find(x=>x.id===s?.cliente_id);return {kind:'Entrada',date:pg.data_pagamento,value:+pg.valor||0,desc:s?.titulo||'Recebimento',detail:[c?.nome_fantasia,pg.forma_pagamento,pg.categoria&&pg.categoria!=='Geral'?pg.categoria:null].filter(Boolean).join(' • '),source:'payment',id:pg.id}});
+      const manualRows=data.movimentacoes.map(m=>{const s=data.servicos.find(x=>x.id===m.servico_id);return {kind:m.tipo,date:m.data_movimentacao,value:+m.valor||0,desc:m.descricao,detail:[m.categoria,m.forma_pagamento,s?.titulo].filter(Boolean).join(' • '),source:'manual',id:m.id}});
+      const all=[...paymentRows,...manualRows].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+      const entries=received+manualEntries,exits=manualExits,balance=entries-exits;
+      root.innerHTML=`
+        <div class="finance-summary">
+          <div class="finance-kpi primary"><span>Saldo do extrato</span><b>${money(balance)}</b><small>entradas menos saídas registradas</small></div>
+          <div class="finance-kpi"><span>Entradas</span><b>${money(entries)}</b><small>recebimentos + entradas manuais</small></div>
+          <div class="finance-kpi"><span>Saídas</span><b>${money(exits)}</b><small>custos e despesas registradas</small></div>
+          <div class="finance-kpi"><span>Movimentações</span><b>${all.length}</b><small>histórico financeiro</small></div>
         </div>
-        <div class="finance-card-body">
-          <div class="finance-balance">
-            <div><span>Saldo total</span><b>${money(p.balance)}</b></div>
-            <div><span>Serviço a receber</span><b>${money(p.serviceBalance)}</b></div>
-            <div><span>Material a receber</span><b>${money(p.materialBalance)}</b></div>
-          </div>
-
-          <div class="finance-composition">
-            <div><span>Serviço contratado</span><b>${money(vals.service)}</b></div>
-            <div><span>Material cobrado</span><b>${money(vals.material)}</b></div>
-            <div><span>Total AMETEC</span><b>${money(vals.total)}</b></div>
-          </div>
-
-          <div class="material-mode">📦 ${esc(materialInfo)} ${infoTip(
-            (mode==='Cliente compra'
-              ?'O material é adquirido pelo próprio cliente e não compõe o valor a receber da AMETEC.'
-              :mode==='Estoque AMETEC'
-                ?'O material já pertence à AMETEC e é tratado como venda de material da empresa.'
-                :'A AMETEC compra o material para executar o serviço e o valor é tratado como material a recuperar do cliente.'
-            )
-          )}</div>
-
-          ${(+x.valor_adicional||0)>0?`<div class="pending-line"><span>Adicional • ${esc(x.descricao_valor_adicional||'Sem descrição')} • ${esc(x.tipo_valor_adicional||'Serviço')}</span><b>+${money(x.valor_adicional)}</b></div>`:''}
-
-          
-
-          <div class="finance-history">
-            <div class="finance-history-title">MOVIMENTAÇÕES</div>
-            ${pays.length?pays.slice(0,4).map(pg=>`<div class="finance-history-row"><span>🟢 Entrada • ${date(pg.data_pagamento)} • ${esc(pg.forma_pagamento||'Não informado')}${pg.categoria&&pg.categoria!=='Geral'?' • '+esc(pg.categoria):''}</span><b>+${money(pg.valor)}</b></div>`).join(''):'<small style="color:#82909f">Nenhuma movimentação registrada.</small>'}
-          </div>
-
-          <div class="actions"><button class="btn primary" data-fin-pay="${x.id}">+ Registrar pagamento</button><button class="btn secondary icon-btn" data-fin-edit="${x.id}" title="Editar serviço">✏️</button></div>
+        <section class="panel">
+          <div class="panel-head"><div><h3>Extrato de entradas e saídas</h3><small>Histórico cronológico das movimentações.</small></div><button class="btn primary" id="newMovement">+ Movimentação</button></div>
+          <div class="statement-toolbar"><input id="statementSearch" placeholder="🔎 Buscar descrição, serviço ou categoria"><select id="statementType"><option>Todos</option><option>Entrada</option><option>Saída</option></select></div>
+          <div id="statementList" class="statement-list" style="margin-top:12px"></div>
+        </section>`;
+      const drawStatement=()=>{
+        const q=document.querySelector('#statementSearch').value.trim().toLowerCase(),t=document.querySelector('#statementType').value;
+        let running=0;
+        const chronological=[...all].sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+        const balances=new Map();chronological.forEach(r=>{running+=r.kind==='Entrada'?r.value:-r.value;balances.set(r.source+':'+r.id,running)});
+        const rows=all.filter(r=>(t==='Todos'||r.kind===t)&&(!q||[r.desc,r.detail,r.kind].filter(Boolean).join(' ').toLowerCase().includes(q)));
+        document.querySelector('#statementList').innerHTML=rows.map(r=>`<div class="statement-row ${r.kind==='Entrada'?'entry':'exit'}"><div class="statement-date"><b>${date(r.date)}</b><small style="display:block">${r.kind==='Entrada'?'🟢 Entrada':'🔴 Saída'}</small></div><div><b>${esc(r.desc)}</b><small style="display:block">${esc(r.detail||'—')}</small></div><b>${r.kind==='Entrada'?'+':'-'}${money(r.value)}</b><div class="statement-balance">Saldo após: <b>${money(balances.get(r.source+':'+r.id)||0)}</b></div></div>`).join('')||'<div class="empty">Nenhuma movimentação encontrada.</div>';
+      };
+      document.querySelector('#statementSearch').oninput=drawStatement;document.querySelector('#statementType').onchange=drawStatement;
+      document.querySelector('#newMovement').onclick=()=>openForm('Nova movimentação',[['tipo','Tipo','select',['Entrada','Saída']],['data_movimentacao','Data','date'],['valor','Valor','number'],['categoria','Categoria','select',['Material','Ferramenta','Deslocamento','Alimentação','Serviço','Imposto','Despesa operacional','Outros']],['descricao','Descrição','text'],['forma_pagamento','Forma de pagamento','select',['PIX','Dinheiro','Cartão','Transferência','Boleto','Outro']],['servico_id','Vincular a serviço','select',[{value:'',label:'Nenhum'},...data.servicos.map(x=>({value:x.id,label:x.titulo}))]],['observacoes','Observações','textarea']],async v=>{v.valor=+v.valor||0;if(v.valor<=0)throw new Error('Informe um valor maior que zero.');if(!v.data_movimentacao)v.data_movimentacao=today;if(!v.servico_id)v.servico_id=null;const {error}=await supabase.from('ametec_movimentacoes').insert(v);if(error)throw error});
+      drawStatement();
+    }else{
+      root.innerHTML=`
+        <div class="finance-summary">
+          <div class="finance-kpi primary"><div class="finance-label-row"><span>A receber total</span>${infoTip('Soma de tudo que ainda falta entrar na AMETEC, considerando serviço e materiais cobrados do cliente.')}</div><b>${money(totalBalance)}</b><small>Saldo financeiro geral</small></div>
+          <div class="finance-kpi"><div class="finance-label-row"><span>A receber • serviços</span>${infoTip('Valor pendente referente à mão de obra, instalação, manutenção, automação e adicionais classificados como serviço.')}</div><b>${money(serviceBalance)}</b><small>Receita de serviço ainda não recebida</small></div>
+          <div class="finance-kpi"><div class="finance-label-row"><span>A receber • materiais</span>${infoTip('Valor pendente de materiais fornecidos pela AMETEC. Material comprado diretamente pelo cliente não entra neste saldo.')}</div><b>${money(materialBalance)}</b><small>Materiais fornecidos pela AMETEC</small></div>
+          <div class="finance-kpi"><div class="finance-label-row"><span>Recebido</span>${infoTip('Total de pagamentos já registrados no sistema, independentemente de serem referentes a serviço ou material.')}</div><b>${money(received)}</b><small>${overdue>0?'Vencido: '+money(overdue):'Nenhum valor vencido'}</small></div>
         </div>
-      </article>`;
-    }).join('')||'<div class="empty">Nenhum atendimento financeiro encontrado.</div>';
-
-    document.querySelectorAll('[data-fin-pay]').forEach(b=>b.onclick=()=>{const x=data.servicos.find(s=>s.id===b.dataset.finPay);if(x)openPaymentForm(x)});
-    document.querySelectorAll('[data-fin-edit]').forEach(b=>b.onclick=()=>editService(b.dataset.finEdit));
+        <section class="panel"><div class="panel-head"><div><h3>Histórico financeiro por atendimento</h3><small>Cada cartão mostra a composição real da cobrança e os pagamentos.</small></div></div><div class="finance-tools"><input id="financeSearch" placeholder="🔎 Buscar serviço ou cliente"></div><div id="financeCards" class="finance-grid" style="margin-top:12px"></div></section>`;
+      const draw=(q='')=>{
+        q=q.trim().toLowerCase();
+        const rows=summaries.filter(r=>!q||[r.x.titulo,r.c?.nome_fantasia,r.x.tipo].filter(Boolean).join(' ').toLowerCase().includes(q)).sort((a,b)=>{const ao=a.p.state==='Vencido'?0:a.p.balance>0?1:2,bo=b.p.state==='Vencido'?0:b.p.balance>0?1:2;if(ao!==bo)return ao-bo;return b.p.balance-a.p.balance});
+        document.querySelector('#financeCards').innerHTML=rows.map(({x,p,c})=>{const vals=p.values,pays=data.pagamentos.filter(a=>a.servico_id===x.id).sort((a,b)=>(b.data_pagamento||'').localeCompare(a.data_pagamento||'')),pc=p.state==='Pago'?'done':p.state==='Vencido'?'late':p.state==='Parcial'?'run':'',mode=vals.materialMode||'Sem material';const materialInfo=mode==='Cliente compra'?'Cliente compra • '+money(vals.materialQuoted)+' não entra no A receber':mode==='Estoque AMETEC'?'Estoque AMETEC • venda de material':mode==='AMETEC compra para o serviço'?'AMETEC compra • valor a recuperar':'Sem fornecimento de material';return `<article class="finance-card"><div class="finance-card-head"><div><b>${esc(x.titulo)}</b><small>${esc(c?.nome_fantasia||'Sem cliente')} • ${esc(x.tipo||'Serviço')}</small></div><span class="status ${pc}">${p.state}</span></div><div class="finance-card-body"><div class="finance-balance"><div><span>Saldo total</span><b>${money(p.balance)}</b></div><div><span>Serviço a receber</span><b>${money(p.serviceBalance)}</b></div><div><span>Material a receber</span><b>${money(p.materialBalance)}</b></div></div><div class="finance-composition"><div><span>Serviço contratado</span><b>${money(vals.service)}</b></div><div><span>Material cobrado</span><b>${money(vals.material)}</b></div><div><span>Total AMETEC</span><b>${money(vals.total)}</b></div></div><div class="material-mode">📦 ${esc(materialInfo)} ${infoTip(mode==='Cliente compra'?'O material é adquirido pelo próprio cliente e não compõe o valor a receber da AMETEC.':mode==='Estoque AMETEC'?'O material já pertence à AMETEC e é tratado como venda de material da empresa.':'A AMETEC compra o material para executar o serviço e o valor é tratado como material a recuperar do cliente.')}</div>${(+x.valor_adicional||0)>0?`<div class="pending-line"><span>Adicional • ${esc(x.descricao_valor_adicional||'Sem descrição')} • ${esc(x.tipo_valor_adicional||'Serviço')}</span><b>+${money(x.valor_adicional)}</b></div>`:''}<div class="finance-history"><div class="finance-history-title">MOVIMENTAÇÕES</div>${pays.length?pays.slice(0,4).map(pg=>`<div class="finance-history-row"><span>🟢 Entrada • ${date(pg.data_pagamento)} • ${esc(pg.forma_pagamento||'Não informado')}${pg.categoria&&pg.categoria!=='Geral'?' • '+esc(pg.categoria):''}</span><b>+${money(pg.valor)}</b></div>`).join(''):'<small style="color:#82909f">Nenhuma movimentação registrada.</small>'}</div><div class="actions"><button class="btn primary" data-fin-pay="${x.id}">+ Registrar pagamento</button><button class="btn secondary icon-btn" data-fin-edit="${x.id}" title="Editar serviço">✏️</button></div></div></article>`}).join('')||'<div class="empty">Nenhum atendimento financeiro encontrado.</div>';
+        document.querySelectorAll('[data-fin-pay]').forEach(b=>b.onclick=()=>{const x=data.servicos.find(s=>s.id===b.dataset.finPay);if(x)openPaymentForm(x)});document.querySelectorAll('[data-fin-edit]').forEach(b=>b.onclick=()=>editService(b.dataset.finEdit));
+      };
+      draw();document.querySelector('#financeSearch').oninput=e=>draw(e.target.value);
+    }
   };
-
-  draw();
-  document.querySelector('#financeSearch').oninput=e=>draw(e.target.value);
+  document.querySelectorAll('[data-fin-tab]').forEach(b=>b.onclick=()=>{tab=b.dataset.finTab;localStorage.setItem('ametecFinanceTab',tab);renderTab()});
+  renderTab();
 }
 function relatorios(){
   const total=data.servicos.length,done=data.servicos.filter(x=>x.status==='Concluído').length,em=data.servicos.filter(x=>x.status==='Em execução').length,urgent=data.servicos.filter(x=>x.prioridade==='Emergencial').length;
@@ -1329,6 +1344,17 @@ supabase.auth.onAuthStateChange(async(_,s)=>{session=s;if(session){showApp();awa
 @media(max-width:700px){.info-popover{position:fixed!important;left:16px!important;right:16px!important;bottom:82px!important;top:auto!important;transform:none!important;width:auto!important;font-size:15px!important;padding:14px 15px}.info-popover:after{display:none}.info-btn{width:24px;height:24px;font-size:14px}}
 @media(max-width:1000px){.finance-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.finance-grid{grid-template-columns:1fr}}
 @media(max-width:600px){.finance-summary{grid-template-columns:1fr 1fr}.finance-kpi b{font-size:18px}.finance-balance{grid-template-columns:1fr}.finance-composition{grid-template-columns:1fr 1fr}.finance-grid{gap:10px}}
+</style>
+
+<style id="ametec-calendar-statement">
+.subtabs{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}.subtabs button{border:1px solid #234a5d;background:#091923;color:#9db6c5;border-radius:10px;padding:9px 13px;font-weight:800;cursor:pointer}.subtabs button.active{background:#0f3549;color:#eaf9ff;border-color:#2e7d9e}
+.statement-toolbar,.calendar-toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.statement-toolbar input,.statement-toolbar select,.calendar-toolbar select{background:#071720;border:1px solid #17384b;color:#eefaff;border-radius:9px;padding:9px}
+.statement-list{display:grid;gap:8px}.statement-row{display:grid;grid-template-columns:110px 1fr auto auto;gap:10px;align-items:center;background:#081821;border:1px solid #17384b;border-radius:10px;padding:10px}.statement-row.entry{border-left:4px solid #38d996}.statement-row.exit{border-left:4px solid #ff6b6b}.statement-row small{color:#8da8b8}.statement-row b{white-space:nowrap}.statement-balance{font-size:12px;color:#b7cbd6}
+.calendar-shell{display:grid;gap:12px}.calendar-head{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}.calendar-nav{display:flex;gap:6px;align-items:center}.calendar-nav button{width:34px;height:34px}
+.calendar-month{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}.calendar-weekday{font-size:10px;text-transform:uppercase;color:#819cac;padding:5px 3px;text-align:center}.calendar-day{min-height:108px;background:#081821;border:1px solid #17384b;border-radius:10px;padding:7px;display:grid;align-content:start;gap:5px}.calendar-day.muted{opacity:.35}.calendar-day.today{border-color:#2d93bd;box-shadow:0 0 0 1px rgba(45,147,189,.2)}.calendar-date{font-size:11px;font-weight:900;color:#dff6ff}.calendar-event{border-radius:7px;padding:6px 7px;font-size:10px;line-height:1.25;background:#0d3043;border-left:3px solid #35b9f0;color:#dff5ff}.calendar-event.done{background:#0d2c22;border-left-color:#38d996}.calendar-event.past{background:#252016;border-left-color:#d0a64b}.calendar-event.now{background:#102e43;border-left-color:#20c8ff}.calendar-event small{display:block;color:#9bb6c7;margin-top:2px;font-size:9px}
+.calendar-week{display:grid;grid-template-columns:repeat(7,minmax(150px,1fr));gap:8px;overflow-x:auto;padding-bottom:8px}.calendar-week-col{background:#081821;border:1px solid #17384b;border-radius:10px;padding:8px;min-height:250px}.calendar-week-col h4{margin:0 0 8px;font-size:11px;color:#b9d3e2}
+.calendar-day-view{display:grid;gap:8px}.calendar-day-card{background:#081821;border:1px solid #17384b;border-radius:10px;padding:11px}.calendar-day-card.done{border-left:4px solid #38d996}.calendar-day-card.past{border-left:4px solid #d0a64b}.calendar-day-card.future{border-left:4px solid #35b9f0}
+@media(max-width:700px){.statement-row{grid-template-columns:1fr auto}.statement-row .statement-date,.statement-row .statement-balance{grid-column:1/-1}.calendar-month{grid-template-columns:repeat(7,minmax(92px,1fr));overflow-x:auto}.calendar-day{min-height:96px}.calendar-shell{overflow:hidden}}
 </style>
 </body>
 </html>
