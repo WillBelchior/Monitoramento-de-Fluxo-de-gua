@@ -401,14 +401,31 @@ function renderUser(){
 function serviceValues(s){
   const extras=data.adicionais.filter(a=>a.servico_id===s.id);
   const additionalService=extras.reduce((n,a)=>n+(+a.valor_servico||0),0);
-  const additionalMaterial=extras.reduce((n,a)=>n+(+a.valor_material||0),0);
+  const additionalMaterialManual=extras.reduce((n,a)=>n+(+a.valor_material||0),0);
+  const selectedBaseMaterials=data.servicoMateriais
+    .filter(l=>l.servico_id===s.id&&!l.adicional_id)
+    .reduce((n,l)=>n+(+l.quantidade||0)*(+l.valor_unitario||0),0);
+  const additionalMaterial=additionalMaterialManual+selectedBaseMaterials;
   const service=(+s.valor_servico||0)+additionalService;
   const materialQuoted=(+s.valor_material||0)+additionalMaterial;
   const materialMode=s.material_fornecimento||(materialQuoted>0?'AMETEC compra para o serviço':null);
   const materialBillable=materialMode==='Cliente compra'?0:materialQuoted;
   const materialRecovery=materialMode==='AMETEC compra para o serviço'?materialBillable:0;
   const materialSale=materialMode==='Estoque AMETEC'?materialBillable:0;
-  return {service,material:materialBillable,materialQuoted,materialMode,materialRecovery,materialSale,additionalService,additionalMaterial,additional:additionalService+additionalMaterial,total:service+materialBillable};
+  return {
+    service,
+    material:materialBillable,
+    materialQuoted,
+    materialMode,
+    materialRecovery,
+    materialSale,
+    additionalService,
+    additionalMaterial,
+    additionalMaterialManual,
+    selectedBaseMaterials,
+    additional:additionalService+additionalMaterial,
+    total:service+materialBillable
+  };
 }
 function paySummary(s){
   const values=serviceValues(s);
@@ -529,6 +546,7 @@ function pendingCard(x){
         </select>
       </div>
       ${data.adicionais.filter(a=>a.servico_id===x.id).map(a=>`<div class="pending-line"><span>➕ ${esc(a.descricao||'Valor adicional')}</span><b>Serviço ${money(a.valor_servico)} • Material ${money(a.valor_material)}</b></div>`).join('')}
+      ${serviceValues(x).selectedBaseMaterials>0?`<div class="pending-line"><span>📦 Materiais adicionais selecionados</span><b>+${money(serviceValues(x).selectedBaseMaterials)}</b></div>`:''}
       <div class="pending-fin">
         <div class="pending-fin-sub"><span>Serviço a receber</span><b>${money(p.serviceBalance)}</b></div>
         <div class="pending-fin-sub"><span>Material a receber</span><b>${money(p.materialBalance)}</b></div>
@@ -1069,8 +1087,9 @@ function renderServiceDetail(id){
             ${adds.length?adds.map(a=>`<div class="detail-addition"><div class="detail-addition-head"><b>${esc(a.descricao||'Valor adicional')}</b></div><div class="detail-addition-values"><span>Serviço: <b>${money(a.valor_servico)}</b></span><span>Material: <b>${money(a.valor_material)}</b></span></div>${links.filter(l=>l.adicional_id===a.id).map(l=>`<div class="detail-material">📦 ${esc(materialName(l.material_id))} • ${l.quantidade} × ${money(l.valor_unitario)}</div>`).join('')}</div>`).join(''):'<div class="empty">Nenhum valor adicional.</div>'}
           </section>
 
-          <section class="service-detail-section"><h3>Materiais do serviço</h3>
-            ${baseLinks.length?baseLinks.map(l=>`<div class="detail-material">📦 ${esc(materialName(l.material_id))} • ${l.quantidade} × ${money(l.valor_unitario)} • <b>${money((+l.quantidade||0)*(+l.valor_unitario||0))}</b></div>`).join(''):'<div class="empty">Nenhum material vinculado diretamente ao serviço.</div>'}
+          <section class="service-detail-section"><h3>Materiais adicionais do serviço</h3>
+            ${baseLinks.length?baseLinks.map(l=>`<div class="detail-material">📦 ${esc(materialName(l.material_id))} • ${l.quantidade} × ${money(l.valor_unitario)} • <b>${money((+l.quantidade||0)*(+l.valor_unitario||0))}</b></div>`).join(''):'<div class="empty">Nenhum material adicional selecionado.</div>'}
+            ${baseLinks.length?`<div class="service-detail-line"><span>Total de materiais adicionais</span><b>${money(vals.selectedBaseMaterials||0)}</b></div>`:''}
           </section>
         </div>
 
@@ -1489,15 +1508,8 @@ function setupServiceComposition(form,serviceId=null){
 
   const renderBase=()=>{
     if(!baseBox)return;
-    baseBox.innerHTML='<div class="material-picker-fixed"><div class="material-picker-title">📦 Selecionar materiais cadastrados <span class="composition-count">'+Object.keys(form._baseMaterials).length+'</span></div>'+materialPickerHtml(form._baseMaterials,'base')+'<div class="material-picker-foot"><span>Total selecionado: <b>'+money(materialCatalogTotal(form._baseMaterials))+'</b></span><button type="button" class="btn secondary" id="useBaseMaterialTotal">Usar no valor de material</button></div></div>';
+    baseBox.innerHTML='<div class="material-picker-fixed"><div class="material-picker-title">📦 Selecionar materiais cadastrados <span class="composition-count">'+Object.keys(form._baseMaterials).length+'</span></div>'+materialPickerHtml(form._baseMaterials,'base')+'<div class="material-picker-foot"><span>Valor adicional de material: <b>'+money(materialCatalogTotal(form._baseMaterials))+'</b></span><small class="material-extra-note">Este valor será somado automaticamente como material adicional, sem alterar o valor principal do orçamento.</small></div></div>';
     bindPicker(baseBox,form._baseMaterials,null);
-    const use=baseBox.querySelector('#useBaseMaterialTotal');
-    if(use)use.onclick=()=>{
-      const input=form.querySelector('[name="valor_material"]');
-      if(!input){toast('Adicione primeiro o bloco Valores.',true);return}
-      input.value=materialCatalogTotal(form._baseMaterials).toFixed(2);
-      toast('Valor dos materiais aplicado');
-    };
   };
 
   const renderAdds=()=>{
@@ -2477,6 +2489,19 @@ supabase.auth.onAuthStateChange(async(_,s)=>{session=s;if(session){showApp();awa
 .material-picker-foot{
   border-top:1px solid #12303f;
   padding-top:9px!important;
+}
+</style>
+<style id="base-material-additional-v3">
+.material-picker-foot{
+  display:grid!important;
+  grid-template-columns:1fr!important;
+  gap:4px!important;
+}
+.material-extra-note{
+  display:block;
+  font-size:10px;
+  line-height:1.4;
+  color:#88a7b7;
 }
 </style>
 </body>
