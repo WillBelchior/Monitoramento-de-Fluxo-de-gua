@@ -1728,7 +1728,7 @@ function editService(id){
     additional_value:{title:'➕ Valor adicional',html:`<label class="field full"><span>Descrição do valor adicional</span><input name="descricao_valor_adicional" type="text" value="${esc(x.descricao_valor_adicional||'')}" placeholder="Ex.: Material extra, deslocamento, ajuste adicional..."></label><label class="field"><span>Valor adicional</span><input name="valor_adicional" type="number" min="0" step="0.01" value="${+x.valor_adicional||0}"></label><label class="field"><span>Somar em</span><select name="tipo_valor_adicional"><option value="Serviço" ${(x.tipo_valor_adicional||'Serviço')==='Serviço'?'selected':''}>Serviço</option><option value="Material" ${x.tipo_valor_adicional==='Material'?'selected':''}>Material</option></select></label>`},
     finance:{title:'💳 Financeiro',html:`<label class="field full"><span>Vencimento financeiro</span><input name="vencimento_pagamento" type="date" value="${esc(x.vencimento_pagamento||'')}"></label>`},
     next_action:{title:'✅ Próxima ação',html:`<label class="field"><span>Próxima ação</span><input name="proxima_acao" type="text" value="${esc(x.proxima_acao||'')}"></label><label class="field"><span>Prazo</span><input name="proxima_acao_data" type="date" value="${esc(x.proxima_acao_data||'')}"></label>`},
-    description:{title:'📝 Descrição',html:`<label class="field full"><span>Descrição</span><textarea name="descricao" rows="3">${esc(x.descricao||'')}</textarea></label>`}
+    description:{title:'📝 Descrição',html:`<label class="field full"><span>Descrição</span><textarea name="descricao" rows="8" class="service-description-textarea">${esc(x.descricao||'')}</textarea></label>`}
   };
 
   const added=new Set(),container=form.querySelector('#optionalServiceFields'),select=form.querySelector('#extraInfoType');
@@ -2657,6 +2657,22 @@ supabase.auth.onAuthStateChange(async(_,s)=>{session=s;if(session){showApp();awa
 .inventory-history{display:grid;gap:7px}.inventory-movement{display:grid;grid-template-columns:100px 90px minmax(0,1fr) 100px 110px;gap:10px;align-items:center;background:#081923;border:1px solid #17384b;border-radius:10px;padding:9px 11px}.inventory-movement.in{border-left:4px solid #38d996}.inventory-movement.out{border-left:4px solid #ff7474}.inventory-movement small{color:#88a5b4;font-size:9px}.inventory-movement b{font-size:11px;color:#eefaff}.stock-low-note{font-size:10px;color:#ffd986}.stock-search{display:flex;gap:8px;flex-wrap:wrap}.stock-search input{flex:1;min-width:220px;background:#06151d;border:1px solid #17384b;color:#eefaff;border-radius:9px;padding:10px}
 @media(max-width:1050px){.inventory-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:700px){.inventory-grid{grid-template-columns:1fr}.inventory-movement{grid-template-columns:1fr auto}.inventory-movement .mv-detail{grid-column:1/-1}}
+</style>
+<style id="service-description-textarea-size">
+.service-description-textarea{
+  min-height:180px!important;
+  max-height:520px;
+  resize:vertical!important;
+  line-height:1.55!important;
+  font-size:13px!important;
+  white-space:pre-wrap;
+}
+@media(max-width:700px){
+  .service-description-textarea{
+    min-height:220px!important;
+    font-size:16px!important;
+  }
+}
 </style>
 </body>
 </html>
