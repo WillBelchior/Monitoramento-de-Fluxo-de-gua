@@ -216,7 +216,7 @@
 
     function openModal(t=null){
       editingId=t?.id||null; $('#modalTitle').textContent=t?'Editar prioridade':'Nova prioridade';
-      $('#taskTitle').value=t?.title||''; $('#taskNotes').value=t?.notes||''; $('#taskHorizon').value=t?.horizon||currentHorizon==='all'?'day':currentHorizon;
+      $('#taskTitle').value=t?.title||''; $('#taskNotes').value=t?.notes||''; $('#taskHorizon').value = t?.horizon || (currentHorizon==='all' ? 'day' : currentHorizon);
       if(!t && currentHorizon!=='all') $('#taskHorizon').value=currentHorizon;
       $('#taskDue').value=t?.due_date||''; $('#taskPriority').value=String(t?.priority||2); $('#taskEffort').value=String(t?.effort||2);
       $('#taskModal').classList.remove('hidden');
