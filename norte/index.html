@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#f7f7f4" />
+  <title>Norte | Prioridades</title>
+  <style>
+    :root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#1f2937;background:#f7f7f4}
+    *{box-sizing:border-box} body{margin:0;min-height:100vh;background:#f7f7f4}
+    button,input,select,textarea{font:inherit} button{cursor:pointer}
+    .hidden{display:none!important}.app{min-height:100vh;display:grid;grid-template-columns:240px 1fr}
+    .sidebar{padding:28px 18px;border-right:1px solid #e7e7e1;background:#fff;position:sticky;top:0;height:100vh}
+    .brand{font-size:26px;font-weight:800;letter-spacing:-1px}.brand small{display:block;font-size:12px;font-weight:600;color:#8b8b83;letter-spacing:1.5px;margin-top:3px}
+    .nav{margin-top:34px;display:grid;gap:8px}.nav button{border:0;background:transparent;text-align:left;padding:12px 14px;border-radius:14px;color:#66655f}
+    .nav button.active,.nav button:hover{background:#f0f0ea;color:#111}.nav button span{float:right;font-size:12px;background:#e8e8e1;padding:2px 7px;border-radius:999px}
+    .main{padding:28px 34px 70px;max-width:1450px;width:100%;margin:0 auto}
+    .top{display:flex;justify-content:space-between;gap:20px;align-items:center}.eyebrow{font-size:12px;color:#8b8b83;text-transform:uppercase;letter-spacing:1.4px;font-weight:700}
+    h1{font-size:36px;letter-spacing:-1.5px;margin:5px 0 0}.actions{display:flex;gap:10px}
+    .btn{border:1px solid #deded7;background:#fff;padding:10px 14px;border-radius:12px;font-weight:700}.btn.primary{background:#20251f;color:white;border-color:#20251f}
+    .summary{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:28px 0}
+    .card{background:#fff;border:1px solid #e7e7e1;border-radius:18px;padding:18px}.metric b{display:block;font-size:26px;margin-top:8px}.metric small{color:#8b8b83}
+    .focus{display:grid;grid-template-columns:1.35fr .65fr;gap:14px;margin-bottom:22px}.focus-box h2,.section-title{margin:0;font-size:18px}
+    .focus-list{margin-top:12px;display:grid;gap:10px}.focus-item{display:flex;align-items:center;gap:12px;padding:13px;background:#f8f8f4;border-radius:14px}
+    .rank{width:30px;height:30px;border-radius:9px;background:#20251f;color:#fff;display:grid;place-items:center;font-weight:800}
+    .focus-item .grow{flex:1}.focus-item b{display:block}.meta{font-size:12px;color:#8b8b83;margin-top:3px}
+    .progress-ring{min-height:168px;display:grid;place-items:center;text-align:center}.progress-ring strong{font-size:38px}
+    .toolbar{display:flex;gap:10px;align-items:center;justify-content:space-between;margin:26px 0 12px}.filters{display:flex;gap:8px;flex-wrap:wrap}.chip{border:1px solid #deded7;background:#fff;padding:7px 10px;border-radius:999px;font-size:13px}.chip.active{background:#20251f;color:#fff;border-color:#20251f}
+    .kanban{display:grid;grid-template-columns:repeat(4,minmax(230px,1fr));gap:12px;align-items:start;overflow-x:auto}.column{background:#efefe9;border-radius:18px;padding:12px;min-height:380px}.column h3{font-size:14px;margin:4px 4px 12px;display:flex;justify-content:space-between}.task{background:#fff;border:1px solid #e3e3dc;border-radius:14px;padding:14px;margin-bottom:10px;box-shadow:0 1px 0 rgba(0,0,0,.02)}.task h4{font-size:14px;margin:0 0 8px}.task p{font-size:12px;color:#707068;margin:0 0 10px;line-height:1.45}.tags{display:flex;gap:6px;flex-wrap:wrap}.tag{font-size:10px;padding:4px 7px;border-radius:999px;background:#f0f0ea;color:#5d5c56}.tag.hot{background:#fff0e8;color:#a24712}.task-actions{display:flex;gap:6px;margin-top:12px}.task-actions button{border:0;background:#f2f2ed;border-radius:8px;padding:6px 8px;font-size:11px}
+    .empty{color:#96968f;font-size:12px;padding:14px}.modal{position:fixed;inset:0;background:rgba(20,20,18,.38);display:grid;place-items:center;padding:18px;z-index:20}.modal-card{width:min(620px,100%);background:#fff;border-radius:22px;padding:22px;box-shadow:0 20px 70px rgba(0,0,0,.18)}.modal-card h2{margin:0 0 16px}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}.field{display:grid;gap:6px;margin-bottom:12px}.field label{font-size:12px;font-weight:700;color:#66655f}.field input,.field select,.field textarea{width:100%;border:1px solid #d9d9d2;background:#fafaf7;border-radius:11px;padding:10px 11px;outline:none}.field textarea{min-height:82px;resize:vertical}.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
+    .login{min-height:100vh;display:grid;place-items:center;padding:20px}.login-card{width:min(420px,100%);background:#fff;border:1px solid #e3e3dc;border-radius:24px;padding:28px}.login-card h1{font-size:32px}.login-card p{color:#73736b;line-height:1.5}.login-card input{width:100%;padding:12px;border:1px solid #d9d9d2;border-radius:12px;margin-top:10px}.login-card button{width:100%;margin-top:12px}.notice{font-size:12px;color:#8a4b22;margin-top:10px}
+    @media(max-width:950px){.app{grid-template-columns:1fr}.sidebar{height:auto;position:static;border-right:0;border-bottom:1px solid #e7e7e1;padding:18px}.brand small{display:inline;margin-left:8px}.nav{margin-top:15px;grid-template-columns:repeat(5,1fr);overflow-x:auto}.nav button{text-align:center;padding:10px 8px}.nav button span{display:none}.main{padding:22px 16px 60px}.summary{grid-template-columns:repeat(2,1fr)}.focus{grid-template-columns:1fr}.kanban{grid-template-columns:repeat(4,280px)}}
+    @media(max-width:560px){h1{font-size:30px}.top{align-items:flex-start}.actions{flex-direction:column}.grid2{grid-template-columns:1fr}.summary{grid-template-columns:1fr 1fr}.nav{grid-template-columns:repeat(5,110px)}}
+  </style>
+</head>
+<body>
+  <section id="login" class="login">
+    <div class="login-card">
+      <div class="eyebrow">Organização pessoal</div>
+      <h1>Norte</h1>
+      <p>Um painel simples para transformar prioridades em direção. Entre com sua conta do Supabase.</p>
+      <input id="email" type="email" placeholder="Seu e-mail" />
+      <input id="password" type="password" placeholder="Sua senha" />
+      <button class="btn primary" id="loginBtn">Entrar</button>
+      <div id="loginMsg" class="notice"></div>
+    </div>
+  </section>
+
+  <div id="app" class="app hidden">
+    <aside class="sidebar">
+      <div class="brand">Norte <small>PRIORIDADES</small></div>
+      <div class="nav" id="horizonNav">
+        <button data-h="day" class="active">Hoje <span id="count-day">0</span></button>
+        <button data-h="week">Semana <span id="count-week">0</span></button>
+        <button data-h="month">Mês <span id="count-month">0</span></button>
+        <button data-h="semester">Semestre <span id="count-semester">0</span></button>
+        <button data-h="all">Tudo <span id="count-all">0</span></button>
+      </div>
+      <button class="btn" style="margin-top:28px;width:100%" id="logoutBtn">Sair</button>
+    </aside>
+
+    <main class="main">
+      <div class="top">
+        <div><div class="eyebrow" id="todayLabel"></div><h1 id="viewTitle">Prioridades de hoje</h1></div>
+        <div class="actions"><button class="btn" id="reviewBtn">Revisão rápida</button><button class="btn primary" id="newBtn">+ Nova prioridade</button></div>
+      </div>
+
+      <section class="summary">
+        <div class="card metric"><small>Prioridades abertas</small><b id="openMetric">0</b></div>
+        <div class="card metric"><small>Prazo próximo</small><b id="dueMetric">0</b></div>
+        <div class="card metric"><small>Em andamento</small><b id="doingMetric">0</b></div>
+        <div class="card metric"><small>Concluídas</small><b id="doneMetric">0</b></div>
+      </section>
+
+      <section class="focus">
+        <div class="card focus-box"><h2>Seu foco recomendado</h2><div class="focus-list" id="focusList"></div></div>
+        <div class="card progress-ring"><div><div class="eyebrow">Progresso do recorte</div><strong id="progressPct">0%</strong><div class="meta" id="progressText">0 de 0 concluídas</div></div></div>
+      </section>
+
+      <div class="toolbar">
+        <h2 class="section-title">Quadro de execução</h2>
+        <div class="filters" id="priorityFilters">
+          <button class="chip active" data-p="all">Todas</button><button class="chip" data-p="4">Crítica</button><button class="chip" data-p="3">Alta</button><button class="chip" data-p="2">Média</button><button class="chip" data-p="1">Baixa</button>
+        </div>
+      </div>
+      <section class="kanban" id="kanban"></section>
+    </main>
+  </div>
+
+  <div class="modal hidden" id="taskModal">
+    <div class="modal-card">
+      <h2 id="modalTitle">Nova prioridade</h2>
+      <div class="field"><label>O que precisa ser feito?</label><input id="taskTitle" maxlength="140" placeholder="Ex.: Finalizar documentação da faculdade" /></div>
+      <div class="field"><label>Observações / próximo passo</label><textarea id="taskNotes" placeholder="Escreva apenas o necessário para saber como começar."></textarea></div>
+      <div class="grid2">
+        <div class="field"><label>Horizonte</label><select id="taskHorizon"><option value="day">Hoje</option><option value="week">Semana</option><option value="month">Mês</option><option value="semester">Semestre</option></select></div>
+        <div class="field"><label>Prazo</label><input id="taskDue" type="date" /></div>
+        <div class="field"><label>Importância</label><select id="taskPriority"><option value="4">Crítica</option><option value="3">Alta</option><option value="2" selected>Média</option><option value="1">Baixa</option></select></div>
+        <div class="field"><label>Esforço estimado</label><select id="taskEffort"><option value="1">Leve</option><option value="2" selected>Médio</option><option value="3">Alto</option></select></div>
+      </div>
+      <div class="modal-actions"><button class="btn" id="cancelBtn">Cancelar</button><button class="btn primary" id="saveBtn">Salvar prioridade</button></div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.95.0';
+    import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js';
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+    const $ = s => document.querySelector(s);
+    const $$ = s => [...document.querySelectorAll(s)];
+    let tasks = [], currentHorizon = 'day', priorityFilter = 'all', editingId = null, currentUser = null;
+    const labels = {day:'Hoje',week:'Semana',month:'Mês',semester:'Semestre',all:'Tudo'};
+    const statuses = [
+      ['backlog','Pode esperar'],['todo','Planejar'],['doing','Fazer agora'],['done','Concluído']
+    ];
+
+    const dayDiff = date => {
+      if(!date) return 999;
+      const today = new Date(); today.setHours(0,0,0,0);
+      const d = new Date(date+'T00:00:00'); return Math.ceil((d-today)/86400000);
+    };
+    const score = t => {
+      if(t.status==='done') return -999;
+      const d=dayDiff(t.due_date);
+      const urgency = d<0?8:d===0?7:d<=2?5:d<=7?3:1;
+      const horizonBoost = {day:5,week:3,month:2,semester:1}[t.horizon]||0;
+      return (t.priority*4)+urgency+horizonBoost-(t.effort||2);
+    };
+    const escapeHtml = str => (str||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+    const fmtDate = d => d ? new Intl.DateTimeFormat('pt-BR',{day:'2-digit',month:'short'}).format(new Date(d+'T00:00:00')) : 'Sem prazo';
+
+    async function boot(){
+      $('#todayLabel').textContent = new Intl.DateTimeFormat('pt-BR',{weekday:'long',day:'2-digit',month:'long'}).format(new Date());
+      const {data:{session}}=await supabase.auth.getSession();
+      if(session){ currentUser=session.user; showApp(); await loadTasks(); subscribe(); }
+      supabase.auth.onAuthStateChange(async(_,session)=>{
+        if(session){currentUser=session.user;showApp();await loadTasks();subscribe();}
+        else{currentUser=null;$('#app').classList.add('hidden');$('#login').classList.remove('hidden');}
+      });
+    }
+
+    async function login(){
+      $('#loginMsg').textContent='Entrando...';
+      const {error}=await supabase.auth.signInWithPassword({email:$('#email').value.trim(),password:$('#password').value});
+      $('#loginMsg').textContent=error?error.message:'';
+    }
+    function showApp(){ $('#login').classList.add('hidden'); $('#app').classList.remove('hidden'); }
+
+    async function loadTasks(){
+      const {data,error}=await supabase.from('priorities').select('*').order('created_at',{ascending:false});
+      if(error){console.error(error);return;}
+      tasks=data||[]; render();
+    }
+
+    function subscribe(){
+      supabase.removeAllChannels();
+      supabase.channel('priorities-live')
+        .on('postgres_changes',{event:'*',schema:'public',table:'priorities',filter:'user_id=eq.'+currentUser.id},()=>loadTasks())
+        .subscribe();
+    }
+
+    function visible(){
+      return tasks.filter(t => (currentHorizon==='all'||t.horizon===currentHorizon) && (priorityFilter==='all'||String(t.priority)===priorityFilter));
+    }
+
+    function render(){
+      ['day','week','month','semester'].forEach(h=>$('#count-'+h).textContent=tasks.filter(t=>t.horizon===h&&t.status!=='done').length);
+      $('#count-all').textContent=tasks.filter(t=>t.status!=='done').length;
+      $('#viewTitle').textContent=currentHorizon==='all'?'Todas as prioridades':'Prioridades de '+labels[currentHorizon].toLowerCase();
+      const v=visible(), open=v.filter(t=>t.status!=='done'), done=v.filter(t=>t.status==='done');
+      $('#openMetric').textContent=open.length;
+      $('#dueMetric').textContent=open.filter(t=>dayDiff(t.due_date)<=3).length;
+      $('#doingMetric').textContent=v.filter(t=>t.status==='doing').length;
+      $('#doneMetric').textContent=done.length;
+      const pct=v.length?Math.round(done.length/v.length*100):0;
+      $('#progressPct').textContent=pct+'%'; $('#progressText').textContent=done.length+' de '+v.length+' concluídas';
+
+      const focus=open.slice().sort((a,b)=>score(b)-score(a)).slice(0,3);
+      $('#focusList').innerHTML=focus.length?focus.map((t,i)=>`
+        <div class="focus-item"><div class="rank">${i+1}</div><div class="grow"><b>${escapeHtml(t.title)}</b><div class="meta">${labels[t.horizon]} · ${fmtDate(t.due_date)} · foco ${score(t)}</div></div></div>`).join(''):'<div class="empty">Nada urgente neste recorte. Ótimo momento para planejar o próximo passo.</div>';
+
+      $('#kanban').innerHTML=statuses.map(([key,label])=>{
+        const col=v.filter(t=>t.status===key).sort((a,b)=>score(b)-score(a));
+        return `<div class="column"><h3>${label}<span>${col.length}</span></h3>${col.length?col.map(taskCard).join(''):'<div class="empty">Sem itens aqui.</div>'}</div>`;
+      }).join('');
+      bindTaskButtons();
+    }
+
+    function taskCard(t){
+      const urgent=dayDiff(t.due_date)<=2&&t.status!=='done';
+      return `<article class="task">
+        <h4>${escapeHtml(t.title)}</h4>
+        ${t.notes?`<p>${escapeHtml(t.notes)}</p>`:''}
+        <div class="tags"><span class="tag ${urgent?'hot':''}">${fmtDate(t.due_date)}</span><span class="tag">${labels[t.horizon]}</span><span class="tag">Importância ${t.priority}</span><span class="tag">Esforço ${t.effort}</span></div>
+        <div class="task-actions">
+          ${t.status!=='backlog'?'<button data-act="prev" data-id="'+t.id+'">←</button>':''}
+          ${t.status!=='done'?'<button data-act="next" data-id="'+t.id+'">Avançar →</button>':''}
+          <button data-act="edit" data-id="${t.id}">Editar</button>
+          <button data-act="delete" data-id="${t.id}">Excluir</button>
+        </div>
+      </article>`;
+    }
+
+    function bindTaskButtons(){
+      $$('[data-act]').forEach(b=>b.onclick=async()=>{
+        const id=b.dataset.id, act=b.dataset.act, t=tasks.find(x=>x.id===id); if(!t)return;
+        if(act==='edit') openModal(t);
+        if(act==='delete' && confirm('Excluir esta prioridade?')) await supabase.from('priorities').delete().eq('id',id);
+        if(act==='next'||act==='prev'){
+          const order=['backlog','todo','doing','done']; let i=order.indexOf(t.status); i+=act==='next'?1:-1;
+          await supabase.from('priorities').update({status:order[Math.max(0,Math.min(3,i))],updated_at:new Date().toISOString()}).eq('id',id);
+        }
+      });
+    }
+
+    function openModal(t=null){
+      editingId=t?.id||null; $('#modalTitle').textContent=t?'Editar prioridade':'Nova prioridade';
+      $('#taskTitle').value=t?.title||''; $('#taskNotes').value=t?.notes||''; $('#taskHorizon').value=t?.horizon||currentHorizon==='all'?'day':currentHorizon;
+      if(!t && currentHorizon!=='all') $('#taskHorizon').value=currentHorizon;
+      $('#taskDue').value=t?.due_date||''; $('#taskPriority').value=String(t?.priority||2); $('#taskEffort').value=String(t?.effort||2);
+      $('#taskModal').classList.remove('hidden');
+    }
+    function closeModal(){ $('#taskModal').classList.add('hidden'); editingId=null; }
+
+    async function saveTask(){
+      const title=$('#taskTitle').value.trim(); if(!title)return alert('Escreva o título da prioridade.');
+      const payload={title,notes:$('#taskNotes').value.trim(),horizon:$('#taskHorizon').value,due_date:$('#taskDue').value||null,priority:Number($('#taskPriority').value),effort:Number($('#taskEffort').value),updated_at:new Date().toISOString()};
+      const {error}=editingId
+        ? await supabase.from('priorities').update(payload).eq('id',editingId)
+        : await supabase.from('priorities').insert({...payload,user_id:currentUser.id,status:'todo'});
+      if(error) alert(error.message); else closeModal();
+    }
+
+    function quickReview(){
+      const overdue=tasks.filter(t=>t.status!=='done'&&dayDiff(t.due_date)<0);
+      const stale=tasks.filter(t=>t.status==='backlog').length;
+      const msg = overdue.length
+        ? 'Você tem '+overdue.length+' atividade(s) com prazo vencido. Revise prazo, prioridade ou conclua o que já perdeu sentido.'
+        : stale
+          ? 'Nenhum prazo vencido. Há '+stale+' item(ns) em “Pode esperar”; vale revisar se ainda são importantes.'
+          : 'Seu quadro está limpo. Escolha no máximo 3 prioridades para proteger seu foco.';
+      alert(msg);
+    }
+
+    $('#loginBtn').onclick=login; $('#logoutBtn').onclick=()=>supabase.auth.signOut();
+    $('#newBtn').onclick=()=>openModal(); $('#cancelBtn').onclick=closeModal; $('#saveBtn').onclick=saveTask; $('#reviewBtn').onclick=quickReview;
+    $('#taskModal').onclick=e=>{if(e.target.id==='taskModal')closeModal()};
+    $('#horizonNav').onclick=e=>{const b=e.target.closest('button[data-h]');if(!b)return;currentHorizon=b.dataset.h;$$('#horizonNav button').forEach(x=>x.classList.toggle('active',x===b));render();}
+    $('#priorityFilters').onclick=e=>{const b=e.target.closest('button[data-p]');if(!b)return;priorityFilter=b.dataset.p;$$('#priorityFilters button').forEach(x=>x.classList.toggle('active',x===b));render();}
+    boot();
+  </script>
+</body>
+</html>
