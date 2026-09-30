@@ -303,7 +303,7 @@ let data={perfil:null,clientes:[],clienteContatos:[],servicos:[],equipamentos:[]
 const pages=[['dashboard','Centro','⚡'],['pendencias','Pendências','📋'],['clientes','Clientes','🏭'],['servicos','Serviços','🔧'],['agenda','Agenda','📅'],['equipamentos','Equipamentos','⚙️'],['materiais','Materiais','📦'],['colaboradores','Colaboradores','👷'],['financeiro','Financeiro','💰'],['relatorios','Relatórios','📊']];
 const status=s=>{const c=['Concluído','Operacional','Ativo'].includes(s)?'done':['Em execução','Em manutenção','Planejado'].includes(s)?'run':['Emergencial','Alta'].includes(s)?'high':'';return '<span class="status '+c+'">'+esc(s||'—')+'</span>'};
 const card=(l,v,s='')=>'<div class="metric"><span>'+l+'</span><b>'+v+'</b><small>'+s+'</small></div>';
-const infoTip=t=>'<span class="info-wrap"><button type="button" class="info-btn" data-info-btn aria-label="Mais informações">ⓘ</button><span class="info-popover">'+esc(t)+'</span></span>';
+const infoTip=(t,alert=false)=>'<span class="info-wrap"><button type="button" class="info-btn '+(alert?'legacy-info':'')+'" data-info-btn aria-label="Mais informações">ⓘ</button><span class="info-popover">'+esc(t)+'</span></span>';
 function priorityRank(p){return ({'Emergencial':0,'Alta':1,'Média':2,'Baixa':3})[p]??9}
 function sortByPriority(rows){
   return [...rows].sort((a,b)=>{
@@ -521,9 +521,18 @@ function pendingCard(x){
         </select>
       </div>
       ${(+x.valor_adicional||0)>0?`<div class="pending-line"><span>${esc(x.descricao_valor_adicional||'Valor adicional')} • ${esc(x.tipo_valor_adicional||'Serviço')}</span><b>+${money(x.valor_adicional)}</b></div>`:''}
+      ${p.legacyReceived>0?`<div class="legacy-fin-warning">
+        <span style="font-size:16px">⚠</span>
+        <div><strong>Pagamento antigo sem categoria</strong><small>Este atendimento possui histórico financeiro legado.</small></div>
+        <span class="legacy-amount">${money(p.legacyReceived)}</span>
+      </div>`:''}
       <div class="pending-fin">
         <div class="pending-fin-main">
-          <span>A receber total ${infoTip('Valor que ainda falta entrar neste atendimento. É a soma do saldo de serviço e do saldo de material que realmente está sendo cobrado pela AMETEC.')}</span>
+          <span>A receber total ${infoTip(
+            'Valor que ainda falta entrar neste atendimento. É a soma do saldo de serviço e do saldo de material que realmente está sendo cobrado pela AMETEC.'+
+            (p.legacyReceived>0?'\n\nAtenção: existe '+money(p.legacyReceived)+' em pagamentos antigos sem categoria. Para manter o cálculo do saldo, esse valor é abatido primeiro do material e depois do serviço.':''),
+            p.legacyReceived>0
+          )}</span>
           <b>${money(p.balance)}</b>
         </div>
         <div class="pending-fin-sub"><span>Serviço a receber</span><b>${money(p.serviceBalance)}</b></div>
@@ -1230,7 +1239,8 @@ function financeiro(){
             )+
             (p.legacyReceived>0
               ?'\n\nPagamento antigo sem categoria: '+money(p.legacyReceived)+'. Para manter o histórico, esse valor é abatido primeiro do saldo de materiais e depois do saldo de serviços.'
-              :'')
+              :''),
+            p.legacyReceived>0
           )}</div>
 
           ${(+x.valor_adicional||0)>0?`<div class="pending-line"><span>Adicional • ${esc(x.descricao_valor_adicional||'Sem descrição')} • ${esc(x.tipo_valor_adicional||'Serviço')}</span><b>+${money(x.valor_adicional)}</b></div>`:''}
