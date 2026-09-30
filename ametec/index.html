@@ -299,7 +299,7 @@ function sanitizeServicePayload(v){
   nullableText.forEach(k=>{if(k in v&&typeof v[k]==='string'&&!v[k].trim())v[k]=null});
   return v;
 }
-let data={perfil:null,clientes:[],clienteContatos:[],servicos:[],equipamentos:[],materiais:[],colaboradores:[],registros:[],pagamentos:[],movimentacoes:[],orcamentos:[],orcamentoItens:[],lembretes:[],adicionais:[],servicoMateriais:[]},page='dashboard',session=null,channel=null,serviceFolderType=null,serviceDetailId=null;
+let data={perfil:null,clientes:[],clienteContatos:[],servicos:[],equipamentos:[],materiais:[],colaboradores:[],registros:[],pagamentos:[],movimentacoes:[],orcamentos:[],orcamentoItens:[],lembretes:[],adicionais:[],servicoMateriais:[],estoqueMovimentos:[]},page='dashboard',session=null,channel=null,serviceFolderType=null,serviceDetailId=null;
 const pages=[['dashboard','Centro','⚡'],['pendencias','Pendências','📋'],['clientes','Clientes','🏭'],['servicos','Serviços','🔧'],['agenda','Agenda','📅'],['equipamentos','Equipamentos','⚙️'],['materiais','Materiais','📦'],['colaboradores','Colaboradores','👷'],['financeiro','Financeiro','💰'],['relatorios','Relatórios','📊']];
 const status=s=>{const c=['Concluído','Operacional','Ativo'].includes(s)?'done':['Em execução','Em manutenção','Planejado'].includes(s)?'run':['Emergencial','Alta'].includes(s)?'high':'';return '<span class="status '+c+'">'+esc(s||'—')+'</span>'};
 const card=(l,v,s='')=>'<div class="metric"><span>'+l+'</span><b>'+v+'</b><small>'+s+'</small></div>';
@@ -338,22 +338,23 @@ async function load(){
     supabase.from('ametec_orcamento_itens').select('*').order('ordem',{ascending:true}).order('created_at',{ascending:true}),
     supabase.from('ametec_servico_lembretes').select('*').order('created_at',{ascending:false}),
     supabase.from('ametec_servico_adicionais').select('*').order('ordem',{ascending:true}).order('created_at',{ascending:true}),
-    supabase.from('ametec_servico_materiais').select('*').order('created_at',{ascending:true})
+    supabase.from('ametec_servico_materiais').select('*').order('created_at',{ascending:true}),
+    supabase.from('ametec_estoque_movimentacoes').select('*').order('created_at',{ascending:false})
   ]);
   if(qs.some(x=>x.error))return toast('Não foi possível carregar todos os dados.',true);
-  let [perfil,clientes,clienteContatos,servicos,equipamentos,materiais,colaboradores,registros,pagamentos,movimentacoes,orcamentos,orcamentoItens,lembretes,adicionais,servicoMateriais]=qs.map(x=>x.data??null);
+  let [perfil,clientes,clienteContatos,servicos,equipamentos,materiais,colaboradores,registros,pagamentos,movimentacoes,orcamentos,orcamentoItens,lembretes,adicionais,servicoMateriais,estoqueMovimentos]=qs.map(x=>x.data??null);
   if(!perfil){
     const fallback=(session?.user?.user_metadata?.full_name||session?.user?.email?.split('@')[0]||'Usuário').replace(/[._-]+/g,' ');
     const {data:p}=await supabase.from('ametec_usuarios').upsert({user_id:session.user.id,nome:fallback,funcao:'Administrador'}).select().single();
     perfil=p;
   }
-  data={perfil,clientes:clientes||[],clienteContatos:clienteContatos||[],servicos:servicos||[],equipamentos:equipamentos||[],materiais:materiais||[],colaboradores:colaboradores||[],registros:registros||[],pagamentos:pagamentos||[],movimentacoes:movimentacoes||[],orcamentos:orcamentos||[],orcamentoItens:orcamentoItens||[],lembretes:lembretes||[],adicionais:adicionais||[],servicoMateriais:servicoMateriais||[]};
+  data={perfil,clientes:clientes||[],clienteContatos:clienteContatos||[],servicos:servicos||[],equipamentos:equipamentos||[],materiais:materiais||[],colaboradores:colaboradores||[],registros:registros||[],pagamentos:pagamentos||[],movimentacoes:movimentacoes||[],orcamentos:orcamentos||[],orcamentoItens:orcamentoItens||[],lembretes:lembretes||[],adicionais:adicionais||[],servicoMateriais:servicoMateriais||[],estoqueMovimentos:estoqueMovimentos||[]};
   render()
 }
 function subscribe(){
   if(channel)supabase.removeChannel(channel);
   channel=supabase.channel('ametec-live');
-  ['ametec_usuarios','ametec_clientes','ametec_cliente_contatos','ametec_servicos','ametec_equipamentos','ametec_materiais','ametec_colaboradores','ametec_registros','ametec_pagamentos','ametec_movimentacoes','ametec_orcamentos','ametec_orcamento_itens','ametec_servico_lembretes','ametec_servico_adicionais','ametec_servico_materiais'].forEach(t=>channel.on('postgres_changes',{event:'*',schema:'public',table:t},()=>load()));
+  ['ametec_usuarios','ametec_clientes','ametec_cliente_contatos','ametec_servicos','ametec_equipamentos','ametec_materiais','ametec_colaboradores','ametec_registros','ametec_pagamentos','ametec_movimentacoes','ametec_orcamentos','ametec_orcamento_itens','ametec_servico_lembretes','ametec_servico_adicionais','ametec_servico_materiais','ametec_estoque_movimentacoes'].forEach(t=>channel.on('postgres_changes',{event:'*',schema:'public',table:t},()=>load()));
   channel.subscribe()
 }
 function initNav(){
@@ -1464,17 +1465,35 @@ async function duplicateService(id){
     editService(newService.id);
   }catch(err){toast(err.message||String(err),true)}
 }
+function materialStock(m){
+  if(!m)return 0;
+  let qty=+m.estoque_inicial||0;
+  data.estoqueMovimentos.filter(x=>x.material_id===m.id).forEach(x=>{
+    const q=+x.quantidade||0;
+    if(['Entrada','Ajuste +','Estorno'].includes(x.tipo))qty+=q;
+    else if(['Saída','Ajuste -'].includes(x.tipo))qty-=q;
+  });
+  return qty;
+}
+function materialSalePrice(m){return +(m?.preco_venda||m?.valor_unitario||0)}
+function materialCost(m){return +(m?.custo_unitario||0)}
+function stockState(m){
+  const qty=materialStock(m),min=+m.estoque_minimo||0;
+  if(qty<=0)return {label:'Sem estoque',cls:'late'};
+  if(min>0&&qty<=min)return {label:'Estoque baixo',cls:'high'};
+  return {label:'Disponível',cls:'done'};
+}
 function materialCatalogTotal(selection){
   return Object.entries(selection||{}).reduce((sum,[id,qty])=>{
     const m=data.materiais.find(x=>x.id===id);
-    return sum+(m?(+m.valor_unitario||0)*(+qty||0):0);
+    return sum+(m?materialSalePrice(m)*(+qty||0):0);
   },0);
 }
 function materialPickerHtml(selection={},prefix='mat'){
   if(!data.materiais.length)return '<div class="composition-empty">Nenhum material cadastrado. Cadastre itens na aba Materiais para reutilizá-los aqui.</div>';
   return '<div class="material-pick-list">'+data.materiais.map(m=>{
     const qty=selection[m.id]||0,checked=qty>0;
-    return '<label class="material-pick-row"><input type="checkbox" data-mat-check="'+prefix+'" data-material-id="'+m.id+'" '+(checked?'checked':'')+'><span><b>'+esc(m.descricao)+'</b><small>'+esc([m.fornecedor,m.unidade].filter(Boolean).join(' • ')||'Material cadastrado')+' • '+money(m.valor_unitario)+'/un.</small></span><input type="number" min="0.01" step="0.01" value="'+(checked?qty:1)+'" data-mat-qty="'+prefix+'" data-material-id="'+m.id+'" '+(checked?'':'disabled')+'></label>';
+    return '<label class="material-pick-row"><input type="checkbox" data-mat-check="'+prefix+'" data-material-id="'+m.id+'" '+(checked?'checked':'')+'><span><b>'+esc(m.descricao)+'</b><small>'+esc([m.fornecedor,m.unidade].filter(Boolean).join(' • ')||'Material cadastrado')+' • Estoque: '+materialStock(m)+' • Venda: '+money(materialSalePrice(m))+'/un.</small></span><input type="number" min="0.01" step="0.01" max="'+Math.max(materialStock(m)+(checked?(+qty||0):0),0)+'" value="'+(checked?qty:1)+'" data-mat-qty="'+prefix+'" data-material-id="'+m.id+'" '+(checked?'':'disabled')+'></label>';
   }).join('')+'</div>';
 }
 function setupServiceComposition(form,serviceId=null){
@@ -1538,6 +1557,24 @@ function setupServiceComposition(form,serviceId=null){
   renderBase();renderAdds();
 }
 async function saveServiceComposition(form,serviceId){
+  const previousLinks=data.servicoMateriais.filter(l=>l.servico_id===serviceId);
+  const previousUsage={};
+  previousLinks.forEach(l=>previousUsage[l.material_id]=(previousUsage[l.material_id]||0)+(+l.quantidade||0));
+
+  const plannedUsage={};
+  Object.entries(form._baseMaterials||{}).forEach(([id,q])=>plannedUsage[id]=(plannedUsage[id]||0)+(+q||0));
+  (form._additionalDrafts||[]).forEach(a=>Object.entries(a.materials||{}).forEach(([id,q])=>plannedUsage[id]=(plannedUsage[id]||0)+(+q||0)));
+
+  const allIds=new Set([...Object.keys(previousUsage),...Object.keys(plannedUsage)]);
+  for(const materialId of allIds){
+    const delta=(plannedUsage[materialId]||0)-(previousUsage[materialId]||0);
+    if(delta>0){
+      const m=data.materiais.find(x=>x.id===materialId);
+      const available=materialStock(m);
+      if(delta>available+0.0001)throw new Error('Estoque insuficiente de '+(m?.descricao||'material')+'. Disponível: '+available+'. Necessário adicional: '+delta+'.');
+    }
+  }
+
   const {error:linkDel}=await supabase.from('ametec_servico_materiais').delete().eq('servico_id',serviceId);
   if(linkDel)throw linkDel;
   const {error:addDel}=await supabase.from('ametec_servico_adicionais').delete().eq('servico_id',serviceId);
@@ -1545,7 +1582,7 @@ async function saveServiceComposition(form,serviceId){
 
   const baseRows=Object.entries(form._baseMaterials||{}).map(([material_id,quantidade])=>{
     const m=data.materiais.find(x=>x.id===material_id);
-    return {servico_id:serviceId,material_id,quantidade:+quantidade||1,valor_unitario:+m?.valor_unitario||0};
+    return {servico_id:serviceId,material_id,quantidade:+quantidade||1,valor_unitario:materialSalePrice(m)};
   });
   if(baseRows.length){const {error}=await supabase.from('ametec_servico_materiais').insert(baseRows);if(error)throw error}
 
@@ -1560,9 +1597,29 @@ async function saveServiceComposition(form,serviceId){
     if(error)throw error;
     const links=Object.entries(a.materials||{}).map(([material_id,quantidade])=>{
       const m=data.materiais.find(x=>x.id===material_id);
-      return {servico_id:serviceId,adicional_id:row.id,material_id,quantidade:+quantidade||1,valor_unitario:+m?.valor_unitario||0};
+      return {servico_id:serviceId,adicional_id:row.id,material_id,quantidade:+quantidade||1,valor_unitario:materialSalePrice(m)};
     });
     if(links.length){const {error:le}=await supabase.from('ametec_servico_materiais').insert(links);if(le)throw le}
+  }
+
+  const movementRows=[];
+  for(const materialId of allIds){
+    const delta=(plannedUsage[materialId]||0)-(previousUsage[materialId]||0);
+    if(Math.abs(delta)<0.0001)continue;
+    const m=data.materiais.find(x=>x.id===materialId);
+    movementRows.push({
+      material_id:materialId,
+      servico_id:serviceId,
+      tipo:delta>0?'Saída':'Estorno',
+      quantidade:Math.abs(delta),
+      valor_unitario:materialSalePrice(m),
+      origem:'Uso em serviço',
+      observacoes:delta>0?'Baixa automática ao salvar materiais do serviço':'Estorno automático após redução/remoção de material do serviço'
+    });
+  }
+  if(movementRows.length){
+    const {error:me}=await supabase.from('ametec_estoque_movimentacoes').insert(movementRows);
+    if(me)throw me;
   }
 }
 function equipmentLabel(e){
@@ -1965,9 +2022,99 @@ function equipamentos(){
   document.querySelector('#add').onclick=()=>{if(!data.clientes.length)return toast('Cadastre um cliente primeiro.',true);openForm('Novo equipamento',[['cliente_id','Cliente','select',data.clientes.map(x=>({value:x.id,label:x.nome_fantasia}))],['nome','Equipamento','text'],['fabricante','Fabricante','text'],['modelo','Modelo','text'],['numero_serie','Número de série','text'],['setor','Setor','text'],['status','Status','select',['Operacional','Em manutenção','Parado','Desativado']],['observacoes','Observações','textarea']],async v=>{const {error}=await supabase.from('ametec_equipamentos').insert(v);if(error)throw error})}
 }
 function materiais(){
-  const total=data.materiais.reduce((s,x)=>s+(+x.quantidade||0)*(+x.valor_unitario||0),0);
-  document.querySelector('#app').innerHTML=`<section class="hero"><div class="hero-grid"><div><div class="eyebrow">CATÁLOGO DE MATERIAIS</div><h2>Materiais</h2><p>Cadastre materiais uma vez e reutilize nos serviços e valores adicionais.</p></div><button class="btn primary" id="add">+ Material</button></div></section><div class="metrics">${card('Itens cadastrados',data.materiais.length)}${card('Comprados',data.materiais.filter(x=>x.comprado).length)}${card('Pendentes',data.materiais.filter(x=>!x.comprado).length)}${card('Valor cadastrado',money(total))}</div><section class="panel"><div class="cards">${data.materiais.map(x=>{const uses=data.servicoMateriais.filter(l=>l.material_id===x.id).length;return `<article class="entity"><div class="entity-head"><div><b>📦 ${esc(x.descricao)}</b><small>${esc(x.fornecedor||'Sem fornecedor')} • ${uses} utilização(ões)</small></div>${status(x.comprado?'Concluído':'Planejado')}</div><div class="entity-body"><div class="entity-grid"><div><span>Referência</span><b>${x.quantidade} ${esc(x.unidade||'un.')}</b></div><div><span>Valor unitário</span><b>${money(x.valor_unitario)}</b></div><div><span>Valor referência</span><b>${money((+x.quantidade||0)*(+x.valor_unitario||0))}</b></div></div></div></article>`}).join('')||'<div class="empty">Nenhum material cadastrado.</div>'}</div></section>`;
-  document.querySelector('#add').onclick=()=>openForm('Novo material',[['descricao','Material','text'],['quantidade','Quantidade de referência','number'],['unidade','Unidade','text'],['valor_unitario','Valor unitário','number'],['fornecedor','Fornecedor','text'],['comprado','Disponível/comprado?','select',[{value:'false',label:'Não'},{value:'true',label:'Sim'}]]],async v=>{v.quantidade=+v.quantidade||1;v.valor_unitario=+v.valor_unitario||0;v.comprado=v.comprado==='true';v.servico_id=null;const {error}=await supabase.from('ametec_materiais').insert(v);if(error)throw error})
+  let tab=localStorage.getItem('ametecMaterialTab')||'estoque';
+  const activeMaterials=data.materiais.filter(m=>m.ativo!==false);
+  const totalUnits=activeMaterials.reduce((s,m)=>s+Math.max(materialStock(m),0),0);
+  const lowCount=activeMaterials.filter(m=>{const q=materialStock(m),min=+m.estoque_minimo||0;return q<=0||(min>0&&q<=min)}).length;
+  const costValue=activeMaterials.reduce((s,m)=>s+Math.max(materialStock(m),0)*materialCost(m),0);
+  const saleValue=activeMaterials.reduce((s,m)=>s+Math.max(materialStock(m),0)*materialSalePrice(m),0);
+
+  document.querySelector('#app').innerHTML=`
+    <section class="hero"><div class="hero-grid"><div><div class="eyebrow">ESTOQUE AMETEC</div><h2>Materiais</h2><p>Estoque, vendas, entradas e histórico de utilização nos serviços.</p></div><button class="btn primary" id="newMaterial">+ Material</button></div></section>
+    <div class="metrics">
+      ${card('Itens em estoque',totalUnits.toLocaleString('pt-BR'),'quantidade total')}
+      ${card('Estoque baixo',lowCount,'itens que precisam de atenção')}
+      ${card('Valor em custo',money(costValue),'valor estimado do estoque')}
+      ${card('Potencial de venda',money(saleValue),'pelo preço cadastrado')}
+    </div>
+    <div class="inventory-tabs"><button data-mat-tab="estoque">Estoque</button><button data-mat-tab="movimentacoes">Movimentações</button></div>
+    <div id="materialContent"></div>`;
+
+  const materialForm=(m=null)=>openForm(m?'Editar material':'Novo material',[
+    ['descricao','Material','text'],
+    ['unidade','Unidade','text'],
+    ['estoque_inicial',m?'Estoque inicial (base)':'Quantidade inicial','number'],
+    ['estoque_minimo','Estoque mínimo','number'],
+    ['custo_unitario','Custo unitário','number'],
+    ['preco_venda','Preço de venda','number'],
+    ['fornecedor','Fornecedor','text'],
+    ['ativo','Ativo?','select',[{value:'true',label:'Sim'},{value:'false',label:'Não'}]]
+  ],async v=>{
+    v.estoque_inicial=+v.estoque_inicial||0;v.estoque_minimo=+v.estoque_minimo||0;v.custo_unitario=+v.custo_unitario||0;v.preco_venda=+v.preco_venda||0;v.valor_unitario=v.preco_venda;v.quantidade=v.estoque_inicial;v.ativo=v.ativo==='true';v.servico_id=null;v.comprado=true;
+    const q=m?supabase.from('ametec_materiais').update(v).eq('id',m.id):supabase.from('ametec_materiais').insert(v);
+    const {error}=await q;if(error)throw error;
+  },m?{...m,ativo:String(m.ativo!==false)}:{ativo:'true',estoque_inicial:0,estoque_minimo:0});
+
+  const movementForm=(materialId=null,defaultType='Entrada')=>{
+    const m=data.materiais.find(x=>x.id===materialId);
+    openForm('Movimentação de estoque',[
+      ['material_id','Material','select',data.materiais.filter(x=>x.ativo!==false).map(x=>({value:x.id,label:x.descricao+' • Estoque '+materialStock(x)}))],
+      ['tipo','Tipo','select',['Entrada','Saída','Ajuste +','Ajuste -']],
+      ['quantidade','Quantidade','number'],
+      ['valor_unitario','Valor unitário','number'],
+      ['observacoes','Observações','textarea']
+    ],async v=>{
+      v.quantidade=+v.quantidade||0;if(v.quantidade<=0)throw new Error('Informe uma quantidade maior que zero.');
+      const mat=data.materiais.find(x=>x.id===v.material_id);
+      if(['Saída','Ajuste -'].includes(v.tipo)&&v.quantidade>materialStock(mat)+0.0001)throw new Error('Estoque insuficiente. Disponível: '+materialStock(mat));
+      v.valor_unitario=+v.valor_unitario||0;v.origem='Movimentação manual';
+      const {error}=await supabase.from('ametec_estoque_movimentacoes').insert(v);if(error)throw error;
+    },{material_id:materialId||data.materiais[0]?.id||'',tipo:defaultType,valor_unitario:m?materialCost(m):0});
+  };
+
+  const renderTab=()=>{
+    document.querySelectorAll('[data-mat-tab]').forEach(b=>b.classList.toggle('active',b.dataset.matTab===tab));
+    const root=document.querySelector('#materialContent');
+    if(tab==='movimentacoes'){
+      root.innerHTML=`<section class="panel"><div class="panel-head"><div><h3>Histórico de estoque</h3><small>Entradas, saídas, ajustes e materiais usados em serviços.</small></div><button class="btn primary" id="manualMovement">+ Movimentação</button></div><div class="stock-search"><input id="movementSearch" placeholder="🔎 Buscar material, serviço ou cliente"></div><div id="movementList" class="inventory-history" style="margin-top:12px"></div></section>`;
+      const draw=()=>{
+        const q=document.querySelector('#movementSearch').value.trim().toLowerCase();
+        const rows=data.estoqueMovimentos.filter(mv=>{
+          const mat=data.materiais.find(x=>x.id===mv.material_id),svc=data.servicos.find(x=>x.id===mv.servico_id),cli=data.clientes.find(x=>x.id===svc?.cliente_id);
+          return !q||[mat?.descricao,svc?.titulo,cli?.nome_fantasia,mv.tipo,mv.origem,mv.observacoes].filter(Boolean).join(' ').toLowerCase().includes(q);
+        });
+        document.querySelector('#movementList').innerHTML=rows.map(mv=>{
+          const mat=data.materiais.find(x=>x.id===mv.material_id),svc=data.servicos.find(x=>x.id===mv.servico_id),cli=data.clientes.find(x=>x.id===svc?.cliente_id);
+          const isIn=['Entrada','Ajuste +','Estorno'].includes(mv.tipo);
+          return `<div class="inventory-movement ${isIn?'in':'out'}"><div><b>${new Date(mv.created_at).toLocaleDateString('pt-BR')}</b><small style="display:block">${new Date(mv.created_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</small></div><div><b>${isIn?'🟢':'🔴'} ${esc(mv.tipo)}</b></div><div class="mv-detail"><b>${esc(mat?.descricao||'Material')}</b><small style="display:block">${esc([cli?.nome_fantasia,svc?.titulo,mv.origem].filter(Boolean).join(' • ')||mv.observacoes||'Movimentação')}</small></div><div><b>${isIn?'+':'-'}${mv.quantidade}</b><small style="display:block">${esc(mat?.unidade||'un.')}</small></div><div><b>${money(mv.valor_unitario)}</b><small style="display:block">valor unit.</small></div></div>`
+        }).join('')||'<div class="empty">Nenhuma movimentação registrada.</div>';
+      };
+      document.querySelector('#movementSearch').oninput=draw;
+      document.querySelector('#manualMovement').onclick=()=>movementForm();
+      draw();
+    }else{
+      root.innerHTML=`<section class="panel"><div class="panel-head"><div><h3>Estoque atual</h3><small>Saldo calculado pelo histórico de movimentações.</small></div><button class="btn secondary" id="stockEntry">+ Entrada de estoque</button></div><div class="stock-search"><input id="stockSearch" placeholder="🔎 Buscar material ou fornecedor"></div><div id="stockGrid" class="inventory-grid" style="margin-top:12px"></div></section>`;
+      const draw=()=>{
+        const q=document.querySelector('#stockSearch').value.trim().toLowerCase();
+        const rows=data.materiais.filter(m=>!q||[m.descricao,m.fornecedor,m.unidade].filter(Boolean).join(' ').toLowerCase().includes(q));
+        document.querySelector('#stockGrid').innerHTML=rows.map(m=>{
+          const qty=materialStock(m),st=stockState(m),cls=qty<=0?'out':((+m.estoque_minimo||0)>0&&qty<=+m.estoque_minimo?'low':'');
+          const sold=data.estoqueMovimentos.filter(x=>x.material_id===m.id&&x.tipo==='Saída'&&x.origem==='Uso em serviço').reduce((s,x)=>s+(+x.quantidade||0),0);
+          return `<article class="stock-card ${cls}"><div class="stock-head"><div><b>📦 ${esc(m.descricao)}</b><small>${esc(m.fornecedor||'Sem fornecedor')} • ${esc(m.unidade||'un.')}</small></div><span class="status ${st.cls}">${st.label}</span></div><div><div class="stock-qty">${qty.toLocaleString('pt-BR')} <small>${esc(m.unidade||'un.')}</small></div>${(+m.estoque_minimo||0)>0&&qty<=+m.estoque_minimo?`<div class="stock-low-note">⚠ Mínimo definido: ${m.estoque_minimo}</div>`:''}</div><div class="stock-values"><div><span>Custo</span><b>${money(materialCost(m))}</b></div><div><span>Venda</span><b>${money(materialSalePrice(m))}</b></div><div><span>Já utilizado/vendido</span><b>${sold.toLocaleString('pt-BR')}</b></div><div><span>Valor em estoque</span><b>${money(Math.max(qty,0)*materialCost(m))}</b></div></div><div class="stock-actions"><button class="btn secondary" data-stock-in="${m.id}">+ Entrada</button><button class="btn secondary" data-stock-out="${m.id}">- Saída</button><button class="btn secondary" data-edit-material="${m.id}">✏️ Editar</button></div></article>`
+        }).join('')||'<div class="empty">Nenhum material cadastrado.</div>';
+        document.querySelectorAll('[data-stock-in]').forEach(b=>b.onclick=()=>movementForm(b.dataset.stockIn,'Entrada'));
+        document.querySelectorAll('[data-stock-out]').forEach(b=>b.onclick=()=>movementForm(b.dataset.stockOut,'Saída'));
+        document.querySelectorAll('[data-edit-material]').forEach(b=>{b.onclick=()=>materialForm(data.materiais.find(x=>x.id===b.dataset.editMaterial))});
+      };
+      document.querySelector('#stockSearch').oninput=draw;
+      document.querySelector('#stockEntry').onclick=()=>movementForm(null,'Entrada');
+      draw();
+    }
+  };
+
+  document.querySelectorAll('[data-mat-tab]').forEach(b=>b.onclick=()=>{tab=b.dataset.matTab;localStorage.setItem('ametecMaterialTab',tab);renderTab()});
+  document.querySelector('#newMaterial').onclick=()=>materialForm();
+  renderTab();
 }
 function colaboradores(){
   document.querySelector('#app').innerHTML=`<section class="hero"><div class="hero-grid"><div><div class="eyebrow">TIME TÉCNICO</div><h2>Colaboradores</h2><p>Equipe operacional, funções e disponibilidade.</p></div><button class="btn primary" id="add">+ Colaborador</button></div></section><section class="panel"><div class="cards">${data.colaboradores.map(x=>`<article class="entity"><div class="entity-head"><div><b>👷 ${esc(x.nome)}</b><small>${esc(x.funcao||'Sem função')} • ${esc(x.telefone||'Sem telefone')}</small></div>${status(x.ativo?'Ativo':'Inativo')}</div><div class="entity-body"><div class="entity-grid"><div><span>Pagamento</span><b>${esc(x.tipo_pagamento||'—')}</b></div><div><span>Valor base</span><b>${money(x.valor_base)}</b></div><div><span>Situação</span><b>${x.ativo?'Disponível':'Inativo'}</b></div></div></div></article>`).join('')||'<div class="empty">Nenhum colaborador cadastrado.</div>'}</div></section>`;
@@ -2503,6 +2650,13 @@ supabase.auth.onAuthStateChange(async(_,s)=>{session=s;if(session){showApp();awa
   line-height:1.4;
   color:#88a7b7;
 }
+</style>
+<style id="inventory-v1">
+.inventory-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.inventory-tabs button{border:1px solid #234a5d;background:#091923;color:#a6bfcc;border-radius:10px;padding:9px 13px;font-weight:800;cursor:pointer}.inventory-tabs button.active{background:#0f3549;border-color:#2e7d9e;color:#f3fbff}
+.inventory-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px}.stock-card{background:#081923;border:1px solid #17384b;border-radius:14px;padding:13px;display:grid;gap:10px}.stock-card.low{border-color:#906b24}.stock-card.out{border-color:#8f3434}.stock-head{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}.stock-head b{font-size:14px;color:#eefaff}.stock-head small{display:block;font-size:10px;color:#88a5b4;margin-top:3px}.stock-qty{font-size:24px;font-weight:900;color:#fff}.stock-qty small{font-size:11px;color:#9cb7c5}.stock-values{display:grid;grid-template-columns:1fr 1fr;gap:7px}.stock-values div{background:#06151d;border-radius:8px;padding:8px}.stock-values span{display:block;font-size:8px;color:#7896a6;text-transform:uppercase}.stock-values b{display:block;font-size:11px;color:#eaf8ff;margin-top:2px}.stock-actions{display:flex;gap:6px;flex-wrap:wrap}
+.inventory-history{display:grid;gap:7px}.inventory-movement{display:grid;grid-template-columns:100px 90px minmax(0,1fr) 100px 110px;gap:10px;align-items:center;background:#081923;border:1px solid #17384b;border-radius:10px;padding:9px 11px}.inventory-movement.in{border-left:4px solid #38d996}.inventory-movement.out{border-left:4px solid #ff7474}.inventory-movement small{color:#88a5b4;font-size:9px}.inventory-movement b{font-size:11px;color:#eefaff}.stock-low-note{font-size:10px;color:#ffd986}.stock-search{display:flex;gap:8px;flex-wrap:wrap}.stock-search input{flex:1;min-width:220px;background:#06151d;border:1px solid #17384b;color:#eefaff;border-radius:9px;padding:10px}
+@media(max-width:1050px){.inventory-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:700px){.inventory-grid{grid-template-columns:1fr}.inventory-movement{grid-template-columns:1fr auto}.inventory-movement .mv-detail{grid-column:1/-1}}
 </style>
 </body>
 </html>
