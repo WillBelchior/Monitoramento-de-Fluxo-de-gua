@@ -575,6 +575,7 @@ function dashboard(){
 function serviceCard(x){
   const c=data.clientes.find(a=>a.id===x.cliente_id);
   const p=paySummary(x);
+  const eq=data.equipamentos.find(e=>e.id===x.equipamento_id);
   const reminders=data.lembretes.filter(r=>r.servico_id===x.id&&!r.concluido);
   const desc=(x.descricao||x.proxima_acao||'Sem descrição cadastrada.').trim();
   return `<article class="service-mini">
@@ -587,6 +588,7 @@ function serviceCard(x){
       <div class="service-chips">
         <span class="service-chip">⚡ ${esc(x.prioridade||'Sem prioridade')}</span>
         <span class="service-chip">📌 ${esc(x.atendimento_status||x.status||'—')}</span>
+        ${eq?`<span class="service-chip">⚙️ ${esc(eq.nome||'Equipamento')}</span>`:''}
         ${x.responsavel?`<span class="service-chip">👷 ${esc(x.responsavel)}</span>`:''}
       </div>
       <div class="service-mini-info">
@@ -908,7 +910,8 @@ function servicos(){
     const rows=sortByPriority(data.servicos.filter(x=>{
       const c=data.clientes.find(a=>a.id===x.cliente_id);
       const reminderText=data.lembretes.filter(r=>r.servico_id===x.id).map(r=>r.texto).join(' ');
-      return(!q||[x.titulo,x.tipo,x.responsavel,x.descricao,x.proxima_acao,c?.nome_fantasia,reminderText].filter(Boolean).join(' ').toLowerCase().includes(q))&&(f==='Todos'||x.status===f)
+      const eq=data.equipamentos.find(e=>e.id===x.equipamento_id);
+      return(!q||[x.titulo,x.tipo,x.responsavel,x.descricao,x.proxima_acao,c?.nome_fantasia,eq?.nome,eq?.fabricante,eq?.modelo,reminderText].filter(Boolean).join(' ').toLowerCase().includes(q))&&(f==='Todos'||x.status===f)
     }));
     document.querySelector('#list').innerHTML=rows.map(serviceCard).join('')||'<div class="empty">Nenhum serviço encontrado.</div>';
     bindServices();
@@ -1214,6 +1217,47 @@ async function duplicateService(id){
     editService(newService.id);
   }catch(err){toast(err.message||String(err),true)}
 }
+function equipmentLabel(e){
+  return [e.nome,[e.fabricante,e.modelo].filter(Boolean).join(' '),e.setor].filter(Boolean).join(' • ');
+}
+function mountEquipmentPicker(form,currentEquipmentId=null){
+  const clientSelect=form.querySelector('[name="cliente_id"]');
+  const hidden=form.querySelector('[name="equipamento_id"]');
+  const box=form.querySelector('#serviceEquipmentPicker');
+  if(!clientSelect||!hidden||!box)return;
+
+  const draw=()=>{
+    const clientId=clientSelect.value;
+    const rows=data.equipamentos.filter(e=>e.cliente_id===clientId);
+    const selected=hidden.value;
+    box.innerHTML=`
+      <div class="service-equipment-head"><div><b>⚙️ Equipamento do serviço</b><small>Vincule este atendimento a uma máquina já cadastrada, se houver.</small></div></div>
+      <div class="equipment-choice-grid">
+        <button type="button" class="equipment-choice ${!selected?'active':''}" data-equipment-choice="">
+          <b>Sem equipamento cadastrado</b><small>Use para instalações gerais, quadros, visitas ou serviços sem máquina específica.</small>
+        </button>
+        ${rows.map(e=>`<button type="button" class="equipment-choice ${String(selected)===String(e.id)?'active':''}" data-equipment-choice="${e.id}">
+          <b>${esc(e.nome||'Equipamento')}</b>
+          <small>${esc([e.fabricante,e.modelo,e.setor,e.status].filter(Boolean).join(' • ')||'Equipamento cadastrado')}</small>
+        </button>`).join('')}
+      </div>
+      ${rows.length?'':'<div class="equipment-none">Este cliente ainda não possui equipamentos cadastrados.</div>'}`;
+
+    box.querySelectorAll('[data-equipment-choice]').forEach(b=>b.onclick=()=>{
+      hidden.value=b.dataset.equipmentChoice||'';
+      draw();
+    });
+  };
+
+  clientSelect.addEventListener('change',()=>{
+    const current=data.equipamentos.find(e=>String(e.id)===String(hidden.value));
+    if(current&&String(current.cliente_id)!==String(clientSelect.value))hidden.value='';
+    draw();
+  });
+  if(currentEquipmentId)hidden.value=currentEquipmentId;
+  draw();
+}
+
 function editService(id){
   const x=data.servicos.find(s=>s.id===id);if(!x)return;
   const modal=document.querySelector('#modal');
@@ -1229,6 +1273,8 @@ function editService(id){
     <div class="service-form-intro">Altere os dados principais e mantenha apenas os blocos adicionais que fizerem sentido para este serviço.</div>
 
     <label class="field"><span>Cliente</span><select name="cliente_id" required>${opts(data.clientes.map(c=>({value:c.id,label:c.nome_fantasia})),x.cliente_id)}</select></label>
+    <input type="hidden" name="equipamento_id" value="${esc(x.equipamento_id||'')}">
+    <div id="serviceEquipmentPicker" class="service-equipment-box"></div>
     <label class="field"><span>Título</span><input name="titulo" type="text" required value="${esc(x.titulo||'')}"></label>
 
     <label class="field"><span>Tipo</span><select name="tipo">${opts(['Emergência','Preventiva','Contrato','Instalação elétrica','Automação','Comando elétrico','Máquina de padaria','Outro'],x.tipo)}</select></label>
@@ -1254,6 +1300,8 @@ function editService(id){
 
     <div id="optionalServiceFields" style="grid-column:1/-1;display:grid;gap:10px"></div>
     <button class="btn primary" style="grid-column:1/-1">Salvar alterações</button>`;
+
+  mountEquipmentPicker(form,x.equipamento_id||null);
 
   const blocks={
     budget_dates:{title:'📅 Datas do orçamento',html:`<label class="field"><span>Data de envio</span><input name="orcamento_data_envio" type="date" value="${esc(x.orcamento_data_envio||'')}"></label><label class="field"><span>Validade</span><input name="orcamento_validade" type="date" value="${esc(x.orcamento_validade||'')}"></label>`},
@@ -1296,6 +1344,7 @@ function editService(id){
     e.preventDefault();
     try{
       const v=Object.fromEntries(new FormData(form));
+      v.equipamento_id=v.equipamento_id||null;
       const optionalKeys=['orcamento_data_envio','orcamento_validade','data_agendada','horario_agendado','responsavel','progresso','valor_servico','valor_material','material_fornecimento','valor_adicional','descricao_valor_adicional','tipo_valor_adicional','vencimento_pagamento','proxima_acao','proxima_acao_data','descricao'];
       for(const k of optionalKeys)if(!(k in v))v[k]=null;
       for(const k of ['progresso','valor_servico','valor_material','valor_adicional'])v[k]=v[k]===null?0:(+v[k]||0);
@@ -1327,6 +1376,8 @@ function newService(){
     </div>
 
     <label class="field"><span>Cliente</span><select name="cliente_id" required>${opts(data.clientes.map(x=>({value:x.id,label:x.nome_fantasia})))}</select></label>
+    <input type="hidden" name="equipamento_id" value="">
+    <div id="serviceEquipmentPicker" class="service-equipment-box"></div>
     <label class="field"><span>Título</span><input name="titulo" type="text" required placeholder="Ex.: Manutenção no quadro principal"></label>
 
     <label class="field"><span>Tipo</span><select name="tipo">${opts(['Emergência','Preventiva','Contrato','Instalação elétrica','Automação','Comando elétrico','Máquina de padaria','Outro'])}</select></label>
@@ -1355,6 +1406,8 @@ function newService(){
 
     <div id="optionalServiceFields" style="grid-column:1/-1;display:grid;gap:10px"></div>
     <button class="btn primary" style="grid-column:1/-1">Salvar serviço</button>`;
+
+  mountEquipmentPicker(form,null);
 
   const blocks={
     budget_dates:{
@@ -1428,6 +1481,7 @@ function newService(){
     e.preventDefault();
     try{
       const v=Object.fromEntries(new FormData(form));
+      v.equipamento_id=v.equipamento_id||null;
       for(const k of ['progresso','valor_servico','valor_material','valor_adicional'])if(k in v)v[k]=+v[k]||0;
 
       v.status=v.atendimento_status==='Concluída'?'Concluído':
@@ -1720,6 +1774,14 @@ supabase.auth.onAuthStateChange(async(_,s)=>{session=s;if(session){showApp();awa
 .reminder-shell{display:grid;gap:10px;grid-column:1/-1}.reminder-compose{display:grid;grid-template-columns:1fr auto;gap:8px}.reminder-compose textarea{background:#06141d;border:1px solid #1c4257;color:#eefaff;border-radius:9px;padding:10px;min-height:72px;resize:vertical}.reminder-list{display:grid;gap:8px}.reminder-item{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:start;background:#071820;border:1px solid #17384b;border-radius:10px;padding:9px}.reminder-item.done{opacity:.55}.reminder-item.done .reminder-text{text-decoration:line-through}.reminder-text{font-size:12px;line-height:1.4;color:#d6eaf4}.reminder-meta{font-size:9px;color:#7895a5;margin-top:3px}.services-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:12px}
 @media(max-width:1050px){.service-grid-compact{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:700px){.service-grid-compact{grid-template-columns:1fr}.services-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.reminder-compose{grid-template-columns:1fr}}
+</style>
+
+<style id="ametec-service-equipment-link">
+.service-equipment-box{grid-column:1/-1;background:#071820;border:1px solid #17384b;border-radius:11px;padding:10px;display:grid;gap:8px}
+.service-equipment-head{display:flex;justify-content:space-between;gap:10px;align-items:center}.service-equipment-head b{font-size:12px;color:#e9f8ff}.service-equipment-head small{font-size:10px;color:#829dac}
+.equipment-choice-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.equipment-choice{border:1px solid #23495d;background:#0a2230;color:#dff5ff;border-radius:9px;padding:9px;text-align:left;cursor:pointer}.equipment-choice.active{border-color:#2fa6d6;background:#0d3143;box-shadow:0 0 0 1px rgba(47,166,214,.18)}.equipment-choice b{display:block;font-size:11px}.equipment-choice small{display:block;font-size:9px;color:#92afbe;margin-top:3px}
+.equipment-none{font-size:10px;color:#8da8b8;padding:7px 2px}
+@media(max-width:700px){.equipment-choice-grid{grid-template-columns:1fr}}
 </style>
 </body>
 </html>
