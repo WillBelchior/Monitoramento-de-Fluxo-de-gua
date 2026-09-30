@@ -928,6 +928,17 @@ async function openProposal(id){
         <label class="field full"><span>Observações</span><textarea name="observacoes" rows="4">${esc(o.observacoes||'')}</textarea></label>
       </section>
 
+      <section class="proposal-section">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+          <h4>Mensagem pronta para WhatsApp</h4>
+          <div class="proposal-whatsapp-actions">
+            <button type="button" class="btn secondary" id="refreshWhatsappProposal">↻ Atualizar texto</button>
+            <button type="button" class="btn primary" id="copyWhatsappProposal">📋 Copiar para WhatsApp</button>
+          </div>
+        </div>
+        <div id="proposalWhatsapp" class="proposal-whatsapp"></div>
+      </section>
+
       <button class="btn primary">Salvar proposta</button>
     </div>`;
 
@@ -936,6 +947,76 @@ async function openProposal(id){
   const calc=()=>{
     const total=items.reduce((sum,x)=>sum+(+x.quantidade||0)*(+x.valor_unitario||0),0);
     form.querySelector('#proposalTotal').textContent=money(total);
+  };
+
+  const buildWhatsappProposal=()=>{
+    const vals=Object.fromEntries(new FormData(form));
+    const cleanItems=items.filter(x=>String(x.descricao||'').trim());
+    const total=cleanItems.reduce((sum,x)=>sum+(+x.quantidade||0)*(+x.valor_unitario||0),0);
+    const materialTotal=cleanItems.filter(x=>x.categoria==='Material').reduce((sum,x)=>sum+(+x.quantidade||0)*(+x.valor_unitario||0),0);
+    const serviceTotal=cleanItems.filter(x=>x.categoria==='Serviço').reduce((sum,x)=>sum+(+x.quantidade||0)*(+x.valor_unitario||0),0);
+    const otherTotal=cleanItems.filter(x=>x.categoria==='Outro').reduce((sum,x)=>sum+(+x.quantidade||0)*(+x.valor_unitario||0),0);
+
+    const lines=[];
+    lines.push('*AMETEC | PROPOSTA DE ORÇAMENTO*');
+    lines.push('');
+    lines.push('*Cliente:* '+(c?.nome_fantasia||'—'));
+    lines.push('*Serviço:* '+(s.titulo||'—'));
+    if(s.tipo)lines.push('*Tipo:* '+s.tipo);
+    lines.push('');
+    if(vals.objetivo){
+      lines.push('*Objetivo*');
+      lines.push(vals.objetivo.trim());
+      lines.push('');
+    }
+    if(vals.escopo){
+      lines.push('*Escopo do serviço*');
+      vals.escopo.split('\n').map(x=>x.trim()).filter(Boolean).forEach(x=>lines.push('• '+x));
+      lines.push('');
+    }
+    if(cleanItems.length){
+      lines.push('*Investimento*');
+      cleanItems.forEach(x=>{
+        const q=+x.quantidade||1,unit=+x.valor_unitario||0;
+        const qty=q!==1?' ('+q+'x)':'';
+        lines.push('• '+x.descricao+qty+': *'+money(q*unit)+'*');
+      });
+      lines.push('');
+      if(materialTotal>0)lines.push('*Materiais:* '+money(materialTotal));
+      if(serviceTotal>0)lines.push('*Serviços:* '+money(serviceTotal));
+      if(otherTotal>0)lines.push('*Outros:* '+money(otherTotal));
+      lines.push('*Valor total:* *'+money(total)+'*');
+      lines.push('');
+    }
+    if(vals.condicao_inicio||vals.condicao_conclusao){
+      lines.push('*Condições de pagamento*');
+      if(vals.condicao_inicio)lines.push('*Para iniciar:* '+vals.condicao_inicio.trim());
+      if(vals.condicao_conclusao)lines.push('*Na conclusão:* '+vals.condicao_conclusao.trim());
+      lines.push('');
+    }
+    if(vals.prazo_estimado){
+      lines.push('*Prazo estimado:* '+vals.prazo_estimado.trim());
+      lines.push('');
+    }
+    if(vals.garantia){
+      lines.push('*Garantia*');
+      lines.push(vals.garantia.trim());
+      lines.push('');
+    }
+    if(vals.observacoes){
+      lines.push('*Observações*');
+      lines.push(vals.observacoes.trim());
+      lines.push('');
+    }
+    lines.push('Fico à disposição para qualquer dúvida ou ajuste na proposta.');
+    lines.push('');
+    lines.push('*AMETEC | Manutenção Industrial e Elétrica*');
+    return lines.join('\n');
+  };
+
+  const updateWhatsappProposal=()=>{
+    const box=form.querySelector('#proposalWhatsapp');
+    if(box)box.textContent=buildWhatsappProposal();
   };
   const drawItems=()=>{
     list.innerHTML=items.map((x,i)=>`<div class="proposal-item" data-proposal-row="${i}">
@@ -947,13 +1028,25 @@ async function openProposal(id){
     </div>`).join('')||'<div class="empty">Nenhum item adicionado.</div>';
     list.querySelectorAll('[data-proposal-row]').forEach(row=>{
       const i=+row.dataset.proposalRow;
-      row.querySelectorAll('[data-pi]').forEach(inp=>inp.oninput=()=>{items[i][inp.dataset.pi]=inp.dataset.pi==='quantidade'||inp.dataset.pi==='valor_unitario'?+inp.value||0:inp.value;calc()});
+      row.querySelectorAll('[data-pi]').forEach(inp=>inp.oninput=()=>{items[i][inp.dataset.pi]=inp.dataset.pi==='quantidade'||inp.dataset.pi==='valor_unitario'?+inp.value||0:inp.value;calc();updateWhatsappProposal()});
     });
-    list.querySelectorAll('[data-remove-pi]').forEach(b=>b.onclick=()=>{items.splice(+b.dataset.removePi,1);drawItems();calc()});
+    list.querySelectorAll('[data-remove-pi]').forEach(b=>b.onclick=()=>{items.splice(+b.dataset.removePi,1);drawItems();calc();updateWhatsappProposal()});
     calc();
   };
-  form.querySelector('#addProposalItem').onclick=()=>{items.push({categoria:'Material',descricao:'',quantidade:1,valor_unitario:0});drawItems()};
+  form.querySelector('#addProposalItem').onclick=()=>{items.push({categoria:'Material',descricao:'',quantidade:1,valor_unitario:0});drawItems();updateWhatsappProposal()};
   drawItems();
+  form.querySelectorAll('textarea,input,select').forEach(el=>{if(!el.dataset.pi)el.addEventListener('input',updateWhatsappProposal)});
+  form.querySelector('#refreshWhatsappProposal').onclick=updateWhatsappProposal;
+  form.querySelector('#copyWhatsappProposal').onclick=async()=>{
+    const txt=buildWhatsappProposal();
+    try{
+      await navigator.clipboard.writeText(txt);
+      toast('Proposta copiada para o WhatsApp');
+    }catch(e){
+      const ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();toast('Proposta copiada');
+    }
+  };
+  updateWhatsappProposal();
 
   form.onsubmit=async e=>{
     e.preventDefault();
@@ -1496,7 +1589,7 @@ supabase.auth.onAuthStateChange(async(_,s)=>{session=s;if(session){showApp();awa
 </style>
 
 <style id="ametec-proposal">
-.proposal-shell{display:grid;gap:12px}.proposal-section{border:1px solid #17384b;border-radius:12px;background:#081923;padding:12px;display:grid;gap:9px}.proposal-section h4{margin:0;color:#eefaff;font-size:13px}.proposal-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.proposal-items{display:grid;gap:7px}.proposal-item{display:grid;grid-template-columns:120px 1fr 80px 120px 34px;gap:7px;align-items:center}.proposal-item input,.proposal-item select,.proposal-section textarea,.proposal-section input{width:100%;box-sizing:border-box;background:#06141d;border:1px solid #1c4257;color:#eefaff;border-radius:8px;padding:9px}.proposal-item button{width:32px;height:32px}.proposal-total{display:flex;justify-content:space-between;align-items:center;padding:10px;border-radius:9px;background:#0b2736;border:1px solid #245c76}.proposal-total b{font-size:18px}.proposal-preview{white-space:pre-wrap;font-size:12px;line-height:1.55;color:#cfe7f4}
+.proposal-shell{display:grid;gap:12px}.proposal-section{border:1px solid #17384b;border-radius:12px;background:#081923;padding:12px;display:grid;gap:9px}.proposal-section h4{margin:0;color:#eefaff;font-size:13px}.proposal-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.proposal-items{display:grid;gap:7px}.proposal-item{display:grid;grid-template-columns:120px 1fr 80px 120px 34px;gap:7px;align-items:center}.proposal-item input,.proposal-item select,.proposal-section textarea,.proposal-section input{width:100%;box-sizing:border-box;background:#06141d;border:1px solid #1c4257;color:#eefaff;border-radius:8px;padding:9px}.proposal-item button{width:32px;height:32px}.proposal-total{display:flex;justify-content:space-between;align-items:center;padding:10px;border-radius:9px;background:#0b2736;border:1px solid #245c76}.proposal-total b{font-size:18px}.proposal-preview{white-space:pre-wrap;font-size:12px;line-height:1.55;color:#cfe7f4}.proposal-whatsapp{background:#06141d;border:1px solid #1c4257;border-radius:10px;padding:12px;white-space:pre-wrap;line-height:1.6;color:#d9eef8;font-size:12px;max-height:360px;overflow:auto}.proposal-whatsapp-actions{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}
 @media(max-width:700px){.proposal-grid{grid-template-columns:1fr}.proposal-item{grid-template-columns:1fr 1fr}.proposal-item .proposal-desc{grid-column:1/-1}.proposal-item button{grid-column:2;justify-self:end}}
 </style>
 </body>
