@@ -1,5 +1,9 @@
 # Norte — Prioridades pessoais
 
+## Aplicação online
+- Preview operacional: https://id-preview--59ac8cb3-6e49-4083-9f72-bfd5a1c7be85.lovable.app
+- Produção solicitada: https://norte-prioridades.lovable.app
+
 Aplicação pessoal e responsiva para organizar prioridades em quatro horizontes: **Hoje, Semana, Mês e Semestre**.
 
 ## Lógica
