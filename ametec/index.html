@@ -585,6 +585,7 @@ function pendingCard(x){
       <div class="pending-fin">
         <div class="pending-fin-sub"><span>Serviço a receber</span><b>${money(p.serviceBalance)}</b></div>
         <div class="pending-fin-sub"><span>Material a receber</span><b>${money(p.materialBalance)}</b></div>
+        <div class="pending-fin-total"><span>Total a receber</span><b>${money(p.serviceBalance+p.materialBalance)}</b></div>
         <div class="pending-fin-sub" style="grid-column:1/-1"><span>Recebido</span><b>${money(p.received)}</b></div>
         <div class="pending-fin-status"><span style="font-size:10px;color:#829dad">Situação financeira</span><span class="status ${payClass}">${p.state}</span></div>
       </div>
@@ -2933,6 +2934,29 @@ supabase.auth.onAuthStateChange(async(_,s)=>{session=s;if(session){showApp();awa
 .pending-class-tabs button.active{
   background:#0f3549;
   border-color:#2d87aa;
+  color:#ffffff;
+}
+</style>
+<style id="pending-total-receivable-v1">
+.pending-fin-total{
+  grid-column:1/-1;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  padding:10px 12px;
+  border-top:1px solid #2a5267;
+  border-bottom:1px solid #2a5267;
+  background:#0b2634;
+}
+.pending-fin-total span{
+  font-size:9px;
+  color:#9ab7c5;
+  text-transform:uppercase;
+  letter-spacing:.04em;
+}
+.pending-fin-total b{
+  font-size:14px;
   color:#ffffff;
 }
 </style>
