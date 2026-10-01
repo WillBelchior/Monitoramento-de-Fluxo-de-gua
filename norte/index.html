@@ -108,7 +108,8 @@
         <div class="field"><label>Importância</label><select id="taskPriority"><option value="4">Crítica</option><option value="3">Alta</option><option value="2" selected>Média</option><option value="1">Baixa</option></select></div>
         <div class="field"><label>Esforço estimado</label><select id="taskEffort"><option value="1">Leve</option><option value="2" selected>Médio</option><option value="3">Alto</option></select></div>
       </div>
-      <div class="modal-actions"><button class="btn" id="cancelBtn">Cancelar</button><button class="btn primary" id="saveBtn">Salvar prioridade</button></div>
+      <div id="saveMsg" class="notice" style="margin-top:12px"></div>
+      <div class="modal-actions"><button class="btn" type="button" id="cancelBtn">Cancelar</button><button class="btn primary" type="button" id="saveBtn">Salvar prioridade</button></div>
     </div>
   </div>
 
@@ -270,13 +271,67 @@
     }
     function closeModal(){ $('#taskModal').classList.add('hidden'); editingId=null; }
 
-    async function saveTask(){
-      const title=$('#taskTitle').value.trim(); if(!title)return alert('Escreva o título da prioridade.');
-      const payload={title,notes:$('#taskNotes').value.trim(),horizon:$('#taskHorizon').value,due_date:$('#taskDue').value||null,priority:Number($('#taskPriority').value),effort:Number($('#taskEffort').value),updated_at:new Date().toISOString()};
-      const {error}=editingId
-        ? await supabase.from('priorities').update(payload).eq('id',editingId)
-        : await supabase.from('priorities').insert({...payload,user_id:currentUser.id,status:'todo'});
-      if(error) alert(error.message); else closeModal();
+    async function saveTask(e){
+      e?.preventDefault();
+      const saveBtn=$('#saveBtn');
+      const saveMsg=$('#saveMsg');
+      const title=$('#taskTitle').value.trim();
+
+      if(!title){
+        saveMsg.textContent='Escreva o título da prioridade.';
+        return;
+      }
+
+      saveBtn.disabled=true;
+      saveBtn.textContent='Salvando...';
+      saveMsg.textContent='';
+
+      try{
+        const {data:{session},error:sessionError}=await supabase.auth.getSession();
+        if(sessionError) throw sessionError;
+        if(!session?.user) throw new Error('Sua sessão expirou. Entre novamente para salvar.');
+
+        currentUser=session.user;
+
+        const payload={
+          title,
+          notes:$('#taskNotes').value.trim(),
+          horizon:$('#taskHorizon').value,
+          due_date:$('#taskDue').value||null,
+          priority:Number($('#taskPriority').value),
+          effort:Number($('#taskEffort').value),
+          updated_at:new Date().toISOString()
+        };
+
+        let result;
+        if(editingId){
+          result=await supabase
+            .from('priorities')
+            .update(payload)
+            .eq('id',editingId)
+            .eq('user_id',currentUser.id)
+            .select()
+            .single();
+        }else{
+          result=await supabase
+            .from('priorities')
+            .insert({...payload,user_id:currentUser.id,status:'todo'})
+            .select()
+            .single();
+        }
+
+        if(result.error) throw result.error;
+
+        await loadTasks();
+        saveMsg.textContent='Prioridade salva.';
+        setTimeout(()=>closeModal(),250);
+      }catch(err){
+        console.error('Erro ao salvar prioridade:',err);
+        saveMsg.textContent='Não foi possível salvar: '+(err?.message||'erro desconhecido');
+      }finally{
+        saveBtn.disabled=false;
+        saveBtn.textContent='Salvar prioridade';
+      }
     }
 
     function quickReview(){
@@ -291,7 +346,7 @@
     }
 
     $('#loginBtn').onclick=login; $('#signupBtn').onclick=signup; $('#logoutBtn').onclick=()=>supabase.auth.signOut();
-    $('#newBtn').onclick=()=>openModal(); $('#cancelBtn').onclick=closeModal; $('#saveBtn').onclick=saveTask; $('#reviewBtn').onclick=quickReview;
+    $('#newBtn').onclick=()=>openModal(); $('#cancelBtn').onclick=closeModal; $('#saveBtn').addEventListener('click',saveTask); $('#reviewBtn').onclick=quickReview;
     $('#taskModal').onclick=e=>{if(e.target.id==='taskModal')closeModal()};
     $('#horizonNav').onclick=e=>{const b=e.target.closest('button[data-h]');if(!b)return;currentHorizon=b.dataset.h;$$('#horizonNav button').forEach(x=>x.classList.toggle('active',x===b));render();}
     $('#priorityFilters').onclick=e=>{const b=e.target.closest('button[data-p]');if(!b)return;priorityFilter=b.dataset.p;$$('#priorityFilters button').forEach(x=>x.classList.toggle('active',x===b));render();}
