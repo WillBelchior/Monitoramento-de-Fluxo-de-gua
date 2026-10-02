@@ -709,6 +709,7 @@ function pendencias(){
       ${card('Elaborando orçamento',data.servicos.filter(x=>x.atendimento_status==='Elaborando orçamento').length)}
       ${card('Aguardando aprovação',data.servicos.filter(x=>x.atendimento_status==='Aguardando aprovação').length)}
       ${card('Prestações ativas',data.servicos.filter(x=>x.tipo==='Prestação de serviço'&&x.atendimento_status!=='Concluída').length)}
+      ${card('Serviços a receber',money(data.servicos.filter(x=>x.tipo!=='Prestação de serviço').reduce((s,x)=>s+paySummary(x).serviceBalance,0)))}
       ${card('Prestação a receber',money(data.servicos.filter(x=>x.tipo==='Prestação de serviço').reduce((s,x)=>s+paySummary(x).serviceBalance,0)))}
       ${card('Materiais a receber',money(data.servicos.reduce((s,x)=>s+paySummary(x).materialBalance,0)))}
     </div>
@@ -763,8 +764,9 @@ function pendencias(){
       metrics[0].textContent=data.servicos.filter(x=>x.atendimento_status==='Elaborando orçamento').length;
       metrics[1].textContent=data.servicos.filter(x=>x.atendimento_status==='Aguardando aprovação').length;
       metrics[2].textContent=data.servicos.filter(x=>x.tipo==='Prestação de serviço'&&x.atendimento_status!=='Concluída').length;
-      metrics[3].textContent=money(data.servicos.filter(x=>x.tipo==='Prestação de serviço').reduce((s,x)=>s+paySummary(x).serviceBalance,0));
-      metrics[4].textContent=money(data.servicos.reduce((s,x)=>s+paySummary(x).materialBalance,0));
+      metrics[3].textContent=money(data.servicos.filter(x=>x.tipo!=='Prestação de serviço').reduce((s,x)=>s+paySummary(x).serviceBalance,0));
+      metrics[4].textContent=money(data.servicos.filter(x=>x.tipo==='Prestação de serviço').reduce((s,x)=>s+paySummary(x).serviceBalance,0));
+      metrics[5].textContent=money(data.servicos.reduce((s,x)=>s+paySummary(x).materialBalance,0));
     }
     renderFinanceAlert();
   };
