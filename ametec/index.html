@@ -339,6 +339,7 @@ const status=s=>{const c=['Concluído','Operacional','Ativo'].includes(s)?'done'
 const card=(l,v,s='')=>'<div class="metric"><span>'+l+'</span><b>'+v+'</b><small>'+s+'</small></div>';
 const infoTip=t=>'<span class="info-wrap"><button type="button" class="info-btn" data-info-btn aria-label="Mais informações">ⓘ</button><span class="info-popover">'+esc(t)+'</span></span>';
 function priorityRank(p){return ({'Emergencial':0,'Alta':1,'Média':2,'Baixa':3})[p]??9}
+function isReceivableStage(s){return ['Orçamento aprovado','Em andamento','Pausada','Concluída'].includes(s?.atendimento_status)}
 function sortByPriority(rows){
   return [...rows].sort((a,b)=>{
     const pa=priorityRank(a.prioridade),pb=priorityRank(b.prioridade);
@@ -709,9 +710,9 @@ function pendencias(){
       ${card('Elaborando orçamento',data.servicos.filter(x=>x.atendimento_status==='Elaborando orçamento').length)}
       ${card('Aguardando aprovação',data.servicos.filter(x=>x.atendimento_status==='Aguardando aprovação').length)}
       ${card('Prestações ativas',data.servicos.filter(x=>x.tipo==='Prestação de serviço'&&x.atendimento_status!=='Concluída').length)}
-      ${card('Serviços a receber',money(data.servicos.filter(x=>x.tipo!=='Prestação de serviço').reduce((s,x)=>s+paySummary(x).serviceBalance,0)))}
-      ${card('Prestação a receber',money(data.servicos.filter(x=>x.tipo==='Prestação de serviço').reduce((s,x)=>s+paySummary(x).serviceBalance,0)))}
-      ${card('Materiais a receber',money(data.servicos.reduce((s,x)=>s+paySummary(x).materialBalance,0)))}
+      ${card('Serviços a receber',money(data.servicos.filter(x=>x.tipo!=='Prestação de serviço'&&isReceivableStage(x)).reduce((s,x)=>s+paySummary(x).serviceBalance,0)))}
+      ${card('Prestação a receber',money(data.servicos.filter(x=>x.tipo==='Prestação de serviço'&&isReceivableStage(x)).reduce((s,x)=>s+paySummary(x).serviceBalance,0)))}
+      ${card('Materiais a receber',money(data.servicos.filter(isReceivableStage).reduce((s,x)=>s+paySummary(x).materialBalance,0)))}
     </div>
     <div class="pending-class-tabs">
       <button class="active" data-pending-class="todos">Todos</button>
@@ -764,9 +765,9 @@ function pendencias(){
       metrics[0].textContent=data.servicos.filter(x=>x.atendimento_status==='Elaborando orçamento').length;
       metrics[1].textContent=data.servicos.filter(x=>x.atendimento_status==='Aguardando aprovação').length;
       metrics[2].textContent=data.servicos.filter(x=>x.tipo==='Prestação de serviço'&&x.atendimento_status!=='Concluída').length;
-      metrics[3].textContent=money(data.servicos.filter(x=>x.tipo!=='Prestação de serviço').reduce((s,x)=>s+paySummary(x).serviceBalance,0));
-      metrics[4].textContent=money(data.servicos.filter(x=>x.tipo==='Prestação de serviço').reduce((s,x)=>s+paySummary(x).serviceBalance,0));
-      metrics[5].textContent=money(data.servicos.reduce((s,x)=>s+paySummary(x).materialBalance,0));
+      metrics[3].textContent=money(data.servicos.filter(x=>x.tipo!=='Prestação de serviço'&&isReceivableStage(x)).reduce((s,x)=>s+paySummary(x).serviceBalance,0));
+      metrics[4].textContent=money(data.servicos.filter(x=>x.tipo==='Prestação de serviço'&&isReceivableStage(x)).reduce((s,x)=>s+paySummary(x).serviceBalance,0));
+      metrics[5].textContent=money(data.servicos.filter(isReceivableStage).reduce((s,x)=>s+paySummary(x).materialBalance,0));
     }
     renderFinanceAlert();
   };
